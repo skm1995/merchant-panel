@@ -42,12 +42,9 @@ An unverified account can request at most five resend attempts in each
 
 ## Verification
 
-Run the complete CI checks locally with the application services running:
+Run the complete CI verification locally before pushing. GitHub Actions runs
+the same script against the same Docker Compose stack:
 
 ```sh
-docker compose --profile test up --build -d
-docker compose run --rm php-test composer migrate
-docker compose run --rm php-test composer test
-docker compose run --rm php-test composer analyse
-docker compose run --rm php-test composer cs-check
+bin/ci
 ```

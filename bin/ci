@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Runs the complete CI verification against the Docker Compose stack.
+# GitHub Actions and local pre-push checks use this same script.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+compose=(docker compose --profile test)
+run=("${compose[@]}" run --rm --no-deps php-test)
+
+"${compose[@]}" build
+"${run[@]}" composer install --no-interaction --no-progress
+"${compose[@]}" up --detach --wait
+"${run[@]}" composer validate --no-check-publish
+"${run[@]}" composer test-unit
+"${run[@]}" composer migrate
+"${run[@]}" composer test-functional
+"${run[@]}" composer analyse
+"${run[@]}" composer cs-check

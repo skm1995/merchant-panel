@@ -59,7 +59,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 ## Quality and delivery
 
 - Keep PHPStan at level 8 and PHP CS Fixer configured for PSR-12.
-- CI must run both test suites, apply database migrations, and run PHPStan and PHP CS Fixer.
+- CI must run both test suites, apply database migrations, and run PHPStan and PHP CS Fixer. CI and local verification run the same `bin/ci` script against the Docker Compose stack; do not duplicate service configuration or environment variables in the workflow file.
 - For email confirmation, functional tests must prove that opening the GET link does not verify the account and that an explicit valid POST does. Cover token replay or expiry where repository behavior changes.
-- Before pushing, run the full CI verification locally: migrations, unit tests, functional tests with required services, PHPStan, and PHP CS Fixer. Push only after every check passes.
+- Before pushing, run `bin/ci` locally without a local `.env` override and push only after it passes. After pushing, confirm that the GitHub Actions run succeeds.
 - Write commit messages in scoped Conventional Commits format: `<type>(<scope>): <description>`. Every commit must have a lowercase scope.

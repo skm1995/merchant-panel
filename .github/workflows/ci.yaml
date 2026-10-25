@@ -7,110 +7,14 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_DATABASE: app_test
-          MYSQL_USER: app
-          MYSQL_PASSWORD: app
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=root --silent"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-      rabbitmq:
-        image: rabbitmq:4-management
-        env:
-          RABBITMQ_DEFAULT_USER: app
-          RABBITMQ_DEFAULT_PASS: app
-        ports:
-          - 5672:5672
-        options: >-
-          --health-cmd="rabbitmq-diagnostics -q ping"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-      mailhog:
-        image: mailhog/mailhog:v1.0.1
-        ports:
-          - 1025:1025
-          - 8025:8025
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          extensions: pdo_mysql, amqp, bcmath
-          coverage: none
-          tools: composer:v2
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-      - name: Run unit tests
-        run: composer test-unit
-      - name: Run database migrations
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: app_test
-          DB_USERNAME: app
-          DB_PASSWORD: app
-        run: composer migrate
-      - name: Build Apache application image
-        run: docker build --tag vanilla-php-ci --file docker/php/Dockerfile .
-      - name: Start Apache application
-        run: >-
-          docker run --detach --name vanilla-php-ci --publish 8080:80
-          --add-host host.docker.internal:host-gateway
-          --volume "$GITHUB_WORKSPACE:/var/www/html"
-          --env XDEBUG_MODE=off
-          --env DB_HOST=host.docker.internal
-          --env DB_PORT=3306
-          --env DB_DATABASE=app_test
-          --env DB_USERNAME=app
-          --env DB_PASSWORD=app
-          --env MESSENGER_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails
-          vanilla-php-ci
-      - name: Start asynchronous email worker
-        run: >-
-          docker run --detach --name vanilla-php-worker
-          --add-host host.docker.internal:host-gateway
-          --volume "$GITHUB_WORKSPACE:/var/www/html"
-          --workdir /var/www/html
-          --env MESSENGER_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails
-          --env MESSENGER_FAILURE_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails_failed
-          --env MAILER_DSN=smtp://host.docker.internal:1025
-          --env APP_BASE_URL=http://127.0.0.1:8080
-          vanilla-php-ci php bin/worker.php
-      - name: Wait for Apache routes
-        run: |
-          for attempt in $(seq 1 30); do
-            if curl --silent --fail http://127.0.0.1:8080/register >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          docker logs vanilla-php-ci
-          exit 1
-      - name: Run functional tests
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: app_test
-          DB_USERNAME: app
-          DB_PASSWORD: app
-          APP_BASE_URL: http://127.0.0.1:8080
-          MAILHOG_API_BASE_URL: http://127.0.0.1:8025
-        run: composer test-functional
-      - name: Run PHPStan
-        run: composer analyse
-      - name: Check PSR-12 formatting
-        run: composer cs-check
-      - name: Stop Apache application
+      - name: Run CI verification
+        run: bin/ci
+      - name: Show service logs
+        if: failure()
+        run: docker compose --profile test logs --no-color
+      - name: Stop services
         if: always()
-        run: docker rm --force vanilla-php-ci vanilla-php-worker
+        run: docker compose --profile test down --volumes
