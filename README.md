@@ -81,6 +81,12 @@ running total (`SUM ... OVER`), and the product report ranks revenue with
 `DENSE_RANK`. A functional test checks with `EXPLAIN FORMAT=JSON` that they
 range-scan the `orders_status_created_at` index.
 
+The order report page at `/legacy/order-report.php` replaced an old procedural
+script that built SQL from request parameters and printed them unescaped. It
+now runs a prepared statement, accepts only known statuses and real dates,
+escapes all output, and requires the same `X-Api-Key`. A golden master test
+recorded from the old script guarantees that its content did not change.
+
 ## Product cache
 
 `GET /api/v1/products/{id}` reads products through Redis. Only one process

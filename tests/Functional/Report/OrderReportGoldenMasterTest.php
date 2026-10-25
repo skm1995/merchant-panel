@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Functional\Legacy;
+namespace Tests\Functional\Report;
 
 use App\Cart\Entity\CartId;
 use App\Shared\Config\Environment;
@@ -17,10 +17,10 @@ use Tests\Functional\Support\TestProductData;
 
 /**
  * Golden master of the order report's observable content, recorded from the legacy script
- * before refactoring. Order ids are replaced by stable placeholders. Delete the snapshot to
+ * before it was refactored into the Report module and kept unchanged since. Order ids are replaced by stable placeholders. Delete the snapshot to
  * record it again, and review the diff before committing it.
  */
-final class OrderReportCharacterizationTest extends TestCase
+final class OrderReportGoldenMasterTest extends TestCase
 {
     private const string REPORT_PATH = '/legacy/order-report.php';
     private const string SNAPSHOT_PATH = '/__snapshots__/order-report.json';
