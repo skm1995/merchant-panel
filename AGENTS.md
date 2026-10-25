@@ -16,7 +16,8 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Document every JSON API operation in `openapi.yaml` and validate real responses, including problem details, against it in the functional suite.
 - Test repositories against the real test database in the functional suite rather than mocking PDO.
 - Test security-sensitive HTTP behavior explicitly: state-changing GET requests must have no side effects, and invalid or missing CSRF tokens must prevent the action and return an appropriate error status.
-- Test recovery paths for infrastructure failures. In particular, retrying registration for an existing unverified user with valid credentials must allow confirmation email delivery to be retried without creating another account.
+- Test recovery paths for infrastructure failures. Registration must store the user, the token, and the confirmation email message atomically through the outbox, so a broker outage cannot lose the email, and retrying registration for an existing unverified user with valid credentials must resend the confirmation without creating another account.
+- Open transactions in application services or command handlers, never in repositories; repository methods that need one document that callers must run them inside a transaction.
 - Rate-limit confirmation email resends with a durable database counter, a typed integer maximum, and the rate window expressed in seconds as a typed integer constant. Test the limit and the reset after the window expires.
 
 ## Code and architecture

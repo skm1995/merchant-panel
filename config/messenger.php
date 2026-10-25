@@ -22,6 +22,7 @@ return [
         ExpireOrderReservationCommand::class => 'orders',
     ],
     'outbox_messages' => [
+        ConfirmationEmailMessage::class,
         ExpireOrderReservationCommand::class,
     ],
 ];

@@ -87,7 +87,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *test-messenger-environment, *test-app-environment, *payment-environment]
+      <<: [*test-database-environment, *test-app-environment, *payment-environment]
       XDEBUG_MODE: "off"
       MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
     depends_on:
@@ -104,7 +104,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *test-messenger-environment, *payment-environment]
+      <<: [*test-database-environment, *payment-environment]
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       SESSION_COOKIE_SECURE: "false"

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Auth\Repository;
 
 use App\Shared\Database\RecordFetcher;
-use App\Shared\Database\TransactionRunnerInterface;
 use DateTimeImmutable;
 use PDO;
 
@@ -27,10 +26,8 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string WINDOW_START_MODIFIER_FORMAT = '-%d seconds';
 
-    public function __construct(
-        private readonly PDO $pdo,
-        private readonly TransactionRunnerInterface $transactions,
-    ) {
+    public function __construct(private readonly PDO $pdo)
+    {
     }
 
     public function store(string $email, string $tokenHash, DateTimeImmutable $expiresAt): void
@@ -50,75 +47,64 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
         int $windowSeconds,
         int $maximumAttempts,
     ): bool {
-        return $this->transactions->run(function () use (
-            $email,
-            $tokenHash,
-            $expiresAt,
-            $now,
-            $windowSeconds,
-            $maximumAttempts,
-        ): bool {
-            $stateStatement = $this->pdo->prepare(self::RESEND_STATE_QUERY);
-            $stateStatement->execute([self::EMAIL_PARAMETER => $email]);
-            $state = RecordFetcher::one($stateStatement, ResendStateRecord::class);
+        $stateStatement = $this->pdo->prepare(self::RESEND_STATE_QUERY);
+        $stateStatement->execute([self::EMAIL_PARAMETER => $email]);
+        $state = RecordFetcher::one($stateStatement, ResendStateRecord::class);
 
-            if ($state === null) {
-                $this->pdo->prepare(self::INSERT_RESEND_QUERY)->execute([
-                    self::EMAIL_PARAMETER => $email,
-                    self::TOKEN_HASH_PARAMETER => $tokenHash,
-                    self::EXPIRES_AT_PARAMETER => $expiresAt->format(self::DATETIME_FORMAT),
-                    self::WINDOW_STARTED_AT_PARAMETER => $now->format(self::DATETIME_FORMAT),
-                ]);
-
-                return true;
-            }
-
-            $windowStartedAt = $state->windowStartedAt();
-            $windowExpired = $windowStartedAt <= $now->modify(
-                sprintf(self::WINDOW_START_MODIFIER_FORMAT, $windowSeconds),
-            );
-            $resendCount = $windowExpired ? 0 : $state->resendCount;
-
-            if ($resendCount >= $maximumAttempts) {
-                return false;
-            }
-
-            $this->pdo->prepare(self::UPDATE_RESEND_QUERY)->execute([
+        if ($state === null) {
+            $this->pdo->prepare(self::INSERT_RESEND_QUERY)->execute([
                 self::EMAIL_PARAMETER => $email,
                 self::TOKEN_HASH_PARAMETER => $tokenHash,
                 self::EXPIRES_AT_PARAMETER => $expiresAt->format(self::DATETIME_FORMAT),
-                self::RESEND_COUNT_PARAMETER => $resendCount + 1,
-                self::WINDOW_STARTED_AT_PARAMETER => ($windowExpired ? $now : $windowStartedAt)
-                    ->format(self::DATETIME_FORMAT),
+                self::WINDOW_STARTED_AT_PARAMETER => $now->format(self::DATETIME_FORMAT),
             ]);
 
             return true;
-        });
+        }
+
+        $windowStartedAt = $state->windowStartedAt();
+        $windowExpired = $windowStartedAt <= $now->modify(
+            sprintf(self::WINDOW_START_MODIFIER_FORMAT, $windowSeconds),
+        );
+        $resendCount = $windowExpired ? 0 : $state->resendCount;
+
+        if ($resendCount >= $maximumAttempts) {
+            return false;
+        }
+
+        $this->pdo->prepare(self::UPDATE_RESEND_QUERY)->execute([
+            self::EMAIL_PARAMETER => $email,
+            self::TOKEN_HASH_PARAMETER => $tokenHash,
+            self::EXPIRES_AT_PARAMETER => $expiresAt->format(self::DATETIME_FORMAT),
+            self::RESEND_COUNT_PARAMETER => $resendCount + 1,
+            self::WINDOW_STARTED_AT_PARAMETER => ($windowExpired ? $now : $windowStartedAt)
+                ->format(self::DATETIME_FORMAT),
+        ]);
+
+        return true;
     }
 
     public function confirmEmail(string $tokenHash, DateTimeImmutable $confirmedAt): bool
     {
-        return $this->transactions->run(function () use ($tokenHash, $confirmedAt): bool {
-            $confirmedAtValue = $confirmedAt->format(self::DATETIME_FORMAT);
-            $findStatement = $this->pdo->prepare(self::FIND_VALID_TOKEN_QUERY);
-            $findStatement->execute([
-                self::TOKEN_HASH_PARAMETER => $tokenHash,
-                self::CONFIRMED_AT_PARAMETER => $confirmedAtValue,
-            ]);
-            $email = $findStatement->fetchColumn();
+        $confirmedAtValue = $confirmedAt->format(self::DATETIME_FORMAT);
+        $findStatement = $this->pdo->prepare(self::FIND_VALID_TOKEN_QUERY);
+        $findStatement->execute([
+            self::TOKEN_HASH_PARAMETER => $tokenHash,
+            self::CONFIRMED_AT_PARAMETER => $confirmedAtValue,
+        ]);
+        $email = $findStatement->fetchColumn();
 
-            if (!is_string($email)) {
-                return false;
-            }
+        if (!is_string($email)) {
+            return false;
+        }
 
-            $verifyStatement = $this->pdo->prepare(self::VERIFY_USER_QUERY);
-            $verifyStatement->execute([
-                self::CONFIRMED_AT_PARAMETER => $confirmedAtValue,
-                self::EMAIL_PARAMETER => $email,
-            ]);
-            $this->pdo->prepare(self::DELETE_TOKEN_QUERY)->execute([self::TOKEN_HASH_PARAMETER => $tokenHash]);
+        $verifyStatement = $this->pdo->prepare(self::VERIFY_USER_QUERY);
+        $verifyStatement->execute([
+            self::CONFIRMED_AT_PARAMETER => $confirmedAtValue,
+            self::EMAIL_PARAMETER => $email,
+        ]);
+        $this->pdo->prepare(self::DELETE_TOKEN_QUERY)->execute([self::TOKEN_HASH_PARAMETER => $tokenHash]);
 
-            return $verifyStatement->rowCount() === 1;
-        });
+        return $verifyStatement->rowCount() === 1;
     }
 }

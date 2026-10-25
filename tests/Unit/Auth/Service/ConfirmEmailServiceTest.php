@@ -9,6 +9,7 @@ use App\Auth\Repository\EmailVerificationTokenRepositoryInterface;
 use App\Auth\Service\ConfirmEmailService;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class ConfirmEmailServiceTest extends TestCase
 {
@@ -23,7 +24,7 @@ final class ConfirmEmailServiceTest extends TestCase
             self::isInstanceOf(DateTimeImmutable::class),
         )->willReturn(true);
 
-        new ConfirmEmailService($tokens)->execute(self::TOKEN);
+        new ConfirmEmailService($tokens, new ImmediateTransactionRunner())->execute(self::TOKEN);
     }
 
     public function testInvalidOrExpiredTokenIsRejected(): void
@@ -32,6 +33,6 @@ final class ConfirmEmailServiceTest extends TestCase
         $tokens->method('confirmEmail')->willReturn(false);
 
         $this->expectException(InvalidConfirmationTokenException::class);
-        new ConfirmEmailService($tokens)->execute(self::TOKEN);
+        new ConfirmEmailService($tokens, new ImmediateTransactionRunner())->execute(self::TOKEN);
     }
 }

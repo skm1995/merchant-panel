@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Auth;
 
-use App\Auth\Message\ConfirmationEmailQueueInterface;
 use App\Auth\Repository\PdoEmailVerificationTokenRepository;
 use App\Auth\Repository\PdoUserRepository;
 use App\Auth\Service\ConfirmationToken;
@@ -19,7 +18,9 @@ use DateTimeImmutable;
 use DomainException;
 use PDO;
 use PDOStatement;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\NativeClock;
 use Tests\Functional\Support\TestUserData;
 
 final class AuthFlowTest extends TestCase
@@ -53,12 +54,14 @@ final class AuthFlowTest extends TestCase
     {
         $this->pdo = DatabaseConnection::createFromEnvironment();
         $this->users = new PdoUserRepository($this->pdo);
-        $this->tokens = new PdoEmailVerificationTokenRepository($this->pdo, new PdoTransactionRunner($this->pdo));
+        $this->tokens = new PdoEmailVerificationTokenRepository($this->pdo);
         $userAuthService = new UserAuthService($this->users);
         $this->registerUser = new RegisterUserService(
             $userAuthService,
             $this->tokens,
-            $this->createStub(ConfirmationEmailQueueInterface::class),
+            $this->createStub(OutboxInterface::class),
+            new PdoTransactionRunner($this->pdo),
+            new NativeClock(),
         );
         $session = new Session();
         $session->start();
@@ -128,14 +131,14 @@ final class AuthFlowTest extends TestCase
 
     private function resend(string $token, DateTimeImmutable $now): bool
     {
-        return $this->tokens->storeWithinResendLimit(
+        return new PdoTransactionRunner($this->pdo)->run(fn (): bool => $this->tokens->storeWithinResendLimit(
             $this->email,
             self::tokenHash($token),
             $now->modify(self::TWO_DAYS_MODIFIER),
             $now,
             RegisterUserService::RESEND_WINDOW_SECONDS,
             RegisterUserService::MAXIMUM_RESEND_ATTEMPTS,
-        );
+        ));
     }
 
     private function markVerified(): void

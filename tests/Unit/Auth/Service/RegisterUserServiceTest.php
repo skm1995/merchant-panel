@@ -8,16 +8,18 @@ use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Exception\ResendLimitReachedException;
 use App\Auth\Message\ConfirmationEmailMessage;
-use App\Auth\Message\ConfirmationEmailQueueInterface;
 use App\Auth\Repository\EmailVerificationTokenRepositoryInterface;
 use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\ConfirmationToken;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
 use DateTimeImmutable;
+use App\Shared\Database\Enum\IsolationLevelEnum;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use DomainException;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
+use Symfony\Component\Clock\MockClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class RegisterUserServiceTest extends TestCase
 {
@@ -25,7 +27,7 @@ final class RegisterUserServiceTest extends TestCase
     private const string PASSWORD = 'correct-horse-battery';
     private const string WRONG_PASSWORD = 'incorrect-password';
     private const string INVALID_EMAIL = 'invalid-email';
-    private const string BROKER_FAILURE = 'Broker unavailable.';
+    private const string NOW = '2026-10-25 12:00:00';
     private const int TOKEN_HASH_LENGTH = 64;
 
     public function testStoresOnlyTokenHashAndDispatchesConfirmationEmail(): void
@@ -45,15 +47,21 @@ final class RegisterUserServiceTest extends TestCase
             }),
             self::isInstanceOf(DateTimeImmutable::class),
         );
-        $queue = $this->createMock(ConfirmationEmailQueueInterface::class);
-        $queue->expects(self::once())->method('dispatch')->with(self::callback(
-            static function (ConfirmationEmailMessage $message) use (&$tokenHash): bool {
-                return $message->email === self::EMAIL
-                    && $tokenHash === ConfirmationToken::fromString($message->token)->hash();
-            },
-        ));
+        $queue = $this->createMock(OutboxInterface::class);
+        $queue->expects(self::once())->method('add')->with(
+            self::callback(
+                static function (ConfirmationEmailMessage $message) use (&$tokenHash): bool {
+                    return $message->email === self::EMAIL
+                        && $tokenHash === ConfirmationToken::fromString($message->token)->hash();
+                },
+            ),
+            new DateTimeImmutable(self::NOW),
+        );
+        $transactions = new ImmediateTransactionRunner();
 
-        new RegisterUserService(new UserAuthService($users), $tokens, $queue)->execute(self::EMAIL, self::PASSWORD);
+        $this->service($users, $tokens, $queue, $transactions)->execute(self::EMAIL, self::PASSWORD);
+
+        self::assertSame(IsolationLevelEnum::READ_COMMITTED, $transactions->lastIsolationLevel);
     }
 
     public function testValidationFailureDoesNotLookForAnExistingAccount(): void
@@ -61,13 +69,9 @@ final class RegisterUserServiceTest extends TestCase
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->expects(self::never())->method('findByEmail');
         $users->expects(self::never())->method('create');
-        $queue = $this->createMock(ConfirmationEmailQueueInterface::class);
-        $queue->expects(self::never())->method('dispatch');
-        $service = new RegisterUserService(
-            new UserAuthService($users),
-            $this->createStub(EmailVerificationTokenRepositoryInterface::class),
-            $queue,
-        );
+        $queue = $this->createMock(OutboxInterface::class);
+        $queue->expects(self::never())->method('add');
+        $service = $this->service($users, $this->createStub(EmailVerificationTokenRepositoryInterface::class), $queue);
 
         $this->expectException(DomainException::class);
         $service->execute(self::INVALID_EMAIL, self::PASSWORD);
@@ -88,59 +92,22 @@ final class RegisterUserServiceTest extends TestCase
             RegisterUserService::RESEND_WINDOW_SECONDS,
             RegisterUserService::MAXIMUM_RESEND_ATTEMPTS,
         )->willReturn(true);
-        $queue = $this->createMock(ConfirmationEmailQueueInterface::class);
-        $queue->expects(self::once())->method('dispatch');
+        $queue = $this->createMock(OutboxInterface::class);
+        $queue->expects(self::once())->method('add');
 
-        new RegisterUserService(new UserAuthService($users), $tokens, $queue)->execute(self::EMAIL, self::PASSWORD);
+        $this->service($users, $tokens, $queue)->execute(self::EMAIL, self::PASSWORD);
     }
 
     public function testRejectsDuplicateEmailWhenPasswordDoesNotMatchUnverifiedUser(): void
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findByEmail')->willReturn(self::existingUser());
-        $queue = $this->createMock(ConfirmationEmailQueueInterface::class);
-        $queue->expects(self::never())->method('dispatch');
-        $service = new RegisterUserService(
-            new UserAuthService($users),
-            $this->createStub(EmailVerificationTokenRepositoryInterface::class),
-            $queue,
-        );
+        $queue = $this->createMock(OutboxInterface::class);
+        $queue->expects(self::never())->method('add');
+        $service = $this->service($users, $this->createStub(EmailVerificationTokenRepositoryInterface::class), $queue);
 
         $this->expectException(DuplicateEmailException::class);
         $service->execute(self::EMAIL, self::WRONG_PASSWORD);
-    }
-
-    public function testRegistrationCanBeRetriedAfterQueueDispatchFailure(): void
-    {
-        $user = self::existingUser();
-        $users = $this->createMock(UserRepositoryInterface::class);
-        $users->expects(self::exactly(3))
-            ->method('findByEmail')
-            ->with(self::EMAIL)
-            ->willReturnOnConsecutiveCalls(null, $user, $user);
-        $users->expects(self::once())->method('create')->willReturn($user);
-        $tokens = $this->createMock(EmailVerificationTokenRepositoryInterface::class);
-        $tokens->expects(self::once())->method('store');
-        $tokens->expects(self::once())->method('storeWithinResendLimit')->willReturn(true);
-        $queue = $this->createMock(ConfirmationEmailQueueInterface::class);
-        $dispatchCount = 0;
-        $queue->expects(self::exactly(2))->method('dispatch')->willReturnCallback(
-            static function () use (&$dispatchCount): void {
-                if ($dispatchCount++ === 0) {
-                    throw new RuntimeException(self::BROKER_FAILURE);
-                }
-            },
-        );
-        $service = new RegisterUserService(new UserAuthService($users), $tokens, $queue);
-
-        try {
-            $service->execute(self::EMAIL, self::PASSWORD);
-            self::fail('Expected the broker failure to be propagated.');
-        } catch (RuntimeException $exception) {
-            self::assertSame(self::BROKER_FAILURE, $exception->getMessage());
-        }
-
-        $service->execute(self::EMAIL, self::PASSWORD);
     }
 
     public function testStopsWhenTheConfirmationResendLimitIsReached(): void
@@ -149,12 +116,27 @@ final class RegisterUserServiceTest extends TestCase
         $users->method('findByEmail')->willReturn(self::existingUser());
         $tokens = $this->createStub(EmailVerificationTokenRepositoryInterface::class);
         $tokens->method('storeWithinResendLimit')->willReturn(false);
-        $queue = $this->createMock(ConfirmationEmailQueueInterface::class);
-        $queue->expects(self::never())->method('dispatch');
-        $service = new RegisterUserService(new UserAuthService($users), $tokens, $queue);
+        $queue = $this->createMock(OutboxInterface::class);
+        $queue->expects(self::never())->method('add');
+        $service = $this->service($users, $tokens, $queue);
 
         $this->expectException(ResendLimitReachedException::class);
         $service->execute(self::EMAIL, self::PASSWORD);
+    }
+
+    private function service(
+        UserRepositoryInterface $users,
+        EmailVerificationTokenRepositoryInterface $tokens,
+        OutboxInterface $outbox,
+        ?ImmediateTransactionRunner $transactions = null,
+    ): RegisterUserService {
+        return new RegisterUserService(
+            new UserAuthService($users),
+            $tokens,
+            $outbox,
+            $transactions ?? new ImmediateTransactionRunner(),
+            new MockClock(self::NOW),
+        );
     }
 
     private static function newUser(string $email, string $passwordHash): User

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Auth\Controller;
 
 use App\Auth\Controller\AuthController;
-use App\Auth\Message\ConfirmationEmailQueueInterface;
 use App\Auth\Repository\EmailVerificationTokenRepositoryInterface;
 use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\ConfirmEmailService;
@@ -20,7 +19,10 @@ use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class AuthControllerTest extends TestCase
 {
@@ -131,10 +133,12 @@ final class AuthControllerTest extends TestCase
             new RegisterUserService(
                 $userAuthService,
                 $tokens,
-                $this->createStub(ConfirmationEmailQueueInterface::class),
+                $this->createStub(OutboxInterface::class),
+                new ImmediateTransactionRunner(),
+                new MockClock(),
             ),
             new LoginUserService($userAuthService, $currentUser),
-            new ConfirmEmailService($tokens),
+            new ConfirmEmailService($tokens, new ImmediateTransactionRunner()),
             $currentUser,
             new Responder(new CsrfToken($this->session)),
         );

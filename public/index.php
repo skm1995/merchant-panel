@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Auth\Controller\AuthController;
-use App\Auth\Infrastructure\Messenger\SymfonyMessengerEmailQueue;
 use App\Auth\Repository\PdoEmailVerificationTokenRepository;
 use App\Auth\Repository\PdoUserRepository;
 use App\Auth\Service\ConfirmEmailService;
@@ -42,7 +41,6 @@ use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
 use App\Shared\Config\Environment;
-use App\Shared\Messaging\MessengerRuntime;
 use App\Shared\Messaging\Outbox\PdoOutbox;
 use Symfony\Component\Clock\NativeClock;
 
@@ -58,7 +56,9 @@ $currentUser = new CurrentUser($session);
 
 $pdo = DatabaseConnection::createFromEnvironment();
 $transactions = new PdoTransactionRunner($pdo);
-$tokenRepository = new PdoEmailVerificationTokenRepository($pdo, $transactions);
+$tokenRepository = new PdoEmailVerificationTokenRepository($pdo);
+$outbox = new PdoOutbox($pdo);
+$clock = new NativeClock();
 $userAuthService = new UserAuthService(new PdoUserRepository($pdo));
 
 $router = new Router($csrfToken, $responder);
@@ -67,10 +67,12 @@ $router->registerController(new AuthController(
     new RegisterUserService(
         $userAuthService,
         $tokenRepository,
-        new SymfonyMessengerEmailQueue(MessengerRuntime::fromConfiguration()->bus()),
+        $outbox,
+        $transactions,
+        $clock,
     ),
     new LoginUserService($userAuthService, $currentUser),
-    new ConfirmEmailService($tokenRepository),
+    new ConfirmEmailService($tokenRepository, $transactions),
     $currentUser,
     $responder,
 ));
@@ -81,7 +83,6 @@ $stockReservation = new StockReservation($productRepository);
 $orderRepository = new PdoOrderRepository($pdo);
 $router->registerController(new ProductApiController($productCatalog, $responder));
 $router->registerController(new CartApiController($cartService, $responder));
-$clock = new NativeClock();
 $getOrder = new GetOrderHandler(new PdoOrderReadRepository($pdo));
 $paymentRepository = new PdoPaymentRepository($pdo);
 $paymentGateways = new PaymentGatewayFactory($clock);
@@ -90,7 +91,7 @@ $router->registerController(new OrderApiController(
         $orderRepository,
         $cartService,
         $stockReservation,
-        new PdoOutbox($pdo),
+        $outbox,
         $transactions,
         $clock,
         Environment::positiveInteger(ORDER_RESERVATION_SECONDS),
