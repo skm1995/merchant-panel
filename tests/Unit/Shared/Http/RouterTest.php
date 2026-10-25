@@ -21,6 +21,10 @@ final class RouterTest extends TestCase
     private const string DISPATCHED_MESSAGE = 'route dispatched';
     private const string NOT_FOUND_MESSAGE = '404 Not Found';
     private const string FORBIDDEN_MESSAGE = '403 Forbidden';
+    public const string PRODUCT_ID_PARAMETER = 'id';
+    private const string PRODUCT_ID = '42';
+    private const string PRODUCT_PATH = '/products/42';
+    private const string NESTED_PRODUCT_PATH = '/products/42/reviews';
     private const string POST_VALUE = 'post route dispatched';
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
@@ -151,6 +155,61 @@ final class RouterTest extends TestCase
         self::assertFalse($controller->called);
         self::assertSame(403, http_response_code());
         self::assertSame(self::FORBIDDEN_MESSAGE, $output);
+    }
+
+    public function testPassesRequestWithPathParametersToAction(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/products/{id}';
+            public ?string $productId = null;
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(Request $request): void
+            {
+                $this->productId = $request->routeParameter(RouterTest::PRODUCT_ID_PARAMETER);
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
+
+        self::assertSame(self::PRODUCT_ID, $controller->productId);
+    }
+
+    public function testPathParameterDoesNotMatchAcrossSegments(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/products/{id}';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(Request $request): void
+            {
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+        ob_start();
+
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::NESTED_PRODUCT_PATH));
+        ob_end_clean();
+
+        self::assertSame(404, http_response_code());
+    }
+
+    public function testRejectsRouteMethodWithNonRequestParameter(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(string $value): void
+            {
+            }
+        };
+
+        $this->expectException(LogicException::class);
+        $this->router()->registerController($controller);
     }
 
     private function router(): Router

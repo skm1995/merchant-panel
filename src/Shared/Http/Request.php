@@ -14,12 +14,14 @@ final readonly class Request
     /**
      * @param array<mixed> $query
      * @param array<mixed> $post
+     * @param array<string, string> $routeParameters
      */
     public function __construct(
         public string $method,
         public string $path,
         private array $query = [],
         private array $post = [],
+        private array $routeParameters = [],
     ) {
     }
 
@@ -45,6 +47,17 @@ final readonly class Request
     public function post(string $key): ?string
     {
         return self::stringValue($this->post, $key);
+    }
+
+    /** @param array<string, string> $parameters */
+    public function withRouteParameters(array $parameters): self
+    {
+        return new self($this->method, $this->path, $this->query, $this->post, $parameters);
+    }
+
+    public function routeParameter(string $name): ?string
+    {
+        return $this->routeParameters[$name] ?? null;
     }
 
     /** @param array<mixed> $input */

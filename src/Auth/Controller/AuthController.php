@@ -41,7 +41,6 @@ final class AuthController
         private readonly LoginUserService $loginUser,
         private readonly ConfirmEmailService $confirmEmail,
         private readonly CurrentUser $currentUser,
-        private readonly Request $request,
         private readonly Responder $responder,
     ) {
     }
@@ -53,9 +52,10 @@ final class AuthController
     }
 
     #[Route(HttpMethodEnum::POST, self::REGISTER_ROUTE_PATH)]
-    public function register(): void
+    public function register(Request $request): void
     {
         $this->submitCredentials(
+            $request,
             $this->registerUser->execute(...),
             self::REGISTER_TEMPLATE,
             self::CONFIRMATION_SENT_ROUTE_PATH,
@@ -69,9 +69,9 @@ final class AuthController
     }
 
     #[Route(HttpMethodEnum::POST, self::LOGIN_ROUTE_PATH)]
-    public function login(): void
+    public function login(Request $request): void
     {
-        $this->submitCredentials($this->loginUser->execute(...), self::LOGIN_TEMPLATE, Request::ROOT_PATH);
+        $this->submitCredentials($request, $this->loginUser->execute(...), self::LOGIN_TEMPLATE, Request::ROOT_PATH);
     }
 
     #[Route(HttpMethodEnum::POST, self::LOGOUT_ROUTE_PATH)]
@@ -88,9 +88,9 @@ final class AuthController
     }
 
     #[Route(HttpMethodEnum::GET, self::CONFIRM_ROUTE_PATH)]
-    public function confirm(): void
+    public function confirm(Request $request): void
     {
-        $token = $this->request->query(self::TOKEN_FIELD);
+        $token = $request->query(self::TOKEN_FIELD);
 
         if ($token === null) {
             $this->responder->status(ResponseStatusEnum::BAD_REQUEST);
@@ -102,9 +102,9 @@ final class AuthController
     }
 
     #[Route(HttpMethodEnum::POST, self::CONFIRM_ROUTE_PATH)]
-    public function confirmPost(): void
+    public function confirmPost(Request $request): void
     {
-        $token = $this->request->post(self::TOKEN_FIELD);
+        $token = $request->post(self::TOKEN_FIELD);
 
         if ($token === null) {
             $this->responder->status(ResponseStatusEnum::BAD_REQUEST);
@@ -132,10 +132,14 @@ final class AuthController
     }
 
     /** @param callable(string, string): void $action */
-    private function submitCredentials(callable $action, string $template, string $successPath): void
-    {
-        $email = $this->request->post(self::EMAIL_FIELD);
-        $password = $this->request->post(self::PASSWORD_FIELD);
+    private function submitCredentials(
+        Request $request,
+        callable $action,
+        string $template,
+        string $successPath,
+    ): void {
+        $email = $request->post(self::EMAIL_FIELD);
+        $password = $request->post(self::PASSWORD_FIELD);
 
         if ($email === null || $password === null) {
             $this->responder->status(ResponseStatusEnum::BAD_REQUEST);

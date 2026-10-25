@@ -65,6 +65,16 @@ final class RequestTest extends TestCase
         self::assertSame(Request::ROOT_PATH, $request->path);
     }
 
+    public function testCarriesRouteParametersWithoutMutatingOriginal(): void
+    {
+        $request = new Request(HttpMethodEnum::GET->value, self::PATH);
+
+        $routed = $request->withRouteParameters([self::FIELD => self::VALUE]);
+
+        self::assertSame(self::VALUE, $routed->routeParameter(self::FIELD));
+        self::assertNull($request->routeParameter(self::FIELD));
+    }
+
     public function testReturnsNullForMissingOrNonStringInput(): void
     {
         $request = new Request(HttpMethodEnum::POST->value, self::PATH, [], [self::FIELD => [self::VALUE]]);

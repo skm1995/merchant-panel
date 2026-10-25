@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
 final class AuthControllerTest extends TestCase
 {
     private const string REGISTER_PATH = '/register';
-    private const string LOGIN_PATH = '/login';
     private const string CONFIRM_PATH = '/confirm';
     private const string EMAIL_FIELD = 'email';
     private const string PASSWORD_FIELD = 'password';
@@ -63,7 +62,7 @@ final class AuthControllerTest extends TestCase
             self::PASSWORD_FIELD => self::PASSWORD_VALUE,
         ]);
 
-        $output = $this->capture(fn () => $this->controller($request, $users)->register());
+        $output = $this->capture(fn () => $this->controller($users)->register($request));
 
         self::assertStringContainsString(self::VALIDATION_ERROR, $output);
         self::assertStringContainsString(self::INVALID_EMAIL, $output);
@@ -74,17 +73,16 @@ final class AuthControllerTest extends TestCase
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->expects(self::never())->method('findByEmail');
 
-        $this->capture(fn () => $this->controller(self::post(self::REGISTER_PATH, []), $users)->register());
+        $this->capture(fn () => $this->controller($users)->register(self::post(self::REGISTER_PATH, [])));
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
     }
 
     public function testLoginPageRendersForm(): void
     {
-        $request = new Request(HttpMethodEnum::GET->value, self::LOGIN_PATH);
         $users = $this->createStub(UserRepositoryInterface::class);
 
-        $output = $this->capture(fn () => $this->controller($request, $users)->showLogin());
+        $output = $this->capture(fn () => $this->controller($users)->showLogin());
 
         self::assertStringContainsString(self::LOGIN_FORM, $output);
     }
@@ -94,7 +92,7 @@ final class AuthControllerTest extends TestCase
         $request = new Request(HttpMethodEnum::GET->value, self::CONFIRM_PATH);
         $users = $this->createStub(UserRepositoryInterface::class);
 
-        $this->capture(fn () => $this->controller($request, $users)->confirm());
+        $this->capture(fn () => $this->controller($users)->confirm($request));
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
     }
@@ -104,7 +102,7 @@ final class AuthControllerTest extends TestCase
         $request = self::post(self::CONFIRM_PATH, [self::TOKEN_FIELD => self::TOKEN_VALUE]);
         $users = $this->createStub(UserRepositoryInterface::class);
 
-        $output = $this->capture(fn () => $this->controller($request, $users)->confirmPost());
+        $output = $this->capture(fn () => $this->controller($users)->confirmPost($request));
 
         self::assertStringContainsString(self::INVALID_TOKEN_ERROR, $output);
     }
@@ -125,7 +123,7 @@ final class AuthControllerTest extends TestCase
         return $output;
     }
 
-    private function controller(Request $request, UserRepositoryInterface $users): AuthController
+    private function controller(UserRepositoryInterface $users): AuthController
     {
         $userAuthService = new UserAuthService($users);
         $tokens = $this->createStub(EmailVerificationTokenRepositoryInterface::class);
@@ -140,7 +138,6 @@ final class AuthControllerTest extends TestCase
             new LoginUserService($userAuthService, $currentUser),
             new ConfirmEmailService($tokens),
             $currentUser,
-            $request,
             new Responder(new CsrfToken($this->session)),
         );
     }

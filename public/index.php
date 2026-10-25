@@ -23,7 +23,6 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 $session = new Session();
 $session->start();
-$request = Request::fromGlobals();
 $csrfToken = new CsrfToken($session);
 $responder = new Responder($csrfToken);
 $currentUser = new CurrentUser($session);
@@ -43,7 +42,6 @@ $router->registerController(new AuthController(
     new LoginUserService($userAuthService, $currentUser),
     new ConfirmEmailService($tokenRepository),
     $currentUser,
-    $request,
     $responder,
 ));
-$router->dispatch($request);
+$router->dispatch(Request::fromGlobals());
