@@ -1,0 +1,30 @@
+{
+    "heading": "Orders with status paid since 1999-01-01",
+    "rows": [
+        [
+            "Order",
+            "Products",
+            "Total",
+            "Placed at"
+        ],
+        [
+            "#3",
+            "",
+            "0.00 PLN",
+            "1999-05-02 11:30:00"
+        ],
+        [
+            "#2",
+            "Bowl, Plate",
+            "45.48 PLN",
+            "1999-05-02 11:30:00"
+        ],
+        [
+            "#1",
+            "Mug",
+            "1,234.56 PLN",
+            "1999-05-01 10:00:00"
+        ]
+    ],
+    "summary": "Orders: 3, total: 1,280.04"
+}

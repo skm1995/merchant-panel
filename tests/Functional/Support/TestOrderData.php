@@ -25,7 +25,8 @@ final class TestOrderData
     private const string KEY_PREFIX = 'test-order-';
 
     /**
-     * @param list<array{int, int, int}> $lines product id, quantity, and unit price in minor units
+     * @param list<array{0: int, 1: int, 2: int, 3?: string}> $lines product id, quantity, unit price in
+     *     minor units, and an optional product name
      */
     public static function insert(PDO $pdo, string $status, string $createdAt, array $lines): CartId
     {
@@ -43,12 +44,13 @@ final class TestOrderData
         $orderId = (int) $pdo->lastInsertId();
         $insertItem = $pdo->prepare(self::INSERT_ITEM_QUERY);
 
-        foreach ($lines as [$productId, $quantity, $unitPrice]) {
+        foreach ($lines as $line) {
+            [$productId, $quantity, $unitPrice] = $line;
             $insertItem->execute([
                 'order_id' => $orderId,
                 'product_id' => $productId,
                 'sku' => 'SKU-' . $productId,
-                'name' => 'Product ' . $productId,
+                'name' => $line[3] ?? 'Product ' . $productId,
                 'quantity' => $quantity,
                 'unit_price_amount' => $unitPrice,
             ]);
