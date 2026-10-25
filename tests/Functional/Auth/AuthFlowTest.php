@@ -15,6 +15,7 @@ use App\Service\Auth\UserAuthService;
 use App\Service\Auth\LoginUserService;
 use App\Service\Auth\LogoutUserService;
 use App\Service\Auth\RegisterUserService;
+use PDO;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
 
@@ -38,7 +39,7 @@ final class AuthFlowTest extends TestCase
     private string $email;
     private AuthService $authService;
     private PdoUserRepository $users;
-    private \PDO $pdo;
+    private PDO $pdo;
     /** @var array<string, mixed> */
     private array $originalSession;
     /** @var array<string, mixed> */

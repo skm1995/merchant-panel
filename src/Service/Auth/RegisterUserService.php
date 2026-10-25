@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service\Auth;
 
+use App\Repository\EmailVerificationTokenRepositoryInterface;
+use DateTimeImmutable;
 use DomainException;
 
 final class RegisterUserService
@@ -17,7 +19,7 @@ final class RegisterUserService
 
     public function __construct(
         private readonly UserAuthService $authService,
-        private readonly \App\Repository\EmailVerificationTokenRepositoryInterface $tokens,
+        private readonly EmailVerificationTokenRepositoryInterface $tokens,
         private readonly ConfirmationEmailQueueInterface $emailQueue,
     ) {
     }
@@ -36,7 +38,7 @@ final class RegisterUserService
             $this->tokens->store(
                 $user->email,
                 hash(self::TOKEN_HASH_ALGORITHM, $token),
-                new \DateTimeImmutable(self::TOKEN_EXPIRY),
+                new DateTimeImmutable(self::TOKEN_EXPIRY),
             );
             $this->emailQueue->dispatch(new ConfirmationEmailMessage($user->email, $token));
 

@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use PhpCsFixer\Config;
+use PhpCsFixer\Finder;
+
 $phpSourceDirectory = '/src';
 $phpPublicDirectory = '/public';
 $phpTestsDirectory = '/tests';
@@ -10,7 +13,7 @@ $phpMigrationDirectory = '/database/migrations';
 $phpMigrationConfiguration = '/phinx.php';
 $phpCodingStandard = '@PSR12';
 
-$finder = PhpCsFixer\Finder::create()
+$finder = Finder::create()
     ->in([
         __DIR__ . $phpSourceDirectory,
         __DIR__ . $phpPublicDirectory,
@@ -21,7 +24,7 @@ $finder = PhpCsFixer\Finder::create()
 
 $finder->append([__DIR__ . $phpMigrationConfiguration]);
 
-return new PhpCsFixer\Config()
+return new Config()
     ->setRules([
         $phpCodingStandard => true,
     ])

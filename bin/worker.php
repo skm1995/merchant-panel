@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Service\Auth\AuthMessengerRuntime;
+
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-App\Service\Auth\AuthMessengerRuntime::createFromEnvironment()->createWorker()->run();
+AuthMessengerRuntime::createFromEnvironment()->createWorker()->run();

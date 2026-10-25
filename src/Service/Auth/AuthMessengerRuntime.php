@@ -13,6 +13,7 @@ use Symfony\Component\Messenger\MessageBus;
 use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\Worker;
 use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
+use Symfony\Component\Messenger\Transport\TransportInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\EventListener\SendFailedMessageForRetryListener;
 use Symfony\Component\Messenger\EventListener\SendFailedMessageToFailureTransportListener;
@@ -30,7 +31,7 @@ final class AuthMessengerRuntime
     private const string DEFAULT_APP_BASE_URL = 'http://localhost:8080';
 
     private function __construct(
-        private readonly \Symfony\Component\Messenger\Transport\TransportInterface $transport,
+        private readonly TransportInterface $transport,
         private readonly MessageBus $bus,
         private readonly EventDispatcher $eventDispatcher,
     ) {

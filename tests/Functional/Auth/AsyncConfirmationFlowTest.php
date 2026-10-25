@@ -6,6 +6,7 @@ namespace Tests\Functional\Auth;
 
 use App\Core\DatabaseConnection;
 use App\Repository\PdoUserRepository;
+use PDO;
 use PHPUnit\Framework\TestCase;
 
 final class AsyncConfirmationFlowTest extends TestCase
@@ -27,7 +28,7 @@ final class AsyncConfirmationFlowTest extends TestCase
     private const int MESSAGE_POLL_INTERVAL_MICROSECONDS = 100000;
 
     private string $email;
-    private \PDO $pdo;
+    private PDO $pdo;
     private ?string $mailhogMessageId = null;
 
     protected function setUp(): void

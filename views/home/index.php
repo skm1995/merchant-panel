@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Enum\CharacterEncodingEnum;
+use App\Enum\ContentTypeEnum;
+use App\Enum\HeaderNameEnum;
+
 header(
-    \App\Enum\HeaderNameEnum::CONTENT_TYPE->value . ': '
-    . \App\Enum\ContentTypeEnum::HTML->value,
+    HeaderNameEnum::CONTENT_TYPE->value . ': '
+    . ContentTypeEnum::HTML->value,
 );
 /** @var string $message */
 ?>
@@ -17,9 +21,9 @@ header(
 </head>
 <body>
     <main>
-        <h1><?= htmlspecialchars($message, ENT_QUOTES, \App\Enum\CharacterEncodingEnum::UTF8->value) ?></h1>
+        <h1><?= htmlspecialchars($message, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?></h1>
         <?php if (isset($userEmail) && is_string($userEmail)): ?>
-            <p>Signed in as <?= htmlspecialchars($userEmail, ENT_QUOTES, \App\Enum\CharacterEncodingEnum::UTF8->value) ?></p>
+            <p>Signed in as <?= htmlspecialchars($userEmail, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?></p>
             <form method="post" action="/logout"><button type="submit">Log out</button></form>
         <?php else: ?>
             <a href="/register">Register</a>
