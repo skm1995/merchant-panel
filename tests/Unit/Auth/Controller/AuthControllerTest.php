@@ -16,6 +16,7 @@ use App\Auth\Service\UserAuthService;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
@@ -68,14 +69,13 @@ final class AuthControllerTest extends TestCase
         self::assertStringContainsString(self::INVALID_EMAIL, $output);
     }
 
-    public function testRegistrationWithoutCredentialsIsBadRequest(): void
+    public function testRegistrationWithoutCredentialsIsInvalidRequest(): void
     {
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->expects(self::never())->method('findByEmail');
 
-        $this->capture(fn () => $this->controller($users)->register(self::post(self::REGISTER_PATH, [])));
-
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        $this->expectException(InvalidRequestException::class);
+        $this->controller($users)->register(self::post(self::REGISTER_PATH, []));
     }
 
     public function testLoginPageRendersForm(): void
@@ -87,14 +87,12 @@ final class AuthControllerTest extends TestCase
         self::assertStringContainsString(self::LOGIN_FORM, $output);
     }
 
-    public function testConfirmationPageWithoutTokenIsBadRequest(): void
+    public function testConfirmationPageWithoutTokenIsInvalidRequest(): void
     {
         $request = new Request(HttpMethodEnum::GET->value, self::CONFIRM_PATH);
-        $users = $this->createStub(UserRepositoryInterface::class);
 
-        $this->capture(fn () => $this->controller($users)->confirm($request));
-
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        $this->expectException(InvalidRequestException::class);
+        $this->controller($this->createStub(UserRepositoryInterface::class))->confirm($request);
     }
 
     public function testInvalidConfirmationTokenDisplaysError(): void

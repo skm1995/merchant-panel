@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Shared\Dto;
+namespace Tests\Unit\Shared\Response;
 
-use App\Shared\Dto\MoneyResponse;
+use App\Shared\Response\MoneyResponse;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 

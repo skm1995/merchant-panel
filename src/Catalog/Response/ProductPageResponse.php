@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Catalog\Dto;
+namespace App\Catalog\Response;
 
 use App\Catalog\Service\ProductPage;
 use App\Shared\Contract\Arrayable;

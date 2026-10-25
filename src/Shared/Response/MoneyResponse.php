@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Dto;
+namespace App\Shared\Response;
 
 use App\Shared\Contract\Arrayable;
 use Money\Money;

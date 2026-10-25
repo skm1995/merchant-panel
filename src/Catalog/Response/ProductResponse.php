@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Catalog\Dto;
+namespace App\Catalog\Response;
 
 use App\Catalog\Entity\Product;
 use App\Shared\Contract\Arrayable;
-use App\Shared\Dto\MoneyResponse;
+use App\Shared\Response\MoneyResponse;
 
 final readonly class ProductResponse implements Arrayable
 {

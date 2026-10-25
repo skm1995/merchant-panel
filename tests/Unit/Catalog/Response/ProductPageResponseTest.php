@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Catalog\Dto;
+namespace Tests\Unit\Catalog\Response;
 
-use App\Catalog\Dto\ProductPageResponse;
+use App\Catalog\Response\ProductPageResponse;
 use App\Catalog\Service\ProductPage;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Catalog\ProductFactory;

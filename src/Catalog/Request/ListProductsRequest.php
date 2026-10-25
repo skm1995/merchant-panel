@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Catalog\Dto;
+namespace App\Catalog\Request;
 
 use App\Catalog\Service\ProductCatalog;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
 
-final readonly class ListProductsQuery
+final readonly class ListProductsRequest
 {
     private const string LIMIT_PARAMETER = 'limit';
     private const string CURSOR_PARAMETER = 'cursor';

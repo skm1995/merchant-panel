@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Catalog\Controller;
 
-use App\Catalog\Dto\ListProductsQuery;
-use App\Catalog\Dto\ProductPageResponse;
-use App\Catalog\Dto\ProductResponse;
+use App\Catalog\Request\ListProductsRequest;
+use App\Catalog\Response\ProductPageResponse;
+use App\Catalog\Response\ProductResponse;
 use App\Catalog\Exception\InvalidPageSizeException;
 use App\Catalog\Exception\ProductNotFoundException;
 use App\Catalog\Service\ProductCatalog;
@@ -33,7 +33,7 @@ final class ProductApiController
     #[MapException(InvalidPageSizeException::class, ResponseStatusEnum::BAD_REQUEST)]
     public function list(Request $request): void
     {
-        $query = ListProductsQuery::fromRequest($request);
+        $query = ListProductsRequest::fromRequest($request);
         $page = $this->catalog->page($query->limit, $query->cursor);
 
         $this->responder->json(ProductPageResponse::fromPage($page));

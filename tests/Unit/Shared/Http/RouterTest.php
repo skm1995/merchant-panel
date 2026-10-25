@@ -280,6 +280,26 @@ final class RouterTest extends TestCase
         self::assertTrue($controller->called);
     }
 
+    public function testPathParameterConstraintMayUseQuantifiers(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/codes/{code:[a-f]{2}-\\d{3}}';
+            public ?string $code = null;
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(Request $request): void
+            {
+                $this->code = $request->routeParameter('code');
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, '/codes/ab-123'));
+
+        self::assertSame('ab-123', $controller->code);
+    }
+
     public function testMapsDeclaredExceptionToProblemResponse(): void
     {
         $controller = new class () {
@@ -299,10 +319,10 @@ final class RouterTest extends TestCase
         self::assertSame(self::MAPPED_FAILURE, $problem['detail']);
     }
 
-    public function testMapsInvalidRequestToBadRequestProblem(): void
+    public function testMapsInvalidApiRequestToBadRequestProblem(): void
     {
         $controller = new class () {
-            public const string PATH = '/';
+            public const string PATH = '/api/v1/products';
 
             #[Route(HttpMethodEnum::GET, self::PATH)]
             public function show(): void
@@ -311,10 +331,32 @@ final class RouterTest extends TestCase
             }
         };
 
-        $problem = $this->problemFrom($controller);
+        $problem = $this->problemFrom($controller, $controller::PATH);
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
         self::assertSame(self::INVALID_INPUT, $problem['detail']);
+    }
+
+    public function testInvalidBrowserRequestIsPlainBadRequest(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/login';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(): void
+            {
+                throw new InvalidRequestException(RouterTest::INVALID_INPUT);
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+        ob_start();
+
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, $controller::PATH));
+        $output = ob_get_clean();
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        self::assertSame('400 Bad Request', $output);
     }
 
     public function testDoesNotSwallowUndeclaredExceptions(): void
@@ -336,12 +378,12 @@ final class RouterTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function problemFrom(object $controller): array
+    private function problemFrom(object $controller, string $path = self::ROUTE_PATH): array
     {
         $router = $this->router();
         $router->registerController($controller);
         ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, $path));
         $output = ob_get_clean();
         self::assertIsString($output);
         $problem = json_decode($output, true, flags: JSON_THROW_ON_ERROR);

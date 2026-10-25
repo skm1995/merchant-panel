@@ -55,6 +55,12 @@ final class Responder
         $this->writeJson($body->toArray(), $status, ContentTypeEnum::JSON);
     }
 
+    public function created(Arrayable $body, string $location): void
+    {
+        self::header(HeaderNameEnum::LOCATION, $location);
+        $this->json($body, ResponseStatusEnum::CREATED);
+    }
+
     /**
      * Writes an RFC 9457 problem details response.
      */

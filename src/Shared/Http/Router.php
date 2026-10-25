@@ -17,7 +17,7 @@ final class Router
 {
     private const string INVALID_ROUTE_METHOD_MESSAGE = 'Route methods must be public and accept at most a Request.';
     private const string DUPLICATE_ROUTE_MESSAGE = 'A route is already registered for this method and path.';
-    private const string PARAMETER_PATTERN = '/\{(\w+)(?::([^}]+))?\}/';
+    private const string PARAMETER_PATTERN = '/\{(\w+)(?::((?:[^{}]|\{[^{}]*\})+))?\}/';
     private const string PARAMETER_GROUP_FORMAT = '(?P<%s>%s)';
     private const string DEFAULT_PARAMETER_PATTERN = '[^/]+';
     private const int NOT_CAPTURED_OFFSET = -1;
@@ -108,7 +108,7 @@ final class Router
             try {
                 $method->invoke($controller, $request);
             } catch (InvalidRequestException $exception) {
-                $this->responder->problem(ResponseStatusEnum::BAD_REQUEST, $exception->getMessage());
+                $this->reject($request, ResponseStatusEnum::BAD_REQUEST, $exception->getMessage());
             } catch (Throwable $exception) {
                 foreach ($mappings as $mapping) {
                     if ($exception instanceof $mapping->exception) {
@@ -144,6 +144,7 @@ final class Router
     /**
      * Compiles a path such as /products/{id:\d+} into a regular expression with one named
      * group per parameter; a parameter without a constraint matches a single path segment.
+     * Constraints may contain quantifiers such as {4}, but no deeper brace nesting.
      */
     private static function compile(string $path): string
     {
