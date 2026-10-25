@@ -73,7 +73,7 @@ final class OrderApiControllerTest extends TestCase
             new PlaceOrderHandler(
                 $this->createStub(OrderRepositoryInterface::class),
                 new CartService($carts, new ProductCatalog($products), $transactions),
-                new StockReservation($products),
+                new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()),
                 $this->createStub(OutboxInterface::class),
                 $transactions,
                 new MockClock(),
@@ -82,7 +82,7 @@ final class OrderApiControllerTest extends TestCase
             new GetOrderHandler($readOrders),
             new CancelOrderHandler(
                 $this->createStub(OrderRepositoryInterface::class),
-                new StockReservation($products),
+                new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()),
                 $transactions,
             ),
             $responder,

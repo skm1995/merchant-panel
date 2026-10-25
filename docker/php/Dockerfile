@@ -5,8 +5,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends $PHPIZE_DEPS libzip-dev libzip5 unzip librabbitmq-dev librabbitmq4 \
     && docker-php-ext-install bcmath pdo_mysql zip \
     && pecl install amqp \
+    && pecl install redis \
     && pecl install xdebug \
-    && docker-php-ext-enable amqp xdebug \
+    && docker-php-ext-enable amqp redis xdebug \
     && a2enmod rewrite \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS libzip-dev librabbitmq-dev \
     && rm -rf /var/lib/apt/lists/*

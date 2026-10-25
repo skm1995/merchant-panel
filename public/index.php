@@ -14,6 +14,8 @@ use App\Cart\Controller\CartApiController;
 use App\Cart\Repository\PdoCartRepository;
 use App\Cart\Service\CartService;
 use App\Catalog\Controller\ProductApiController;
+use App\Catalog\Infrastructure\Cache\CachedProductRepository;
+use App\Catalog\Infrastructure\Cache\ProductCache;
 use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Service\ProductCatalog;
 use App\Catalog\Service\StockReservation;
@@ -40,6 +42,9 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
+use App\Shared\Cache\RedisCacheStore;
+use App\Shared\Cache\RedisConnection;
+use App\Shared\Cache\StampedeProtectedCache;
 use App\Shared\Config\Environment;
 use App\Shared\Messaging\Outbox\PdoOutbox;
 use Symfony\Component\Clock\NativeClock;
@@ -77,9 +82,13 @@ $router->registerController(new AuthController(
     $responder,
 ));
 $productRepository = new PdoProductRepository($pdo);
-$productCatalog = new ProductCatalog($productRepository);
+$cacheStore = new RedisCacheStore(RedisConnection::createFromEnvironment());
+$productCatalog = new ProductCatalog(new CachedProductRepository(
+    $productRepository,
+    new ProductCache(new StampedeProtectedCache($cacheStore, $clock), $cacheStore),
+));
 $cartService = new CartService(new PdoCartRepository($pdo), $productCatalog, $transactions);
-$stockReservation = new StockReservation($productRepository);
+$stockReservation = new StockReservation($productRepository, $outbox, $clock);
 $orderRepository = new PdoOrderRepository($pdo);
 $router->registerController(new ProductApiController($productCatalog, $responder));
 $router->registerController(new CartApiController($cartService, $responder));

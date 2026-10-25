@@ -65,6 +65,15 @@ checkout schedules an expiry message through the outbox, RabbitMQ holds it
 until the reservation ends, and the worker marks the order `expired` and
 releases its stock unless it was paid or cancelled first.
 
+## Product cache
+
+`GET /api/v1/products/{id}` reads products through Redis. Only one process
+recomputes a missing entry while others wait for it or keep serving the current
+value, and entries are refreshed probabilistically shortly before they expire,
+so a popular product never causes a cache stampede on MySQL. Every stock change
+records an outbox event, and the worker deletes the affected entries after the
+change is committed; entries also expire after 60 seconds.
+
 ## Outbox
 
 Features store messages in the `outbox_messages` table in the same transaction

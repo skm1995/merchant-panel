@@ -170,7 +170,7 @@ final class PlaceOrderHandlerTest extends TestCase
         return new PlaceOrderHandler(
             $orders,
             new CartService($carts, new ProductCatalog($products), $this->transactions),
-            new StockReservation($products),
+            new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()),
             $outbox ?? $this->createStub(OutboxInterface::class),
             $this->transactions,
             new MockClock(self::NOW),

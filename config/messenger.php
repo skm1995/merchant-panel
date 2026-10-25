@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Auth\Message\ConfirmationEmailMessage;
+use App\Catalog\Message\ProductStockChangedMessage;
 use App\Order\Command\ExpireOrderReservationCommand;
 use App\Shared\Messaging\MessengerRuntime;
 
@@ -15,14 +16,17 @@ return [
     'transports' => [
         'emails' => 'MESSENGER_EMAILS_DSN',
         'orders' => 'MESSENGER_ORDERS_DSN',
+        'catalog' => 'MESSENGER_CATALOG_DSN',
         MessengerRuntime::FAILED_TRANSPORT => 'MESSENGER_FAILED_DSN',
     ],
     'routes' => [
         ConfirmationEmailMessage::class => 'emails',
         ExpireOrderReservationCommand::class => 'orders',
+        ProductStockChangedMessage::class => 'catalog',
     ],
     'outbox_messages' => [
         ConfirmationEmailMessage::class,
         ExpireOrderReservationCommand::class,
+        ProductStockChangedMessage::class,
     ],
 ];

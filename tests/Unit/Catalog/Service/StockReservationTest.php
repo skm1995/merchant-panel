@@ -6,9 +6,12 @@ namespace Tests\Unit\Catalog\Service;
 
 use App\Catalog\Exception\InsufficientStockException;
 use App\Catalog\Exception\ProductNotFoundException;
+use App\Catalog\Message\ProductStockChangedMessage;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Catalog\Service\StockReservation;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Catalog\ProductFactory;
 
 final class StockReservationTest extends TestCase
@@ -29,7 +32,7 @@ final class StockReservationTest extends TestCase
                 return true;
             });
 
-        $locked = new StockReservation($products)->reserve([8 => 1, 3 => 2]);
+        $locked = new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->reserve([8 => 1, 3 => 2]);
 
         self::assertSame([3 => 2, 8 => 1], $reserved);
         self::assertSame([3, 8], array_map(static fn ($product): int => $product->id, $locked));
@@ -45,7 +48,7 @@ final class StockReservationTest extends TestCase
         $products->expects(self::never())->method('reserve');
 
         $this->expectException(InsufficientStockException::class);
-        new StockReservation($products)->reserve([3 => 1, 8 => 2]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->reserve([3 => 1, 8 => 2]);
     }
 
     public function testRejectsUnknownProducts(): void
@@ -54,7 +57,7 @@ final class StockReservationTest extends TestCase
         $products->method('lockForUpdate')->willReturn([ProductFactory::create(3)]);
 
         $this->expectException(ProductNotFoundException::class);
-        new StockReservation($products)->reserve([3 => 1, 9 => 1]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->reserve([3 => 1, 9 => 1]);
     }
 
     public function testTreatsALostGuardedUpdateAsInsufficientStock(): void
@@ -64,7 +67,7 @@ final class StockReservationTest extends TestCase
         $products->method('reserve')->willReturn(false);
 
         $this->expectException(InsufficientStockException::class);
-        new StockReservation($products)->reserve([3 => 1]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->reserve([3 => 1]);
     }
 
     public function testReleasesReservationsInIdOrder(): void
@@ -79,7 +82,7 @@ final class StockReservationTest extends TestCase
                 return true;
             });
 
-        new StockReservation($products)->release([8 => 1, 3 => 2]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->release([8 => 1, 3 => 2]);
 
         self::assertSame([[3, 2], [8, 1]], $released);
     }
@@ -90,7 +93,7 @@ final class StockReservationTest extends TestCase
         $products->method('release')->willReturn(false);
 
         $this->expectException(\LogicException::class);
-        new StockReservation($products)->release([3 => 1]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->release([3 => 1]);
     }
 
     public function testCommitsReservationsAsSoldStockInIdOrder(): void
@@ -105,8 +108,42 @@ final class StockReservationTest extends TestCase
                 return true;
             });
 
-        new StockReservation($products)->commit([8 => 1, 3 => 2]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())->commit([8 => 1, 3 => 2]);
 
         self::assertSame([[3, 2], [8, 1]], $committed);
+    }
+
+    public function testRecordsWhichProductsChangedInTheOutbox(): void
+    {
+        $products = $this->createStub(ProductRepositoryInterface::class);
+        $products->method('lockForUpdate')->willReturn([ProductFactory::create(3), ProductFactory::create(8)]);
+        $products->method('reserve')->willReturn(true);
+        $products->method('release')->willReturn(true);
+        $products->method('commit')->willReturn(true);
+        $recorded = [];
+        $outbox = $this->createMock(OutboxInterface::class);
+        $outbox->expects(self::exactly(3))->method('add')->willReturnCallback(
+            static function (ProductStockChangedMessage $message) use (&$recorded): void {
+                $recorded[] = $message->productIds;
+            },
+        );
+        $reservation = new StockReservation($products, $outbox, new MockClock());
+
+        $reservation->reserve([8 => 1, 3 => 2]);
+        $reservation->release([8 => 1]);
+        $reservation->commit([3 => 2]);
+
+        self::assertSame([[3, 8], [8], [3]], $recorded);
+    }
+
+    public function testRecordsNothingWhenTheReservationFails(): void
+    {
+        $products = $this->createStub(ProductRepositoryInterface::class);
+        $products->method('lockForUpdate')->willReturn([ProductFactory::create(3, 1)]);
+        $outbox = $this->createMock(OutboxInterface::class);
+        $outbox->expects(self::never())->method('add');
+
+        $this->expectException(InsufficientStockException::class);
+        new StockReservation($products, $outbox, new MockClock())->reserve([3 => 2]);
     }
 }

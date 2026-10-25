@@ -10,6 +10,7 @@
         "ext-hash": "*",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
+        "ext-redis": "*",
         "ext-session": "*",
         "moneyphp/money": "^4.9",
         "symfony/amqp-messenger": "^8.1",

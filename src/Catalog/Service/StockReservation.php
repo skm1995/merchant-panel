@@ -7,20 +7,27 @@ namespace App\Catalog\Service;
 use App\Catalog\Entity\Product;
 use App\Catalog\Exception\InsufficientStockException;
 use App\Catalog\Exception\ProductNotFoundException;
+use App\Catalog\Message\ProductStockChangedMessage;
 use App\Catalog\Repository\ProductRepositoryInterface;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use LogicException;
+use Psr\Clock\ClockInterface;
 
 /**
  * Reserves stock for several products at once. Callers must run it inside a transaction:
  * product rows are locked in ascending id order, so concurrent reservations of
- * overlapping products wait for each other instead of deadlocking.
+ * overlapping products wait for each other instead of deadlocking. Every change is recorded
+ * in the outbox in the same transaction, so cached product data is invalidated after commit.
  */
 final class StockReservation
 {
     private const string RESERVATION_INCONSISTENCY_FORMAT = 'Product %d has fewer reserved units than are being settled.';
 
-    public function __construct(private readonly ProductRepositoryInterface $products)
-    {
+    public function __construct(
+        private readonly ProductRepositoryInterface $products,
+        private readonly OutboxInterface $outbox,
+        private readonly ClockInterface $clock,
+    ) {
     }
 
     /**
@@ -49,6 +56,8 @@ final class StockReservation
                 throw new InsufficientStockException($productId);
             }
         }
+
+        $this->recordChange($quantities);
 
         return array_values($products);
     }
@@ -88,5 +97,13 @@ final class StockReservation
                 throw new LogicException(sprintf(self::RESERVATION_INCONSISTENCY_FORMAT, $productId));
             }
         }
+
+        $this->recordChange($quantities);
+    }
+
+    /** @param array<int, int> $quantities */
+    private function recordChange(array $quantities): void
+    {
+        $this->outbox->add(new ProductStockChangedMessage(array_keys($quantities)), $this->clock->now());
     }
 }
