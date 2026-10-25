@@ -118,6 +118,34 @@ final class CartServiceTest extends TestCase
         $this->service($carts)->setItemQuantity(CartFixtures::cartId(), self::PRODUCT_ID, self::QUANTITY);
     }
 
+    public function testLocksAndLoadsCartForCheckoutWhateverItsStatus(): void
+    {
+        $carts = $this->createMock(CartRepositoryInterface::class);
+        $carts->expects(self::once())->method('lockStatus')->willReturn(CartStatusEnum::CHECKED_OUT);
+        $carts->method('find')->willReturn(CartFixtures::cart([], CartStatusEnum::CHECKED_OUT));
+
+        $cart = $this->service($carts)->lockForCheckout(CartFixtures::cartId());
+
+        self::assertFalse($cart->isOpen());
+    }
+
+    public function testLockForCheckoutReportsMissingCart(): void
+    {
+        $carts = $this->createStub(CartRepositoryInterface::class);
+        $carts->method('lockStatus')->willReturn(null);
+
+        $this->expectException(CartNotFoundException::class);
+        $this->service($carts)->lockForCheckout(CartFixtures::cartId());
+    }
+
+    public function testMarksCartCheckedOut(): void
+    {
+        $carts = $this->createMock(CartRepositoryInterface::class);
+        $carts->expects(self::once())->method('updateStatus')->with(CartFixtures::cartId(), CartStatusEnum::CHECKED_OUT);
+
+        $this->service($carts)->markCheckedOut(CartFixtures::cartId());
+    }
+
     private function service(CartRepositoryInterface $carts, bool $productExists = true): CartService
     {
         $products = $this->createStub(ProductRepositoryInterface::class);

@@ -69,6 +69,15 @@ final class PdoCartRepositoryTest extends TestCase
         self::assertTrue(Money::PLN(3 * self::PRICE_IN_GROSZE)->equals($cart->total() ?? Money::PLN(0)));
     }
 
+    public function testUpdatesStatus(): void
+    {
+        $this->carts->create($this->cartId);
+
+        $this->carts->updateStatus($this->cartId, CartStatusEnum::CHECKED_OUT);
+
+        self::assertSame(CartStatusEnum::CHECKED_OUT, $this->carts->find($this->cartId)?->status);
+    }
+
     public function testUnknownCartIsMissing(): void
     {
         self::assertNull($this->carts->find($this->cartId));

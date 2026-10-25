@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Cart\Entity;
 
 use App\Cart\Enum\CartStatusEnum;
+use App\Cart\Exception\CartNotOpenException;
+use App\Cart\Exception\EmptyCartException;
 use Money\Money;
 
 final readonly class Cart
@@ -20,6 +22,29 @@ final readonly class Cart
     public function isOpen(): bool
     {
         return $this->status === CartStatusEnum::OPEN;
+    }
+
+    public function assertReadyForCheckout(): void
+    {
+        if (!$this->isOpen()) {
+            throw new CartNotOpenException();
+        }
+
+        if ($this->lines === []) {
+            throw new EmptyCartException();
+        }
+    }
+
+    /** @return array<int, int> quantities keyed by product id */
+    public function quantities(): array
+    {
+        $quantities = [];
+
+        foreach ($this->lines as $line) {
+            $quantities[$line->productId] = $line->quantity;
+        }
+
+        return $quantities;
     }
 
     /**

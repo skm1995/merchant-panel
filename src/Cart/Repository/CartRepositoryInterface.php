@@ -19,6 +19,8 @@ interface CartRepositoryInterface
      */
     public function lockStatus(CartId $id): ?CartStatusEnum;
 
+    public function updateStatus(CartId $id, CartStatusEnum $status): void;
+
     public function saveItem(CartId $cartId, int $productId, int $quantity): void;
 
     public function removeItem(CartId $cartId, int $productId): void;

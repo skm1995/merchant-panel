@@ -67,4 +67,21 @@ final class CartService
 
         return $this->get($cartId);
     }
+
+    /**
+     * Locks the cart row for checkout and loads the cart whatever its status, so the caller
+     * can recognize a repeated checkout before applying checkout rules. Callers must run
+     * this inside a transaction.
+     */
+    public function lockForCheckout(CartId $id): Cart
+    {
+        $this->carts->lockStatus($id) ?? throw new CartNotFoundException();
+
+        return $this->get($id);
+    }
+
+    public function markCheckedOut(CartId $id): void
+    {
+        $this->carts->updateStatus($id, CartStatusEnum::CHECKED_OUT);
+    }
 }

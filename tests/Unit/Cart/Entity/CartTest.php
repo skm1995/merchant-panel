@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Cart\Entity;
 
 use App\Cart\Enum\CartStatusEnum;
+use App\Cart\Exception\CartNotOpenException;
+use App\Cart\Exception\EmptyCartException;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Cart\CartFixtures;
@@ -27,6 +29,34 @@ final class CartTest extends TestCase
     {
         self::assertTrue(CartFixtures::cart()->isOpen());
         self::assertFalse(CartFixtures::cart([], CartStatusEnum::CHECKED_OUT)->isOpen());
+    }
+
+    public function testExposesQuantitiesKeyedByProduct(): void
+    {
+        $cart = CartFixtures::cart([CartFixtures::line(4, 2, 100), CartFixtures::line(9, 1, 100)]);
+
+        self::assertSame([4 => 2, 9 => 1], $cart->quantities());
+    }
+
+    public function testOpenCartWithItemsIsReadyForCheckout(): void
+    {
+        CartFixtures::cart([CartFixtures::line(4, 1, 100)])->assertReadyForCheckout();
+
+        self::addToAssertionCount(1);
+    }
+
+    public function testEmptyCartCannotBeCheckedOut(): void
+    {
+        $this->expectException(EmptyCartException::class);
+
+        CartFixtures::cart()->assertReadyForCheckout();
+    }
+
+    public function testCheckedOutCartCannotBeCheckedOutAgain(): void
+    {
+        $this->expectException(CartNotOpenException::class);
+
+        CartFixtures::cart([CartFixtures::line(4, 1, 100)], CartStatusEnum::CHECKED_OUT)->assertReadyForCheckout();
     }
 
     public function testLineTotalMultipliesUnitPrice(): void

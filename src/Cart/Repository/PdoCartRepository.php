@@ -28,6 +28,7 @@ final class PdoCartRepository implements CartRepositoryInterface
         INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (:cart_id, :product_id, :quantity) AS new
         ON DUPLICATE KEY UPDATE quantity = new.quantity
         SQL;
+    private const string UPDATE_STATUS_QUERY = 'UPDATE carts SET status = :status WHERE id = :id';
     private const string REMOVE_ITEM_QUERY = 'DELETE FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id';
     private const string ID_PARAMETER = 'id';
     private const string STATUS_PARAMETER = 'status';
@@ -77,6 +78,14 @@ final class PdoCartRepository implements CartRepositoryInterface
         $status = $statement->fetchColumn();
 
         return is_string($status) ? CartStatusEnum::from($status) : null;
+    }
+
+    public function updateStatus(CartId $id, CartStatusEnum $status): void
+    {
+        $this->pdo->prepare(self::UPDATE_STATUS_QUERY)->execute([
+            self::ID_PARAMETER => $id->toBinary(),
+            self::STATUS_PARAMETER => $status->value,
+        ]);
     }
 
     public function saveItem(CartId $cartId, int $productId, int $quantity): void
