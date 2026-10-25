@@ -57,7 +57,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 
 ## Dependencies, data, and infrastructure
 
-- Use Composer for PHP dependencies and commit the application lockfile. Declare every PHP extension the code uses directly as an `ext-*` requirement, with test-only extensions in `require-dev`.
+- Use Composer for PHP dependencies and commit the application lockfile. Declare every PHP extension the application needs at runtime as an `ext-*` requirement, including extensions required by dependencies that the Docker image installs for them (such as `bcmath` for moneyphp/money and `amqp` for Messenger), with test-only extensions in `require-dev`.
 - Keep Docker and local service configuration grouped by service. Share repeated Compose configuration through YAML anchors, and give each service only the environment variables its runtime uses.
 - Use the configured PHP migration tool for schema changes. Give migrations descriptive names, make them reversible where practical, and never edit a migration after it has been applied. Declare every column `'null' => false` unless `NULL` carries meaning, enforce invariants with database constraints, and date new migrations after the latest committed one.
 - Keep application and functional-test databases separate.
