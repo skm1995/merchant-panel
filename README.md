@@ -4,13 +4,13 @@
 
 Copy `.env.example` to `.env`, then start the application and services.
 Application configuration (database, RabbitMQ, mailer and public URLs) is read
-only from environment variables; local defaults live in `compose.yaml` and
+only from environment variables; local defaults live in `docker/env/*.env` and
 `.env.example`, and the application fails fast when a required variable is
-missing.
+missing. The `migrate` service applies database migrations before the web
+server, worker, and outbox relay start.
 
 ```sh
 docker compose up --build -d
-docker compose exec php composer migrate
 ```
 
 Set `SESSION_COOKIE_SECURE=true` when the site is served over HTTPS, including

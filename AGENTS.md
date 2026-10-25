@@ -21,7 +21,7 @@ Use these rules when changing this project, and prefer its existing patterns and
 - Build services through the container (`ContainerFactory::create()`), never with `new` in entry points. It autowires constructors; binds an application interface with one implementation automatically; uses `#[DefaultImplementation]` among several and `#[ServiceFactory]` methods for vendor or custom-built services; injects `#[Env('VARIABLE')]` and `#[Autowire(Class::class)]` parameters. `bin/container-debug.php` lists the bindings.
 - Report expected failures with specific domain exceptions and catch only what a flow handles. Avoid boolean flag parameters; use separately named methods.
 - Hydrate query results into readonly `#[HydratedRecord]` DTOs through `RecordFetcher`; entity records implement `EntityRecord::toEntity()` and array-shaped DTOs implement `Arrayable`. Never pass associative row arrays between methods.
-- Read configuration (DSNs, hosts, credentials, URLs, sender addresses) only from environment variables, with no fallback values in PHP; local defaults live in `compose.yaml` and `.env.example`.
+- Read configuration (DSNs, hosts, credentials, URLs, sender addresses) only from environment variables, with no fallback values in PHP; local defaults live in `docker/env/*.env` and `.env.example`.
 - Balance DRY and KISS: give each piece of knowledge (a session key, route path, algorithm, format) one owning class, but avoid generic frameworks and indirection that obscure a simple flow.
 
 ## Code style
@@ -34,7 +34,7 @@ Use these rules when changing this project, and prefer its existing patterns and
 ## Dependencies and data
 
 - Manage dependencies with Composer and commit the lockfile. Declare every PHP extension the code or its dependencies need as `ext-*` (for example `bcmath` for moneyphp, `amqp` for Messenger).
-- Group Docker configuration by service, share repeated Compose configuration with YAML anchors, and give each service only the variables it uses.
+- Group Docker configuration by service. Keep `services:` first in `compose.yaml`: application services extend `docker/php/compose.yaml`, and each takes only the variable groups it uses from `docker/env/*.env`. Services that need the schema depend on the `migrate` (or `migrate-test`) service completing.
 - Change the schema only with Phinx migrations: descriptive names, reversible where practical, never edited after being applied, dated after the latest committed one, columns `'null' => false` unless `NULL` means something, invariants enforced by constraints.
 - Never commit `.env` files or secrets; keep `.env.example` tracked and ignore the rest in `.gitignore`.
 

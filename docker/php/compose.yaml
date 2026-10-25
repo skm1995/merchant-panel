@@ -1,0 +1,12 @@
+# Base definition for every service that runs the application image; compose.yaml
+# extends it. Relative paths here resolve from this directory.
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: "8.5"
+    working_dir: /var/www/html
+    volumes:
+      - ../..:/var/www/html

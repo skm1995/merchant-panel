@@ -1,74 +1,55 @@
-x-php-build: &php-build
-  context: .
-  dockerfile: docker/php/Dockerfile
-  args:
-    PHP_VERSION: "8.5"
-
-x-messenger-environment: &messenger-environment
-  MESSENGER_EMAILS_DSN: ${MESSENGER_EMAILS_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails}
-  MESSENGER_ORDERS_DSN: ${MESSENGER_ORDERS_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/orders}
-  MESSENGER_CATALOG_DSN: ${MESSENGER_CATALOG_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/catalog}
-  MESSENGER_FAILED_DSN: ${MESSENGER_FAILED_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/failed_messages}
-
-x-test-messenger-environment: &test-messenger-environment
-  MESSENGER_EMAILS_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_test
-  MESSENGER_ORDERS_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/orders_test
-  MESSENGER_CATALOG_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/catalog_test
-  MESSENGER_FAILED_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/failed_messages_test
-
-x-test-app-environment: &test-app-environment
-  APP_BASE_URL: ${TEST_APP_BASE_URL:-http://host.docker.internal:8081}
-
-x-payment-environment: &payment-environment
-  FAKEPAY_CHECKOUT_URL: ${FAKEPAY_CHECKOUT_URL:-http://localhost:8080/fakepay}
-  FAKEPAY_WEBHOOK_SECRET: ${FAKEPAY_WEBHOOK_SECRET:-local-fakepay-webhook-secret}
-  QUICKPAY_CHECKOUT_URL: ${QUICKPAY_CHECKOUT_URL:-http://localhost:8080/quickpay}
-  QUICKPAY_WEBHOOK_SECRET: ${QUICKPAY_WEBHOOK_SECRET:-local-quickpay-webhook-secret}
-
-x-reports-environment: &reports-environment
-  REPORTS_API_KEY: ${REPORTS_API_KEY:-local-reports-api-key}
-
-x-redis-environment: &redis-environment
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  REDIS_DATABASE: 0
-
-x-test-redis-environment: &test-redis-environment
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  REDIS_DATABASE: 1
-
-x-mailer-environment: &mailer-environment
-  MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
-  MAILER_FROM: ${MAILER_FROM:-no-reply@example.com}
-
-x-database-environment: &database-environment
-  DB_HOST: mysql
-  DB_PORT: 3306
-  DB_DATABASE: ${MYSQL_DATABASE:-app}
-  DB_USERNAME: ${MYSQL_USER:-app}
-  DB_PASSWORD: ${MYSQL_PASSWORD:-app}
-
-x-test-database-environment: &test-database-environment
-  <<: *database-environment
-  DB_DATABASE: app_test
-
 services:
+  migrate:
+    extends:
+      file: docker/php/compose.yaml
+      service: app
+    command: composer migrate
+    env_file:
+      - docker/env/database.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  migrate-test:
+    extends:
+      file: docker/php/compose.yaml
+      service: app
+    command: composer migrate
+    profiles:
+      - test
+    env_file:
+      - docker/env/database.env
+      - docker/env/database-test.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   php:
-    build: *php-build
-    working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     ports:
       - "8080:80"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://localhost/"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    env_file:
+      - docker/env/database.env
+      - docker/env/messenger.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/reports.env
     environment:
-      <<: [*database-environment, *messenger-environment, *payment-environment, *redis-environment, *reports-environment]
       ORDER_RESERVATION_SECONDS: ${ORDER_RESERVATION_SECONDS:-900}
       XDEBUG_MODE: ${XDEBUG_MODE:-debug,develop}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       mysql:
@@ -77,16 +58,21 @@ services:
         condition: service_healthy
 
   worker:
-    build: *php-build
-    working_dir: /var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     command: php bin/worker.php
     restart: unless-stopped
-    volumes:
-      - .:/var/www/html
+    env_file:
+      - docker/env/database.env
+      - docker/env/messenger.env
+      - docker/env/mailer.env
+      - docker/env/redis.env
     environment:
-      <<: [*database-environment, *messenger-environment, *mailer-environment, *redis-environment]
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       mysql:
@@ -97,16 +83,24 @@ services:
         condition: service_started
 
   php-test:
-    build: *php-build
-    working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     extra_hosts:
       - "host.docker.internal:host-gateway"
     profiles:
       - test
+    env_file:
+      - docker/env/database.env
+      - docker/env/database-test.env
+      - docker/env/messenger-test.env
+      - docker/env/mailer.env
+      - docker/env/app-test.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/redis-test.env
+      - docker/env/reports.env
     environment:
-      <<: [*test-database-environment, *test-messenger-environment, *mailer-environment, *test-app-environment, *payment-environment, *test-redis-environment, *reports-environment]
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
@@ -117,20 +111,32 @@ services:
         condition: service_healthy
 
   php-test-web:
-    build: *php-build
-    working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     ports:
       - "8081:80"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://localhost/"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     profiles:
       - test
+    env_file:
+      - docker/env/database.env
+      - docker/env/database-test.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/redis-test.env
+      - docker/env/reports.env
     environment:
-      <<: [*test-database-environment, *payment-environment, *test-redis-environment, *reports-environment]
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       SESSION_COOKIE_SECURE: "false"
     depends_on:
+      migrate-test:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       mysql:
@@ -139,49 +145,61 @@ services:
         condition: service_healthy
 
   outbox-relay:
-    build: *php-build
-    working_dir: /var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     command: php bin/outbox-relay.php
     restart: unless-stopped
-    volumes:
-      - .:/var/www/html
-    environment:
-      <<: [*database-environment, *messenger-environment]
+    env_file:
+      - docker/env/database.env
+      - docker/env/messenger.env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   outbox-relay-test:
-    build: *php-build
-    working_dir: /var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     command: php bin/outbox-relay.php
     restart: unless-stopped
-    volumes:
-      - .:/var/www/html
     profiles:
       - test
-    environment:
-      <<: [*test-database-environment, *test-messenger-environment]
+    env_file:
+      - docker/env/database.env
+      - docker/env/database-test.env
+      - docker/env/messenger-test.env
     depends_on:
+      migrate-test:
+        condition: service_completed_successfully
       mysql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   worker-test:
-    build: *php-build
-    working_dir: /var/www/html
+    extends:
+      file: docker/php/compose.yaml
+      service: app
     command: php bin/worker.php
     restart: unless-stopped
-    volumes:
-      - .:/var/www/html
     profiles:
       - test
-    environment:
-      <<: [*test-database-environment, *test-messenger-environment, *mailer-environment, *test-app-environment, *test-redis-environment]
+    env_file:
+      - docker/env/database.env
+      - docker/env/database-test.env
+      - docker/env/messenger-test.env
+      - docker/env/mailer.env
+      - docker/env/app-test.env
+      - docker/env/redis.env
+      - docker/env/redis-test.env
     depends_on:
+      migrate-test:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       mysql:
