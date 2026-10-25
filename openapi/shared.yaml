@@ -1,0 +1,54 @@
+responses:
+  Problem:
+    description: An RFC 9457 problem details response.
+    content:
+      application/problem+json:
+        schema:
+          $ref: '#/schemas/Problem'
+schemas:
+  Money:
+    type: object
+    additionalProperties: false
+    required: [amount, currency]
+    properties:
+      amount:
+        type: string
+        pattern: '^-?\d+$'
+        description: Amount in minor currency units.
+        example: '1999'
+      currency:
+        type: string
+        pattern: '^[A-Z]{3}$'
+        example: PLN
+  LineItem:
+    type: object
+    additionalProperties: false
+    required: [product_id, sku, name, quantity, unit_price, line_total]
+    properties:
+      product_id:
+        type: integer
+        minimum: 1
+      sku:
+        type: string
+      name:
+        type: string
+      quantity:
+        type: integer
+        minimum: 1
+        maximum: 99
+      unit_price:
+        $ref: '#/schemas/Money'
+      line_total:
+        $ref: '#/schemas/Money'
+  Problem:
+    type: object
+    required: [type, title, status, detail]
+    properties:
+      type:
+        type: string
+      title:
+        type: string
+      status:
+        type: integer
+      detail:
+        type: string

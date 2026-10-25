@@ -13,11 +13,11 @@ use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\HttpClient\HttpClient;
 
 /**
- * Calls the JSON API through the web server and validates responses against openapi.yaml.
+ * Calls the JSON API through the web server and validates responses against openapi/openapi.yaml.
  */
 final class ApiClient
 {
-    private const string SPECIFICATION_PATH = '/openapi.yaml';
+    private const string SPECIFICATION_PATH = '/openapi/openapi.yaml';
 
     private static ?ResponseValidator $validator = null;
 

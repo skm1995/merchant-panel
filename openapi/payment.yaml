@@ -1,0 +1,140 @@
+paths:
+  orderPayments:
+    post:
+      operationId: startPayment
+      summary: Start a payment for the full order total at a payment provider
+      description: >-
+        Requires an Idempotency-Key header; repeating the request returns the
+        same payment. The customer pays at checkout_url, and the provider
+        reports the result with a signed webhook.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [provider]
+              properties:
+                provider:
+                  type: string
+                  enum: [fakepay, quickpay]
+      responses:
+        '201':
+          description: The started payment.
+          headers:
+            Location:
+              description: URL of the payment.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Payment'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+        '409':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+  payment:
+    get:
+      operationId: getPayment
+      summary: Get a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Payment'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+  webhook:
+    post:
+      operationId: receivePaymentWebhook
+      summary: Receive a signed payment result from a provider
+      description: >-
+        Each provider uses its own body format and signature header
+        (X-Fakepay-Signature or X-Quickpay-Signature). Repeated deliveries of
+        the same event are acknowledged as duplicates without changes.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [fakepay, quickpay]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: The event was processed or was a duplicate.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [processed, duplicate]
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+schemas:
+  Payment:
+    type: object
+    additionalProperties: false
+    required: [id, order_id, provider, status, amount, checkout_url]
+    properties:
+      id:
+        type: string
+        format: uuid
+      order_id:
+        type: string
+        format: uuid
+      provider:
+        type: string
+        enum: [fakepay, quickpay]
+      status:
+        type: string
+        enum: [pending, succeeded, failed, refund_required]
+      amount:
+        $ref: 'shared.yaml#/schemas/Money'
+      checkout_url:
+        type: string
+        format: uri

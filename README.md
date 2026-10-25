@@ -22,7 +22,10 @@ The application runs at `http://localhost:8080`. MailHog is available at
 
 ## Product API
 
-The JSON API is documented in [`openapi.yaml`](openapi.yaml). Prices are
+The JSON API is documented in [`openapi/`](openapi/openapi.yaml): the root file lists
+the paths and each feature keeps its operations and schemas in its own file, with
+shared schemas in `shared.yaml`. Run `composer openapi-bundle` for a single-file
+`build/openapi.yaml` for tools that need one. Prices are
 returned in minor currency units as strings, and errors use RFC 9457 problem
 details:
 

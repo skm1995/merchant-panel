@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: Vanilla PHP Playground API
+  version: 1.0.0
+  description: >-
+    Product catalog and cart API. The API is sessionless; a cart id is an
+    unguessable UUID that grants access to the cart. Monetary amounts are strings in minor currency units
+    (for example grosze) with an ISO 4217 currency code. Errors use RFC 9457
+    problem details.
+paths:
+  /api/v1/products:
+    $ref: 'catalog.yaml#/paths/products'
+  /api/v1/products/{id}:
+    $ref: 'catalog.yaml#/paths/product'
+  /api/v1/carts:
+    $ref: 'cart.yaml#/paths/carts'
+  /api/v1/carts/{id}:
+    $ref: 'cart.yaml#/paths/cart'
+  /api/v1/carts/{id}/items/{productId}:
+    $ref: 'cart.yaml#/paths/cartItem'
+  /api/v1/carts/{id}/checkout:
+    $ref: 'order.yaml#/paths/checkout'
+  /api/v1/orders/{id}/cancel:
+    $ref: 'order.yaml#/paths/orderCancellation'
+  /api/v1/orders/{id}:
+    $ref: 'order.yaml#/paths/order'
+  /api/v1/orders/{id}/payments:
+    $ref: 'payment.yaml#/paths/orderPayments'
+  /api/v1/payments/{id}:
+    $ref: 'payment.yaml#/paths/payment'
+  /api/v1/payments/webhooks/{provider}:
+    $ref: 'payment.yaml#/paths/webhook'
+  /api/v1/reports/daily-revenue:
+    $ref: 'report.yaml#/paths/dailyRevenue'
+  /api/v1/reports/top-products:
+    $ref: 'report.yaml#/paths/topProducts'

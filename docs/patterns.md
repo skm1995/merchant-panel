@@ -17,8 +17,8 @@ and follow the existing implementation it names.
   router skips CSRF there. Protect non-public operations with
   `#[RequireApiKey('<ENV_VARIABLE>')]` (header `X-Api-Key`, compared with `hash_equals`,
   HTTP 401).
-- Document every operation in `openapi.yaml`; the functional suite validates real
-  responses, including problem details, against it.
+- Document every operation in the feature's `openapi/<feature>.yaml`; the functional suite
+  validates real responses, including problem details, against it.
 
 ## Browser forms and sessions
 

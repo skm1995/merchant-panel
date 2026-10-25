@@ -7,6 +7,7 @@ Use these rules when changing this project, and prefer its existing patterns and
 - Follow TDD: write a failing test, make the smallest change that passes it, then refactor with the tests green. Test behavior, including failure paths, not declarations such as constant or enum values.
 - Give each production class its own `<ClassName>Test` in the mirrored namespace under `tests/Unit/`. Unit tests build classes directly with test doubles; test controllers through `Tests\Unit\Support\HttpHarness`, which dispatches through the real router.
 - Keep unit and functional suites separate. Functional tests run against dedicated test infrastructure (database, broker queues, worker), apply migrations, clean up their data, and use unique test data.
+- Document every JSON API operation in `openapi/<feature>.yaml` (shared schemas in `shared.yaml`) and reference its paths from `openapi/openapi.yaml`; functional tests validate real responses against it.
 - Exercise HTTP in functional tests through the web server with an HTTP client (`HttpBrowser` for browser flows); never include the front controller or overwrite superglobals. Test repositories against the real test database instead of mocking PDO.
 - Test security and recovery paths explicitly: GET without side effects, rejected CSRF tokens, and behavior when infrastructure such as the broker fails.
 

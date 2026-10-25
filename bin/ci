@@ -13,6 +13,7 @@ run=("${compose[@]}" run --rm --no-deps php-test)
 "${run[@]}" composer install --no-interaction --no-progress
 "${compose[@]}" up --detach --wait
 "${run[@]}" composer validate --no-check-publish
+"${run[@]}" composer openapi-validate
 "${run[@]}" composer test-unit
 "${run[@]}" composer migrate
 "${run[@]}" composer test-functional

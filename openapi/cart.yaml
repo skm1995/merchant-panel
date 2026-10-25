@@ -1,0 +1,102 @@
+paths:
+  carts:
+    post:
+      operationId: createCart
+      summary: Create an empty cart
+      responses:
+        '201':
+          description: The created cart.
+          headers:
+            Location:
+              description: URL of the created cart.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Cart'
+  cart:
+    get:
+      operationId: getCart
+      summary: Get a cart at current prices
+      parameters:
+        - $ref: '#/parameters/CartId'
+      responses:
+        '200':
+          description: The cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Cart'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+  cartItem:
+    put:
+      operationId: setLineItemQuantity
+      summary: Set the quantity of a product in an open cart
+      description: Idempotent; a quantity of 0 removes the product.
+      parameters:
+        - $ref: '#/parameters/CartId'
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 0
+                  maximum: 99
+      responses:
+        '200':
+          description: The updated cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Cart'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+        '409':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+parameters:
+  CartId:
+    name: id
+    in: path
+    required: true
+    schema:
+      type: string
+      format: uuid
+schemas:
+  Cart:
+    type: object
+    additionalProperties: false
+    required: [id, status, items, total]
+    properties:
+      id:
+        type: string
+        format: uuid
+      status:
+        type: string
+        enum: [open, checked_out]
+      items:
+        type: array
+        items:
+          $ref: 'shared.yaml#/schemas/LineItem'
+      total:
+        allOf:
+          - $ref: 'shared.yaml#/schemas/Money'
+        nullable: true
+        description: Null for an empty cart.

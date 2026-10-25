@@ -1,0 +1,83 @@
+paths:
+  products:
+    get:
+      operationId: listProducts
+      summary: List products using keyset pagination
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          required: false
+          description: The next_cursor value returned by the previous page.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: A page of products ordered by id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/ProductPage'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+  product:
+    get:
+      operationId: getProduct
+      summary: Get one product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: The product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Product'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+schemas:
+  Product:
+    type: object
+    additionalProperties: false
+    required: [id, sku, name, price, available_quantity]
+    properties:
+      id:
+        type: integer
+        minimum: 1
+      sku:
+        type: string
+        maxLength: 64
+      name:
+        type: string
+        maxLength: 255
+      price:
+        $ref: 'shared.yaml#/schemas/Money'
+      available_quantity:
+        type: integer
+        minimum: 0
+  ProductPage:
+    type: object
+    additionalProperties: false
+    required: [data, next_cursor]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '#/schemas/Product'
+      next_cursor:
+        type: integer
+        minimum: 1
+        nullable: true
