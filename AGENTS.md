@@ -1,92 +1,43 @@
 # Project guide
 
-Use these rules when changing this project. Prefer its existing patterns and dependencies; keep new code consistent with the surrounding design.
+Use these rules when changing this project, and prefer its existing patterns and dependencies. Before working on API actions, forms and sessions, registration, CQRS, transactions and locking, idempotency, optimistic locking, payment providers and webhooks, messaging, caching, reports, legacy code, money, or identifiers, read the matching section of `docs/patterns.md`.
 
-## Development workflow
+## Workflow and testing
 
-- Follow TDD: first write a failing test for the expected behavior, then make the smallest change that passes it, and refactor while keeping tests green.
-- Cover application behavior with PHPUnit, including relevant failure paths. Test behavior, not declarations: do not add tests that only restate constant or enum values.
-- Give each production class its own `<ClassName>Test` in the mirrored test namespace; do not group several classes in one test class.
-- Unit-test controllers through `Tests\Unit\Support\HttpHarness`, which dispatches requests via the real router so routes, constraints, and exception mapping are covered; build the controller's services directly with test doubles.
-- Make mocks of third-party APIs follow their real contract (for example, an AMQP receiver's `get()` returns at most one message per call), and verify recovery commands such as failed-message retries against the real local broker.
-- Keep unit and functional tests in separate suites. Run both suites before considering a change complete.
-- Functional tests must use a dedicated test database, apply migrations first, and clean up their data. Never run them against the development database.
-- Exercise HTTP behavior in the functional suite through the configured web server with an HTTP client (Symfony `HttpBrowser` for browser flows, which keeps cookies and submits forms with their CSRF fields). Never include the front controller or overwrite PHP superglobals in functional tests.
-- Functional tests use dedicated test infrastructure: their own database, broker queues, and worker, so development services never process test data.
-- Test asynchronous behavior at two levels: unit-test dispatch decisions and message handlers with PHPUnit mocks, then cover the end-to-end effect in a functional test using the real local broker and service (such as RabbitMQ and MailHog). Poll for the expected result with a bounded timeout, use unique test data, and clean up test-owned data. Keep the broker-backed test separate from fast unit tests.
-- Document every JSON API operation in `openapi.yaml` and validate real responses, including problem details, against it in the functional suite.
-- Refactor legacy code behind characterization tests: first record a golden master of its observable behavior through the web server, with unstable values such as ids normalized, then add failing tests for the defects to fix (such as SQL injection or XSS), and only then refactor. The golden master must stay unchanged unless a behavior change is intended and reviewed. Keep the old URL working when external links depend on it.
-- Test repositories against the real test database in the functional suite rather than mocking PDO.
-- For every reporting or otherwise performance-sensitive query, add a functional test that loads a realistic amount of data, runs `ANALYZE TABLE`, and asserts the expected index and access type in `EXPLAIN FORMAT=JSON`. Filter indexed columns with half-open ranges instead of wrapping them in functions.
-- Test security-sensitive HTTP behavior explicitly: state-changing GET requests must have no side effects, and invalid or missing CSRF tokens must prevent the action and return an appropriate error status.
-- Test recovery paths for infrastructure failures. Registration must store the user, the token, and the confirmation email message atomically through the outbox, so a broker outage cannot lose the email, and retrying registration for an existing unverified user with valid credentials must resend the confirmation without creating another account.
-- Open transactions in application services or command handlers, never in repositories; repository methods that need one document that callers must run them inside a transaction.
-- Rate-limit confirmation email resends with a durable database counter, a typed integer maximum, and the rate window expressed in seconds as a typed integer constant. Test the limit and the reset after the window expires.
+- Follow TDD: write a failing test, make the smallest change that passes it, then refactor with the tests green. Test behavior, including failure paths, not declarations such as constant or enum values.
+- Give each production class its own `<ClassName>Test` in the mirrored namespace under `tests/Unit/`. Unit tests build classes directly with test doubles; test controllers through `Tests\Unit\Support\HttpHarness`, which dispatches through the real router.
+- Keep unit and functional suites separate. Functional tests run against dedicated test infrastructure (database, broker queues, worker), apply migrations, clean up their data, and use unique test data.
+- Exercise HTTP in functional tests through the web server with an HTTP client (`HttpBrowser` for browser flows); never include the front controller or overwrite superglobals. Test repositories against the real test database instead of mocking PDO.
+- Test security and recovery paths explicitly: GET without side effects, rejected CSRF tokens, and behavior when infrastructure such as the broker fails.
 
-## Code and architecture
+## Architecture
 
-- Keep PHP compatible with the version declared by the project and format it according to PSR-12.
-- Prefer PHP 8.5's pipe operator (`|>`) for readable, left-to-right value transformations instead of nesting function calls. Use first-class callables for single-argument steps and a short closure or named method when a step needs additional arguments; do not force a pipe when it obscures the logic. Never wrap a single expression in a closure only to pipe one value into it.
-- Omit redundant parentheses around `new` expressions when immediately accessing a member or calling a method.
-- Keep controllers thin. Delegate application actions to services; keep business logic, validation, persistence, and session management out of controllers. Controllers own the HTTP response: they map service results and domain exceptions to redirects, rendered views, and status codes.
-- Keep request DTOs in a `Request/` subdirectory and response DTOs in a `Response/` subdirectory of their feature (shared ones in `Shared/Request/` and `Shared/Response/`); do not mix them in a generic `Dto/` folder.
-- Keep each API action to three steps: parse the request into a request DTO, call one application service, and respond with a response DTO. Request DTOs parse and validate input and throw `InvalidRequestException` (HTTP 400); constrain path parameters in the route (for example `{id:\d+}`); map domain exceptions declaratively with `#[MapException]` instead of `try/catch`; build response bodies in DTOs implementing `Arrayable`, never as arrays in the controller.
-- Use lightweight CQRS only where it pays off: when writes enforce invariants under concurrency (stock, money, idempotency) and reads need a different shape than the write model, as in checkout and orders. Model writes as a `Command/` object handled by a `*Handler` that loads the write model, runs in a transaction, and returns only an identifier; model reads as a `Query/` object handled by a `*Handler` that reads a `ReadModel/` view straight from SQL through a read repository, without entities. Both sides share one database; do not add event sourcing or a separate read store. Keep simple CRUD features, such as the catalog, carts, and authentication, on plain application services.
-- Protect non-public API operations declaratively with `#[RequireApiKey('<ENV_VARIABLE>')]`; the router compares the `X-Api-Key` header with `hash_equals` and answers HTTP 401.
-- Accept an `Idempotency-Key` header on POST operations that create money-related resources, store the key with a unique index in the same transaction as the resource, return the existing resource for a repeated key, and reject a key reused for a different request with HTTP 422.
-- Use optimistic locking for client-driven changes to versioned resources: return the version as a strong `ETag`, require `If-Match` (HTTP 428 when missing), apply the change with an `UPDATE ... WHERE version = :expected`, and answer a stale version with HTTP 412. Model allowed status changes on the status enum (`canTransitionTo()`), answering forbidden transitions with HTTP 409.
-- Integrate interchangeable external providers through a Strategy interface in the feature (for example `Payment/Gateway/`) with implementations under `Infrastructure/`, and build them with a factory that reads each provider's configuration from the environment only when that provider is used.
-- Never call external services inside a database transaction. Call them before or after, and make the stored result idempotent so a retried request reuses it.
-- Verify every incoming webhook signature with `hash_equals` before parsing or touching the database, reject stale timestamps when the provider signs them, and process each provider event once by recording its id in an inbox table with a unique key inside the transaction that applies it. Lock the affected row so concurrent deliveries serialize, and cover duplicate and parallel deliveries in functional tests.
-- Lock rows that several requests compete for in a fixed order (ascending primary key), guard counters with conditional `UPDATE ... WHERE` statements, and cover the race with a functional test that sends parallel requests through the web server.
-- Application services accept typed arguments, never raw request arrays, and know nothing about URLs, routes, or templates. Report expected failures with specific domain exceptions rather than result objects carrying HTTP details, and catch only the exception types a flow is meant to handle.
-- Treat a missing required request field as a bad request (HTTP 400) at the controller boundary; represent missing values with `null`, never with sentinel strings.
-- Keep GET requests safe and free of state changes. Complete email confirmation and other mutations with POST requests protected by a session-bound CSRF token.
-- Add CSRF tokens to every state-changing browser form and validate them before invoking application services. Reject invalid tokens with HTTP 403.
-- Keep the JSON API under `/api/` sessionless: API actions never read the session or cookies and identify resources with unguessable identifiers or explicit credentials, which is why the router skips CSRF validation for `/api/` routes.
-- Start browser sessions with strict session ID handling and cookies configured as HttpOnly and SameSite=Lax; set Secure whenever the request uses HTTPS. Regenerate the session ID after successful authentication and after logout.
-- Run multi-statement database work through `TransactionRunnerInterface` with an explicit isolation level; unit tests use `ImmediateTransactionRunner`. Keep transactional operations free of side effects outside the database, because deadlocks and lock wait timeouts retry the whole operation.
-- Route a message by putting `#[Message(transport: 'name')]` on its class; the transport DSN comes from `MESSENGER_<NAME>_DSN`, outbox messages are found by `OutboxMessageInterface`, and handlers by `#[AsMessageHandler]` on a method whose single parameter is the message. Controllers are found by their `#[Route]` methods in `src/*/Controller`. Never keep registries of controllers, routes, messages, or handlers by hand.
-- Never dispatch messages to the broker directly from code that also changes the database. Add them to `OutboxInterface` inside the same transaction; `bin/outbox-relay.php` publishes them, delayed ones with a `DelayStamp`. Delivery is at least once, so every message handler must be idempotent. Outbox message classes implement `OutboxMessageInterface` with a stable `messageType()`.
-- Cache reads behind a repository decorator in the feature's `Infrastructure/Cache/`, through `StampedeProtectedCache` (a short Redis lock so one process recomputes, plus probabilistic early expiration). Keep row locks and writes uncached, invalidate cache entries only after commit through outbox events handled by the worker, and keep TTLs short as a safety net.
-- Make asynchronous operations recoverable. Provide a documented and tested retry path for messages that could not be dispatched, and ensure the worker restarts after process failure. Keep failed messages inspectable and document how to retry them; a retry must skip, not crash on, messages it cannot decode.
-- Treat queued message class names as a persisted contract. Before renaming or moving a message class, drain its queues or keep the old class loadable.
-- Read configuration such as DSNs, hosts, ports, credentials, public URLs, and sender addresses only from environment variables. Do not define fallback values for them in PHP code; keep local defaults in `compose.yaml` and `.env.example`, and fail fast when a required variable is missing.
-- Keep DRY and KISS in balance: share behavior when there is a clear single responsibility, but avoid generic frameworks, indirection, and abstractions that make a simple flow harder to follow.
-- Give each piece of knowledge, such as a session key, route path, token hashing algorithm, or date format, a single owning class; other code uses that owner instead of repeating the value. A feature that needs another feature's state uses its public service, not its internal keys.
-- Put domain rules on entities and value objects, for example whether a user is verified or whether a password matches. Avoid boolean flag parameters that switch behavior; use separately named methods.
-- Group related feature classes together, use matching namespaces, and use singular names for source directories.
-- Organize `src/` by feature first. Keep feature-specific controllers, entities, repositories, services, messages, and infrastructure under that feature; put code in `Shared/` only when multiple features use it. Mirror this structure in `tests/Unit/`.
-- Keep feature names such as `Auth/` and `Home/` at the top of `src/`. Do not add top-level type-only folders such as `src/Controller/` or `src/Service/`.
-- Place exceptions in an `Exception/` subdirectory and enums in an `Enum/` subdirectory of their feature or shared module, even when there is only one. Create other layer subdirectories when a feature has enough related files to benefit from grouping. Avoid empty directories, and remove them when moving or deleting their last file.
-- Declare HTTP routes as method attributes on controllers and register controller instances with the router. Route paths may contain `{name}` segments; route methods receive path parameters through an optional `Request` argument. Reject duplicate routes and route methods that are not public or accept anything other than a single `Request`.
-- Keep HTTP request parsing and response rendering at the controller boundary. Application services own use cases, and repositories own persistence. Avoid duplicate view-rendering or response helpers.
-- Give each layer a clear responsibility: controllers translate HTTP input into application calls and responses; application services implement use cases; entities hold domain state and rules; repositories load and persist data; infrastructure adapters integrate external systems. Do not move HTTP globals, headers, or view rendering into application services.
-- Put cross-cutting HTTP behavior, such as session setup, CSRF validation, request parsing, response writing, and route dispatch, in shared HTTP components injected into controllers, so every controller receives the same policy. Prefer composition over controller base classes. Keep feature-specific business decisions inside that feature.
-- Views only produce markup: they never send headers or build response metadata, and they escape output through the shared renderer's escaping helper.
-- Build services through the autowiring container (`ContainerFactory::create()`); entry points must not call `new` on application services. Services are discovered from `src/`, never registered by hand: an interface with one implementation is bound to it, `#[DefaultImplementation]` picks among several, and a `#[ServiceFactory]` method builds the service its return type names (use it for vendor classes and objects needing custom construction, next to the code that owns them). Inspect the result with `bin/container-debug.php`. Inject configuration with `#[Env('VARIABLE')]` and a specific implementation, such as the repository a decorator wraps, with `#[Autowire(Class::class)]`. Unit tests still construct classes directly with test doubles.
-- Keep service factories focused on their runtime: web requests must not initialize worker-only mail handlers or event listeners. The container builds services lazily, so an entry point only creates what it uses.
-- Represent monetary amounts with `Money\Money` (moneyphp/money) everywhere in the domain; never use floats or bare integers. Store them as an unsigned `BIGINT` in minor units plus a `CHAR(3)` ISO 4217 currency code, and expose them in APIs as `{"amount": "<minor units as string>", "currency": "<code>"}`.
-- Hydrate query results into readonly record DTOs marked `#[HydratedRecord]` through `RecordFetcher`, selecting columns with aliases that match the record's properties; records that represent an entity implement `App\Shared\Contract\EntityRecord` and convert themselves with `toEntity()`. Never pass associative row arrays between methods, and return report or listing results as DTOs.
-- Generate UUIDs with `symfony/uid` inside domain value objects; never assemble UUID bits by hand. Access-granting ids extend `App\Shared\Identifier\RandomUuid`. Use version 4 for identifiers that act as access tokens, consider version 7 for internal time-ordered keys, and store UUIDs as `BINARY(16)`.
-- DTOs that need an array form, such as API response bodies, implement `App\Shared\Contract\Arrayable`.
-- Declare explicit types for class constants. Prefer backed enums for public finite sets of values.
-- Empty string literals are forbidden. Define string values as constants instead of inline literals, except in enum methods where a literal directly expresses enum behavior.
-- Prefer readable path strings using `/` over assembling path segments when practical.
+- Organize `src/` by feature (`Auth/`, `Catalog/`, …) with singular directory names and matching namespaces; use `Shared/` only for code several features use. No top-level type folders such as `src/Controller/`.
+- Inside a feature, put exceptions in `Exception/`, enums in `Enum/`, request DTOs in `Request/`, and response DTOs in `Response/`, even for a single file; add other layer directories when they help. Remove directories that become empty.
+- Layers: controllers translate HTTP into one application call and a response and map domain exceptions to status codes; application services implement use cases with typed arguments and know nothing about HTTP, URLs, or views; entities and value objects hold domain rules; repositories own persistence; infrastructure adapters integrate external systems.
+- Put cross-cutting HTTP policy (sessions, CSRF, request parsing, response writing, dispatch) in shared components injected into controllers; prefer composition over base classes.
+- Routes are `#[Route]` attributes on public controller methods that take no argument or a single `Request`; controllers in `src/*/Controller` are discovered automatically. Never keep hand-written registries of controllers, routes, messages, handlers, or services.
+- Build services through the container (`ContainerFactory::create()`), never with `new` in entry points. It autowires constructors; binds an application interface with one implementation automatically; uses `#[DefaultImplementation]` among several and `#[ServiceFactory]` methods for vendor or custom-built services; injects `#[Env('VARIABLE')]` and `#[Autowire(Class::class)]` parameters. `bin/container-debug.php` lists the bindings.
+- Report expected failures with specific domain exceptions and catch only what a flow handles. Avoid boolean flag parameters; use separately named methods.
+- Hydrate query results into readonly `#[HydratedRecord]` DTOs through `RecordFetcher`; entity records implement `EntityRecord::toEntity()` and array-shaped DTOs implement `Arrayable`. Never pass associative row arrays between methods.
+- Read configuration (DSNs, hosts, credentials, URLs, sender addresses) only from environment variables, with no fallback values in PHP; local defaults live in `compose.yaml` and `.env.example`.
+- Balance DRY and KISS: give each piece of knowledge (a session key, route path, algorithm, format) one owning class, but avoid generic frameworks and indirection that obscure a simple flow.
 
-## Dependencies, data, and infrastructure
+## Code style
 
-- Use Composer for PHP dependencies and commit the application lockfile. Declare every PHP extension the application needs at runtime as an `ext-*` requirement, including extensions required by dependencies that the Docker image installs for them (such as `bcmath` for moneyphp/money and `amqp` for Messenger), with test-only extensions in `require-dev`.
-- Keep Docker and local service configuration grouped by service. Share repeated Compose configuration through YAML anchors, and give each service only the environment variables its runtime uses.
-- Use the configured PHP migration tool for schema changes. Give migrations descriptive names, make them reversible where practical, and never edit a migration after it has been applied. Declare every column `'null' => false` unless `NULL` carries meaning, enforce invariants with database constraints, and date new migrations after the latest committed one.
-- Keep application and functional-test databases separate.
-- Do not commit local environment files or secrets.
-- Ignore `.env` and other local environment files in Git while keeping `.env.example` tracked. Do not rely on `.dockerignore` as Git protection.
+- PSR-12 for the PHP version in `composer.json`, PHPStan level 8.
+- Use the pipe operator (`|>`) for left-to-right transformations with first-class callables; do not force it or wrap a single expression in a closure just to pipe it.
+- Omit redundant parentheses around `new` when accessing a member. Give class constants explicit types; prefer backed enums for finite sets.
+- Never use empty string literals, and put string values in constants rather than inline literals (enum methods may use literals). Prefer readable `/` paths over assembled segments.
 
-## Quality and delivery
+## Dependencies and data
 
-- Keep PHPStan at level 8 and PHP CS Fixer configured for PSR-12.
-- CI must run both test suites, apply database migrations, and run PHPStan and PHP CS Fixer. CI and local verification run the same `bin/ci` script against the Docker Compose stack; do not duplicate service configuration or environment variables in the workflow file.
-- For email confirmation, functional tests must prove that opening the GET link does not verify the account and that an explicit valid POST does. Cover token replay or expiry where repository behavior changes.
-- Before pushing, run `bin/ci` locally without a local `.env` override and push only after it passes.
-- Write commit messages in scoped Conventional Commits format: `<type>(<scope>): <description>`. Every commit must have a lowercase scope.
+- Manage dependencies with Composer and commit the lockfile. Declare every PHP extension the code or its dependencies need as `ext-*` (for example `bcmath` for moneyphp, `amqp` for Messenger).
+- Group Docker configuration by service, share repeated Compose configuration with YAML anchors, and give each service only the variables it uses.
+- Change the schema only with Phinx migrations: descriptive names, reversible where practical, never edited after being applied, dated after the latest committed one, columns `'null' => false` unless `NULL` means something, invariants enforced by constraints.
+- Never commit `.env` files or secrets; keep `.env.example` tracked and ignore the rest in `.gitignore`.
+
+## Delivery
+
+- `bin/ci` runs migrations, both test suites, PHPStan, and PHP CS Fixer against the Compose stack, identically locally and on GitHub; keep service configuration out of the workflow file. Run it without a local `.env` override and push only when it passes.
+- Commit messages follow scoped Conventional Commits: `<type>(<scope>): <description>` with a lowercase scope.
