@@ -45,6 +45,21 @@ curl -s -X PUT "http://localhost:8080/api/v1/carts/$cart/items/1" -d '{"quantity
 curl -s -X POST "http://localhost:8080/api/v1/carts/$cart/checkout" -H "Idempotency-Key: $(uuidgen)"
 ```
 
+## Payments
+
+`POST /api/v1/orders/{id}/payments` starts a payment at a simulated provider
+(`fakepay` or `quickpay`) and returns a `checkout_url`. Providers report the
+result to `POST /api/v1/payments/webhooks/{provider}`:
+
+- `fakepay` signs the raw body with HMAC-SHA256 in `X-Fakepay-Signature`.
+- `quickpay` sends `X-Quickpay-Signature: t=<unix time>,v1=<HMAC of "t.body">`
+  and rejects signatures older than five minutes.
+
+A successful payment marks the order paid and turns its reserved stock into
+sold stock. A payment for an order that was cancelled meanwhile becomes
+`refund_required`. Webhook secrets and checkout URLs come from the
+`FAKEPAY_*` and `QUICKPAY_*` environment variables.
+
 ## Failed confirmation emails
 
 After the worker exhausts its configured retries, messages are stored in the

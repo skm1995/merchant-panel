@@ -25,6 +25,15 @@ use App\Order\Controller\OrderApiController;
 use App\Order\Query\GetOrderHandler;
 use App\Order\Repository\PdoOrderReadRepository;
 use App\Order\Repository\PdoOrderRepository;
+use App\Order\Service\OrderSettlement;
+use App\Payment\Command\HandlePaymentWebhookHandler;
+use App\Payment\Command\StartPaymentHandler;
+use App\Payment\Controller\PaymentApiController;
+use App\Payment\Infrastructure\Gateway\PaymentGatewayFactory;
+use App\Payment\Query\GetPaymentHandler;
+use App\Payment\Repository\PdoPaymentReadRepository;
+use App\Payment\Repository\PdoPaymentRepository;
+use App\Payment\Repository\PdoWebhookInboxRepository;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Database\PdoTransactionRunner;
 use App\Shared\Http\CsrfToken;
@@ -67,10 +76,26 @@ $stockReservation = new StockReservation($productRepository);
 $orderRepository = new PdoOrderRepository($pdo);
 $router->registerController(new ProductApiController($productCatalog, $responder));
 $router->registerController(new CartApiController($cartService, $responder));
+$clock = new NativeClock();
+$getOrder = new GetOrderHandler(new PdoOrderReadRepository($pdo));
+$paymentRepository = new PdoPaymentRepository($pdo);
+$paymentGateways = new PaymentGatewayFactory($clock);
 $router->registerController(new OrderApiController(
-    new PlaceOrderHandler($orderRepository, $cartService, $stockReservation, $transactions, new NativeClock()),
-    new GetOrderHandler(new PdoOrderReadRepository($pdo)),
+    new PlaceOrderHandler($orderRepository, $cartService, $stockReservation, $transactions, $clock),
+    $getOrder,
     new CancelOrderHandler($orderRepository, $stockReservation, $transactions),
+    $responder,
+));
+$router->registerController(new PaymentApiController(
+    new StartPaymentHandler($paymentRepository, $getOrder, $paymentGateways),
+    new GetPaymentHandler(new PdoPaymentReadRepository($pdo)),
+    new HandlePaymentWebhookHandler(
+        $paymentGateways,
+        new PdoWebhookInboxRepository($pdo),
+        $paymentRepository,
+        new OrderSettlement($orderRepository, $stockReservation),
+        $transactions,
+    ),
     $responder,
 ));
 $router->dispatch(Request::fromGlobals());

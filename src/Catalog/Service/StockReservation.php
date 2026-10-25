@@ -17,7 +17,7 @@ use LogicException;
  */
 final class StockReservation
 {
-    private const string RELEASE_INCONSISTENCY_FORMAT = 'Product %d has fewer reserved units than are being released.';
+    private const string RESERVATION_INCONSISTENCY_FORMAT = 'Product %d has fewer reserved units than are being settled.';
 
     public function __construct(private readonly ProductRepositoryInterface $products)
     {
@@ -61,11 +61,31 @@ final class StockReservation
      */
     public function release(array $quantities): void
     {
+        $this->settle($quantities, $this->products->release(...));
+    }
+
+    /**
+     * Turns reserved stock into sold stock once an order is paid. Callers must run it
+     * inside a transaction; rows are updated in ascending id order.
+     *
+     * @param array<int, int> $quantities quantities keyed by product id
+     */
+    public function commit(array $quantities): void
+    {
+        $this->settle($quantities, $this->products->commit(...));
+    }
+
+    /**
+     * @param array<int, int> $quantities
+     * @param callable(int, int): bool $settleProduct
+     */
+    private function settle(array $quantities, callable $settleProduct): void
+    {
         ksort($quantities);
 
         foreach ($quantities as $productId => $quantity) {
-            if (!$this->products->release($productId, $quantity)) {
-                throw new LogicException(sprintf(self::RELEASE_INCONSISTENCY_FORMAT, $productId));
+            if (!$settleProduct($productId, $quantity)) {
+                throw new LogicException(sprintf(self::RESERVATION_INCONSISTENCY_FORMAT, $productId));
             }
         }
     }

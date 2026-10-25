@@ -15,6 +15,12 @@ x-test-messenger-environment: &test-messenger-environment
 x-test-app-environment: &test-app-environment
   APP_BASE_URL: ${TEST_APP_BASE_URL:-http://host.docker.internal:8081}
 
+x-payment-environment: &payment-environment
+  FAKEPAY_CHECKOUT_URL: ${FAKEPAY_CHECKOUT_URL:-http://localhost:8080/fakepay}
+  FAKEPAY_WEBHOOK_SECRET: ${FAKEPAY_WEBHOOK_SECRET:-local-fakepay-webhook-secret}
+  QUICKPAY_CHECKOUT_URL: ${QUICKPAY_CHECKOUT_URL:-http://localhost:8080/quickpay}
+  QUICKPAY_WEBHOOK_SECRET: ${QUICKPAY_WEBHOOK_SECRET:-local-quickpay-webhook-secret}
+
 x-mailer-environment: &mailer-environment
   MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
   MAILER_FROM: ${MAILER_FROM:-no-reply@example.com}
@@ -41,7 +47,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      <<: [*database-environment, *messenger-environment]
+      <<: [*database-environment, *messenger-environment, *payment-environment]
       XDEBUG_MODE: ${XDEBUG_MODE:-debug,develop}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     depends_on:
@@ -76,7 +82,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *test-messenger-environment, *test-app-environment]
+      <<: [*test-database-environment, *test-messenger-environment, *test-app-environment, *payment-environment]
       XDEBUG_MODE: "off"
       MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
     depends_on:
@@ -93,7 +99,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *test-messenger-environment]
+      <<: [*test-database-environment, *test-messenger-environment, *payment-environment]
       XDEBUG_MODE: "off"
       SESSION_COOKIE_SECURE: "false"
     depends_on:

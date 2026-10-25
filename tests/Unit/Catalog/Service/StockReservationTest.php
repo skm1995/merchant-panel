@@ -92,4 +92,21 @@ final class StockReservationTest extends TestCase
         $this->expectException(\LogicException::class);
         new StockReservation($products)->release([3 => 1]);
     }
+
+    public function testCommitsReservationsAsSoldStockInIdOrder(): void
+    {
+        $products = $this->createMock(ProductRepositoryInterface::class);
+        $committed = [];
+        $products->expects(self::exactly(2))
+            ->method('commit')
+            ->willReturnCallback(static function (int $productId, int $quantity) use (&$committed): bool {
+                $committed[] = [$productId, $quantity];
+
+                return true;
+            });
+
+        new StockReservation($products)->commit([8 => 1, 3 => 2]);
+
+        self::assertSame([[3, 2], [8, 1]], $committed);
+    }
 }

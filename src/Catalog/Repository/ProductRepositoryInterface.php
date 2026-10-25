@@ -35,4 +35,9 @@ interface ProductRepositoryInterface
      * Atomically gives back reserved stock; false when fewer units are reserved.
      */
     public function release(int $productId, int $quantity): bool;
+
+    /**
+     * Atomically turns reserved units into sold units, lowering both stock and reservations.
+     */
+    public function commit(int $productId, int $quantity): bool;
 }

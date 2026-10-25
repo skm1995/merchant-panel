@@ -86,6 +86,17 @@ final readonly class Request
         return $this->routeParameters[$name] ?? null;
     }
 
+    /** @return array<string, string> header values keyed by lowercase name */
+    public function headers(): array
+    {
+        return $this->headers;
+    }
+
+    public function body(): ?string
+    {
+        return $this->body;
+    }
+
     public function header(string $name): ?string
     {
         return $this->headers[strtolower($name)] ?? null;

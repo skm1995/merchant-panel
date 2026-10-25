@@ -106,6 +106,14 @@ final class RequestTest extends TestCase
         self::assertSame(['quantity' => 2], $request->json());
     }
 
+    public function testExposesRawBodyAndHeaders(): void
+    {
+        $request = new Request(HttpMethodEnum::POST->value, self::PATH, headers: ['x-signature' => self::KEY], body: self::JSON_BODY);
+
+        self::assertSame(self::JSON_BODY, $request->body());
+        self::assertSame(['x-signature' => self::KEY], $request->headers());
+    }
+
     public function testRejectsMalformedJsonBody(): void
     {
         $this->expectException(InvalidRequestException::class);

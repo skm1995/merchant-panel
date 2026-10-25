@@ -40,10 +40,17 @@ final class ApiClient
         return self::request($method, $path, array_filter(['json' => $json, 'headers' => $headers]));
     }
 
+    /** @param array<string, string> $headers */
+    public static function sendRaw(HttpMethodEnum $method, string $path, string $body, array $headers): ResponseInterface
+    {
+        return self::request($method, $path, ['body' => $body, 'headers' => $headers]);
+    }
+
     /**
      * Starts every request before reading any response, so the web server handles them in parallel.
      *
-     * @param list<array{HttpMethodEnum, string, array<string, string>}> $requests method, path, and headers
+     * @param list<array{0: HttpMethodEnum, 1: string, 2: array<string, string>, 3?: string}> $requests
+     *     method, path, headers, and an optional raw body
      * @return list<ResponseInterface>
      */
     public static function sendConcurrently(array $requests): array
@@ -52,6 +59,7 @@ final class ApiClient
         $pending = array_map(
             static fn (array $request) => $client->request($request[0]->value, Browser::url($request[1]), [
                 'headers' => $request[2],
+                'body' => $request[3] ?? null,
             ]),
             $requests,
         );

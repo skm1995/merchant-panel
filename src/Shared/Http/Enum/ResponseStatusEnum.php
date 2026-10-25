@@ -10,6 +10,7 @@ enum ResponseStatusEnum: int
     case CREATED = 201;
     case SEE_OTHER = 303;
     case BAD_REQUEST = 400;
+    case UNAUTHORIZED = 401;
     case FORBIDDEN = 403;
     case NOT_FOUND = 404;
     case CONFLICT = 409;
@@ -24,6 +25,7 @@ enum ResponseStatusEnum: int
             self::CREATED => 'Created',
             self::SEE_OTHER => 'See Other',
             self::BAD_REQUEST => 'Bad Request',
+            self::UNAUTHORIZED => 'Unauthorized',
             self::FORBIDDEN => 'Forbidden',
             self::NOT_FOUND => 'Not Found',
             self::CONFLICT => 'Conflict',

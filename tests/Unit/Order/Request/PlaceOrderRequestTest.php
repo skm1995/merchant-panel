@@ -7,6 +7,7 @@ namespace Tests\Unit\Order\Request;
 use App\Order\Request\PlaceOrderRequest;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
+use App\Shared\Http\IdempotencyKey;
 use App\Shared\Http\Request;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -30,7 +31,7 @@ final class PlaceOrderRequestTest extends TestCase
     public static function invalidHeaders(): iterable
     {
         yield 'missing' => [[]];
-        yield 'too long' => [['idempotency-key' => str_repeat('k', PlaceOrderRequest::MAXIMUM_KEY_LENGTH + 1)]];
+        yield 'too long' => [['idempotency-key' => str_repeat('k', IdempotencyKey::MAXIMUM_LENGTH + 1)]];
         yield 'control characters' => [['idempotency-key' => "key\twith-tab"]];
     }
 

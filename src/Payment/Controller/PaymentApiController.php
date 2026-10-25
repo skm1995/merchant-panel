@@ -1,0 +1,81 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Payment\Controller;
+
+use App\Order\Exception\OrderNotFoundException;
+use App\Payment\Command\HandlePaymentWebhookHandler;
+use App\Payment\Command\StartPaymentHandler;
+use App\Payment\Entity\PaymentId;
+use App\Payment\Exception\InvalidWebhookPayloadException;
+use App\Payment\Exception\InvalidWebhookSignatureException;
+use App\Payment\Exception\OrderNotPayableException;
+use App\Payment\Exception\PaymentAmountMismatchException;
+use App\Payment\Exception\PaymentIdempotencyKeyReusedException;
+use App\Payment\Exception\PaymentNotFoundException;
+use App\Payment\Exception\UnknownPaymentProviderException;
+use App\Payment\Query\GetPaymentHandler;
+use App\Payment\Query\GetPaymentQuery;
+use App\Payment\Request\PaymentWebhookRequest;
+use App\Payment\Request\StartPaymentRequest;
+use App\Payment\Response\PaymentResponse;
+use App\Payment\Response\WebhookResponse;
+use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Shared\Http\MapException;
+use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
+use App\Shared\Http\Route;
+use App\Shared\Identifier\RandomUuid;
+
+final class PaymentApiController
+{
+    private const string START_ROUTE_PATH = '/api/v1/orders/{id:' . RandomUuid::PATTERN . '}/payments';
+    private const string PAYMENT_ROUTE_PATH = '/api/v1/payments/{id:' . RandomUuid::PATTERN . '}';
+    private const string WEBHOOK_ROUTE_PATH = '/api/v1/payments/webhooks/{provider:[a-z]+}';
+    private const string PAYMENT_LOCATION_FORMAT = '/api/v1/payments/%s';
+    private const string ID_PARAMETER = 'id';
+
+    public function __construct(
+        private readonly StartPaymentHandler $startPayment,
+        private readonly GetPaymentHandler $getPayment,
+        private readonly HandlePaymentWebhookHandler $handleWebhook,
+        private readonly Responder $responder,
+    ) {
+    }
+
+    #[Route(HttpMethodEnum::POST, self::START_ROUTE_PATH)]
+    #[MapException(OrderNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
+    #[MapException(OrderNotPayableException::class, ResponseStatusEnum::CONFLICT)]
+    #[MapException(PaymentIdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    public function start(Request $request): void
+    {
+        $paymentId = $this->startPayment->handle(StartPaymentRequest::fromRequest($request)->toCommand());
+        $payment = $this->getPayment->handle(new GetPaymentQuery($paymentId));
+
+        $this->responder->created(PaymentResponse::fromView($payment), sprintf(self::PAYMENT_LOCATION_FORMAT, $paymentId->value));
+    }
+
+    #[Route(HttpMethodEnum::GET, self::PAYMENT_ROUTE_PATH)]
+    #[MapException(PaymentNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
+    public function show(Request $request): void
+    {
+        $paymentId = PaymentId::fromString((string) $request->routeParameter(self::ID_PARAMETER));
+
+        $this->responder->json(PaymentResponse::fromView($this->getPayment->handle(new GetPaymentQuery($paymentId))));
+    }
+
+    #[Route(HttpMethodEnum::POST, self::WEBHOOK_ROUTE_PATH)]
+    #[MapException(UnknownPaymentProviderException::class, ResponseStatusEnum::NOT_FOUND)]
+    #[MapException(InvalidWebhookSignatureException::class, ResponseStatusEnum::UNAUTHORIZED)]
+    #[MapException(InvalidWebhookPayloadException::class, ResponseStatusEnum::BAD_REQUEST)]
+    #[MapException(PaymentNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
+    #[MapException(PaymentAmountMismatchException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    public function webhook(Request $request): void
+    {
+        $result = $this->handleWebhook->handle(PaymentWebhookRequest::fromRequest($request)->toCommand());
+
+        $this->responder->json(WebhookResponse::fromResult($result));
+    }
+}
