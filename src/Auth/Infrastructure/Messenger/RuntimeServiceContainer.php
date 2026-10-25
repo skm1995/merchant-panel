@@ -9,6 +9,8 @@ use Psr\Container\ContainerInterface;
 
 final class RuntimeServiceContainer implements ContainerInterface
 {
+    private const string UNKNOWN_SERVICE_MESSAGE = 'Unknown service identifier.';
+
     /** @param array<string, object> $services */
     public function __construct(private readonly array $services)
     {
@@ -16,7 +18,7 @@ final class RuntimeServiceContainer implements ContainerInterface
 
     public function get(string $id): mixed
     {
-        return $this->services[$id] ?? throw new InvalidArgumentException('Unknown service identifier.');
+        return $this->services[$id] ?? throw new InvalidArgumentException(self::UNKNOWN_SERVICE_MESSAGE);
     }
 
     public function has(string $id): bool

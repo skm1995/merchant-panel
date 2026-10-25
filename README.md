@@ -2,7 +2,11 @@
 
 ## Local development
 
-Copy `.env.example` to `.env`, then start the application and services:
+Copy `.env.example` to `.env`, then start the application and services.
+Application configuration (database, RabbitMQ, mailer and public URLs) is read
+only from environment variables; local defaults live in `compose.yaml` and
+`.env.example`, and the application fails fast when a required variable is
+missing.
 
 ```sh
 docker compose up --build -d

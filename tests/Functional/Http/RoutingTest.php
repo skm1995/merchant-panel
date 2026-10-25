@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Functional\Http;
 
 use App\Auth\Repository\PdoUserRepository;
+use App\Shared\Config\Environment;
 use App\Shared\Database\DatabaseConnection;
 use PHPUnit\Framework\TestCase;
 use Tests\Functional\Support\TestUserData;
@@ -12,7 +13,6 @@ use Tests\Functional\Support\TestUserData;
 final class RoutingTest extends TestCase
 {
     private const string BASE_URL_ENVIRONMENT_KEY = 'APP_BASE_URL';
-    private const string DEFAULT_BASE_URL = 'http://localhost';
     private const string REGISTER_PATH = '/register';
     private const string LOGIN_PATH = '/login';
     private const string CONFIRMATION_SENT_PATH = '/confirmation-sent';
@@ -112,8 +112,7 @@ final class RoutingTest extends TestCase
     /** @param array<string, array<string, mixed>> $options */
     private static function request(string $path, array $options): string
     {
-        $baseUrl = getenv(self::BASE_URL_ENVIRONMENT_KEY);
-        $url = (is_string($baseUrl) && strlen($baseUrl) > 0 ? $baseUrl : self::DEFAULT_BASE_URL) . $path;
+        $url = Environment::get(self::BASE_URL_ENVIRONMENT_KEY) . $path;
         $body = file_get_contents($url, false, stream_context_create($options));
 
         self::assertIsString($body);

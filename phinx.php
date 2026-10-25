@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Shared\Database\DatabaseSettings;
+
+$database = DatabaseSettings::fromEnvironment();
+
 return [
     'paths' => [
         'migrations' => '%%PHINX_CONFIG_DIR%%/database/migrations',
@@ -11,12 +15,12 @@ return [
         'default_environment' => 'development',
         'development' => [
             'adapter' => 'mysql',
-            'host' => getenv('DB_HOST') ?: '127.0.0.1',
-            'name' => getenv('DB_DATABASE') ?: 'app',
-            'user' => getenv('DB_USERNAME') ?: 'app',
-            'pass' => getenv('DB_PASSWORD') ?: 'app',
-            'port' => (int) (getenv('DB_PORT') ?: 3306),
-            'charset' => 'utf8mb4',
+            'host' => $database->host,
+            'name' => $database->database,
+            'user' => $database->username,
+            'pass' => $database->password,
+            'port' => $database->port,
+            'charset' => DatabaseSettings::CHARSET,
         ],
     ],
     'version_order' => 'creation',

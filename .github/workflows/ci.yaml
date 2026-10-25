@@ -75,9 +75,6 @@ jobs:
           --env DB_USERNAME=app
           --env DB_PASSWORD=app
           --env MESSENGER_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails
-          --env MESSENGER_FAILURE_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails_failed
-          --env MAILER_DSN=smtp://host.docker.internal:1025
-          --env APP_BASE_URL=http://127.0.0.1:8080
           vanilla-php-ci
       - name: Start asynchronous email worker
         run: >-

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Functional\Auth;
 
 use App\Auth\Repository\PdoUserRepository;
+use App\Shared\Config\Environment;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Http\CsrfToken;
 use PDO;
@@ -22,6 +23,8 @@ final class AsyncConfirmationFlowTest extends TestCase
     private const string INVALID_CONFIRMATION_MESSAGE = 'This confirmation link is invalid or has expired.';
     private const string CONFIRMATION_LINK_PATTERN = '/confirm\?token=([a-f0-9]{64})/';
     private const string MAILHOG_API_BASE_URL_ENVIRONMENT_KEY = 'MAILHOG_API_BASE_URL';
+    private const string APP_BASE_URL_ENVIRONMENT_KEY = 'APP_BASE_URL';
+    private const string URL_PATH_SEPARATOR = '/';
     private const string MAILHOG_MESSAGE_PATH = '/api/v1/messages/%s';
     private const string HTTP_OPTIONS_KEY = 'http';
     private const string HTTP_METHOD_KEY = 'method';
@@ -45,16 +48,11 @@ final class AsyncConfirmationFlowTest extends TestCase
         TestUserData::delete($this->pdo, $this->email);
 
         if ($this->mailhogMessageId !== null) {
-            $mailhogUrl = getenv(self::MAILHOG_API_BASE_URL_ENVIRONMENT_KEY);
-
-            if (is_string($mailhogUrl)) {
-                $messagePath = sprintf(self::MAILHOG_MESSAGE_PATH, rawurlencode($this->mailhogMessageId));
-                $deleteUrl = rtrim($mailhogUrl, '/') . $messagePath;
-                $context = stream_context_create([
-                    self::HTTP_OPTIONS_KEY => [self::HTTP_METHOD_KEY => self::DELETE_METHOD],
-                ]);
-                file_get_contents($deleteUrl, false, $context);
-            }
+            $messagePath = sprintf(self::MAILHOG_MESSAGE_PATH, rawurlencode($this->mailhogMessageId));
+            $context = stream_context_create([
+                self::HTTP_OPTIONS_KEY => [self::HTTP_METHOD_KEY => self::DELETE_METHOD],
+            ]);
+            file_get_contents(self::mailhogBaseUrl() . $messagePath, false, $context);
         }
     }
 
@@ -103,8 +101,6 @@ final class AsyncConfirmationFlowTest extends TestCase
     /** @param array<string, string>|null $form */
     private function request(string $path, ?array $form = null): string
     {
-        $baseUrl = getenv('APP_BASE_URL');
-        self::assertIsString($baseUrl);
         $httpOptions = [
             'method' => $form === null ? 'GET' : 'POST',
             'ignore_errors' => true,
@@ -122,8 +118,7 @@ final class AsyncConfirmationFlowTest extends TestCase
         }
 
         $context = stream_context_create(['http' => $httpOptions]);
-        $applicationBaseUrl = $baseUrl |> (static fn (string $url): string => rtrim($url, '/'));
-        $requestUrl = $applicationBaseUrl . $path;
+        $requestUrl = rtrim(Environment::get(self::APP_BASE_URL_ENVIRONMENT_KEY), self::URL_PATH_SEPARATOR) . $path;
         $response = file_get_contents($requestUrl, false, $context);
         foreach (http_get_last_response_headers() ?? [] as $header) {
             if (str_starts_with($header, 'Set-Cookie: PHPSESSID=')) {
@@ -138,14 +133,10 @@ final class AsyncConfirmationFlowTest extends TestCase
 
     private function waitForMail(): string
     {
-        $mailhogUrl = getenv(self::MAILHOG_API_BASE_URL_ENVIRONMENT_KEY);
-        self::assertIsString($mailhogUrl);
         $deadline = microtime(true) + (self::MESSAGE_WAIT_TIMEOUT_MICROSECONDS / 1000000);
 
         do {
-            $mailhogBaseUrl = $mailhogUrl |> (static fn (string $url): string => rtrim($url, '/'));
-            $encodedEmail = $this->email |> rawurlencode(...);
-            $url = $mailhogBaseUrl . '/api/v2/search?kind=to&query=' . $encodedEmail;
+            $url = self::mailhogBaseUrl() . '/api/v2/search?kind=to&query=' . rawurlencode($this->email);
             $response = file_get_contents($url);
 
             if (is_string($response)) {
@@ -165,5 +156,10 @@ final class AsyncConfirmationFlowTest extends TestCase
         } while (microtime(true) < $deadline);
 
         self::fail('Timed out waiting for the confirmation email in MailHog.');
+    }
+
+    private static function mailhogBaseUrl(): string
+    {
+        return rtrim(Environment::get(self::MAILHOG_API_BASE_URL_ENVIRONMENT_KEY), self::URL_PATH_SEPARATOR);
     }
 }

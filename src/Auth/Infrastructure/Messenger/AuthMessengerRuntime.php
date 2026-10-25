@@ -6,6 +6,7 @@ namespace App\Auth\Infrastructure\Messenger;
 
 use App\Auth\Message\ConfirmationEmailMessage;
 use App\Auth\Message\ConfirmationEmailQueueInterface;
+use App\Shared\Config\Environment;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
@@ -23,20 +24,16 @@ use Symfony\Component\Messenger\Worker;
 
 final class AuthMessengerRuntime
 {
+    public const string TRANSPORT_NAME = 'emails';
     private const string TRANSPORT_DSN_ENV = 'MESSENGER_TRANSPORT_DSN';
     private const string FAILURE_TRANSPORT_DSN_ENV = 'MESSENGER_FAILURE_TRANSPORT_DSN';
     private const string MAILER_DSN_ENV = 'MAILER_DSN';
     private const string APP_BASE_URL_ENV = 'APP_BASE_URL';
     private const string MAILER_FROM_ENV = 'MAILER_FROM';
-    private const string DEFAULT_TRANSPORT_DSN = 'amqp://app:app@rabbitmq:5672/%2f/emails';
-    private const string DEFAULT_FAILURE_TRANSPORT_DSN = 'amqp://app:app@rabbitmq:5672/%2f/emails_failed';
-    private const string DEFAULT_MAILER_DSN = 'smtp://mailhog:1025';
-    private const string DEFAULT_APP_BASE_URL = 'http://localhost:8080';
-    private const string DEFAULT_MAILER_FROM = 'no-reply@example.com';
 
     public static function createQueueFromEnvironment(): ConfirmationEmailQueueInterface
     {
-        $transport = self::createTransport(self::TRANSPORT_DSN_ENV, self::DEFAULT_TRANSPORT_DSN);
+        $transport = self::createTransport(self::TRANSPORT_DSN_ENV);
         $bus = self::createBus($transport);
 
         return new SymfonyMessengerEmailQueue($bus);
@@ -44,42 +41,36 @@ final class AuthMessengerRuntime
 
     public static function createWorkerFromEnvironment(): Worker
     {
-        $transport = self::createTransport(self::TRANSPORT_DSN_ENV, self::DEFAULT_TRANSPORT_DSN);
-        $failureTransport = self::createTransport(
-            self::FAILURE_TRANSPORT_DSN_ENV,
-            self::DEFAULT_FAILURE_TRANSPORT_DSN,
-        );
-        $mailerTransport = self::environment(self::MAILER_DSN_ENV, self::DEFAULT_MAILER_DSN)
+        $transport = self::createTransport(self::TRANSPORT_DSN_ENV);
+        $failureTransport = self::createTransport(self::FAILURE_TRANSPORT_DSN_ENV);
+        $mailerTransport = Environment::get(self::MAILER_DSN_ENV)
             |> Transport::fromDsn(...);
         $mailer = new Mailer($mailerTransport);
         $handler = new SendConfirmationEmailHandler(
             $mailer,
-            self::environment(self::APP_BASE_URL_ENV, self::DEFAULT_APP_BASE_URL),
-            self::environment(self::MAILER_FROM_ENV, self::DEFAULT_MAILER_FROM),
+            Environment::get(self::APP_BASE_URL_ENV),
+            Environment::get(self::MAILER_FROM_ENV),
         );
         $eventDispatcher = self::createEventDispatcher($transport, $failureTransport);
         $bus = self::createBus($transport, $handler);
 
-        return new Worker(['emails' => $transport], $bus, $eventDispatcher);
+        return new Worker([self::TRANSPORT_NAME => $transport], $bus, $eventDispatcher);
     }
 
     public static function retryFailedMessagesFromEnvironment(): int
     {
-        $failedTransport = self::createTransport(
-            self::FAILURE_TRANSPORT_DSN_ENV,
-            self::DEFAULT_FAILURE_TRANSPORT_DSN,
-        );
-        $emailTransport = self::createTransport(self::TRANSPORT_DSN_ENV, self::DEFAULT_TRANSPORT_DSN);
+        $failedTransport = self::createTransport(self::FAILURE_TRANSPORT_DSN_ENV);
+        $emailTransport = self::createTransport(self::TRANSPORT_DSN_ENV);
 
         return new FailedMessageRetrier($failedTransport, self::createBus($emailTransport))->retryAvailable();
     }
 
-    private static function createTransport(string $environmentKey, string $default): TransportInterface
+    private static function createTransport(string $environmentKey): TransportInterface
     {
         $factory = new AmqpTransportFactory();
 
         return $factory->createTransport(
-            self::environment($environmentKey, $default),
+            Environment::get($environmentKey),
             [],
             new PhpSerializer(),
         );
@@ -101,20 +92,13 @@ final class AuthMessengerRuntime
         TransportInterface $transport,
         TransportInterface $failureTransport,
     ): EventDispatcher {
-        $senders = new RuntimeServiceContainer(['emails' => $transport]);
-        $retryStrategies = new RuntimeServiceContainer(['emails' => new MultiplierRetryStrategy()]);
-        $failureSenders = new RuntimeServiceContainer(['emails' => $failureTransport]);
+        $senders = new RuntimeServiceContainer([self::TRANSPORT_NAME => $transport]);
+        $retryStrategies = new RuntimeServiceContainer([self::TRANSPORT_NAME => new MultiplierRetryStrategy()]);
+        $failureSenders = new RuntimeServiceContainer([self::TRANSPORT_NAME => $failureTransport]);
         $eventDispatcher = new EventDispatcher();
         $eventDispatcher->addSubscriber(new SendFailedMessageForRetryListener($senders, $retryStrategies));
         $eventDispatcher->addSubscriber(new SendFailedMessageToFailureTransportListener($failureSenders));
 
         return $eventDispatcher;
-    }
-
-    private static function environment(string $key, string $default): string
-    {
-        $value = getenv($key);
-
-        return is_string($value) && strlen($value) > 0 ? $value : $default;
     }
 }

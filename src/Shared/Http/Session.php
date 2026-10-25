@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Http;
 
+use App\Shared\Config\Environment;
 use App\Shared\Http\Enum\ServerParameterEnum;
 
 final class Session
@@ -60,7 +61,7 @@ final class Session
 
     private static function secureCookie(): bool
     {
-        $configured = getenv(self::SECURE_COOKIE_ENVIRONMENT_KEY);
+        $configured = Environment::find(self::SECURE_COOKIE_ENVIRONMENT_KEY);
 
         $https = $_SERVER[ServerParameterEnum::HTTPS->value] ?? null;
 

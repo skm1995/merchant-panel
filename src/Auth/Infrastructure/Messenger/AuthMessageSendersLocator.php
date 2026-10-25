@@ -19,7 +19,7 @@ final class AuthMessageSendersLocator implements SendersLocatorInterface
     public function getSenders(Envelope $envelope): iterable
     {
         if ($envelope->getMessage() instanceof ConfirmationEmailMessage) {
-            yield 'emails' => $this->sender;
+            yield AuthMessengerRuntime::TRANSPORT_NAME => $this->sender;
         }
     }
 }
