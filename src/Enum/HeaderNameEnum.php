@@ -7,4 +7,5 @@ namespace App\Enum;
 enum HeaderNameEnum: string
 {
     case CONTENT_TYPE = 'Content-Type';
+    case LOCATION = 'Location';
 }

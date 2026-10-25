@@ -18,6 +18,13 @@ header(
 <body>
     <main>
         <h1><?= htmlspecialchars($message, ENT_QUOTES, \App\Enum\CharacterEncodingEnum::UTF8->value) ?></h1>
+        <?php if (isset($userEmail) && is_string($userEmail)): ?>
+            <p>Signed in as <?= htmlspecialchars($userEmail, ENT_QUOTES, \App\Enum\CharacterEncodingEnum::UTF8->value) ?></p>
+            <form method="post" action="/logout"><button type="submit">Log out</button></form>
+        <?php else: ?>
+            <a href="/register">Register</a>
+            <a href="/login">Log in</a>
+        <?php endif; ?>
     </main>
 </body>
 </html>

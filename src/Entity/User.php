@@ -1,0 +1,17 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Entity;
+
+use DateTimeImmutable;
+
+final readonly class User
+{
+    public function __construct(
+        public string $email,
+        public string $password,
+        public DateTimeImmutable $createdAt,
+    ) {
+    }
+}

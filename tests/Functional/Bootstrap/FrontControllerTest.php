@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Bootstrap;
+namespace Tests\Functional\Bootstrap;
 
 use App\Controller\HomeController;
 use App\Enum\HttpMethodEnum;

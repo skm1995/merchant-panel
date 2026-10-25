@@ -14,6 +14,7 @@ final class RouterTest extends TestCase
     private const string MISSING_ROUTE_PATH = '/missing';
     private const string DISPATCHED_MESSAGE = 'route dispatched';
     private const string NOT_FOUND_MESSAGE = '404 Not Found';
+    private const string POST_VALUE = 'post route dispatched';
 
     public function testDispatchesRegisteredGetRoute(): void
     {
@@ -46,6 +47,20 @@ final class RouterTest extends TestCase
         self::assertSame(404, http_response_code());
         self::assertSame(self::NOT_FOUND_MESSAGE, $output);
         self::assertSame(self::NOT_FOUND_MESSAGE, $router->message());
+    }
+
+    public function testDispatchesRegisteredPostRoute(): void
+    {
+        $router = new Router();
+        $router->post(self::ROUTE_PATH, static function (): void {
+            echo self::POST_VALUE;
+        });
+        ob_start();
+
+        $router->dispatch(HttpMethodEnum::POST->value, self::ROUTE_PATH);
+        $output = ob_get_clean();
+
+        self::assertSame(self::POST_VALUE, $output);
     }
 
 }

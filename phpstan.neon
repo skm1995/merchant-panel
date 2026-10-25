@@ -5,4 +5,6 @@ parameters:
         - public
         - tests
         - views
+        - database/migrations
+        - phinx.php
     tmpDir: .phpstan-cache

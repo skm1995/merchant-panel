@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $requestMethod = $_SERVER[App\Enum\ServerParameterEnum::REQUEST_METHOD->value]
     ?? App\Enum\HttpMethodEnum::GET->value;
 $requestUri = $_SERVER[App\Enum\ServerParameterEnum::REQUEST_URI->value]
@@ -17,6 +21,18 @@ if (!is_string($requestUri)) {
     $requestUri = App\Controller\HomeController::ROUTE_PATH;
 }
 
+$pdo = App\Core\DatabaseConnection::createFromEnvironment();
+$userRepository = new App\Repository\PdoUserRepository($pdo);
+$userAuthService = new App\Service\Auth\UserAuthService($userRepository);
+$registerUserService = new App\Service\Auth\RegisterUserService($userAuthService);
+$loginUserService = new App\Service\Auth\LoginUserService($userAuthService);
+$logoutUserService = new App\Service\Auth\LogoutUserService();
+$authService = new App\Service\Auth\AuthService(
+    $registerUserService,
+    $loginUserService,
+    $logoutUserService,
+);
+$authController = new App\Controller\AuthController($authService);
 $homeModel = new App\Model\HomeModel();
 $homeController = new App\Controller\HomeController($homeModel);
 $router = new App\Core\Router();
@@ -26,6 +42,11 @@ $router->get(
         $homeController->index();
     },
 );
+$router->get(App\Controller\AuthController::REGISTER_ROUTE_PATH, [$authController, 'showRegister']);
+$router->post(App\Controller\AuthController::REGISTER_ROUTE_PATH, [$authController, 'register']);
+$router->get(App\Controller\AuthController::LOGIN_ROUTE_PATH, [$authController, 'showLogin']);
+$router->post(App\Controller\AuthController::LOGIN_ROUTE_PATH, [$authController, 'login']);
+$router->post(App\Controller\AuthController::LOGOUT_ROUTE_PATH, [$authController, 'logout']);
 
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
