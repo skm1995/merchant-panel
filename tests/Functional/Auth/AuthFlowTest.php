@@ -13,6 +13,7 @@ use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
 use App\Shared\Database\DatabaseConnection;
+use App\Shared\Database\TransactionRunner;
 use App\Shared\Http\Session;
 use DateTimeImmutable;
 use DomainException;
@@ -52,7 +53,7 @@ final class AuthFlowTest extends TestCase
     {
         $this->pdo = DatabaseConnection::createFromEnvironment();
         $this->users = new PdoUserRepository($this->pdo);
-        $this->tokens = new PdoEmailVerificationTokenRepository($this->pdo);
+        $this->tokens = new PdoEmailVerificationTokenRepository($this->pdo, new TransactionRunner($this->pdo));
         $userAuthService = new UserAuthService($this->users);
         $this->registerUser = new RegisterUserService(
             $userAuthService,

@@ -16,6 +16,7 @@ use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Service\ProductCatalog;
 use App\Home\Controller\HomeController;
 use App\Shared\Database\DatabaseConnection;
+use App\Shared\Database\TransactionRunner;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
@@ -31,7 +32,7 @@ $responder = new Responder($csrfToken);
 $currentUser = new CurrentUser($session);
 
 $pdo = DatabaseConnection::createFromEnvironment();
-$tokenRepository = new PdoEmailVerificationTokenRepository($pdo);
+$tokenRepository = new PdoEmailVerificationTokenRepository($pdo, new TransactionRunner($pdo));
 $userAuthService = new UserAuthService(new PdoUserRepository($pdo));
 
 $router = new Router($csrfToken, $responder);

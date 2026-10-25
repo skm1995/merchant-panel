@@ -31,6 +31,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Keep GET requests safe and free of state changes. Complete email confirmation and other mutations with POST requests protected by a session-bound CSRF token.
 - Add CSRF tokens to every state-changing browser form and validate them before invoking application services. Reject invalid tokens with HTTP 403.
 - Start browser sessions with strict session ID handling and cookies configured as HttpOnly and SameSite=Lax; set Secure whenever the request uses HTTPS. Regenerate the session ID after successful authentication and after logout.
+- Run multi-statement database work through `TransactionRunner` with an explicit isolation level. Keep transactional operations free of side effects outside the database, because deadlocks and lock wait timeouts retry the whole operation.
 - Make asynchronous operations recoverable. Provide a documented and tested retry path for messages that could not be dispatched, and ensure the worker restarts after process failure. Keep failed messages inspectable and document how to retry them; a retry must skip, not crash on, messages it cannot decode.
 - Treat queued message class names as a persisted contract. Before renaming or moving a message class, drain its queues or keep the old class loadable.
 - Read configuration such as DSNs, hosts, ports, credentials, public URLs, and sender addresses only from environment variables. Do not define fallback values for them in PHP code; keep local defaults in `compose.yaml` and `.env.example`, and fail fast when a required variable is missing.
@@ -68,5 +69,5 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Keep PHPStan at level 8 and PHP CS Fixer configured for PSR-12.
 - CI must run both test suites, apply database migrations, and run PHPStan and PHP CS Fixer. CI and local verification run the same `bin/ci` script against the Docker Compose stack; do not duplicate service configuration or environment variables in the workflow file.
 - For email confirmation, functional tests must prove that opening the GET link does not verify the account and that an explicit valid POST does. Cover token replay or expiry where repository behavior changes.
-- Before pushing, run `bin/ci` locally without a local `.env` override and push only after it passes. After pushing, confirm that the GitHub Actions run succeeds.
+- Before pushing, run `bin/ci` locally without a local `.env` override and push only after it passes.
 - Write commit messages in scoped Conventional Commits format: `<type>(<scope>): <description>`. Every commit must have a lowercase scope.

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Auth\Repository;
 
 use App\Shared\Database\RecordFetcher;
+use App\Shared\Database\TransactionRunner;
 use DateTimeImmutable;
 use PDO;
-use Throwable;
 
 final class PdoEmailVerificationTokenRepository implements EmailVerificationTokenRepositoryInterface
 {
@@ -27,8 +27,10 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string WINDOW_START_MODIFIER_FORMAT = '-%d seconds';
 
-    public function __construct(private readonly PDO $pdo)
-    {
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly TransactionRunner $transactions,
+    ) {
     }
 
     public function store(string $email, string $tokenHash, DateTimeImmutable $expiresAt): void
@@ -48,7 +50,7 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
         int $windowSeconds,
         int $maximumAttempts,
     ): bool {
-        return $this->transactional(function () use (
+        return $this->transactions->run(function () use (
             $email,
             $tokenHash,
             $expiresAt,
@@ -96,7 +98,7 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
 
     public function confirmEmail(string $tokenHash, DateTimeImmutable $confirmedAt): bool
     {
-        return $this->transactional(function () use ($tokenHash, $confirmedAt): bool {
+        return $this->transactions->run(function () use ($tokenHash, $confirmedAt): bool {
             $confirmedAtValue = $confirmedAt->format(self::DATETIME_FORMAT);
             $findStatement = $this->pdo->prepare(self::FIND_VALID_TOKEN_QUERY);
             $findStatement->execute([
@@ -118,26 +120,5 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
 
             return $verifyStatement->rowCount() === 1;
         });
-    }
-
-    /**
-     * @param callable(): bool $operation
-     */
-    private function transactional(callable $operation): bool
-    {
-        $this->pdo->beginTransaction();
-
-        try {
-            $result = $operation();
-            $this->pdo->commit();
-
-            return $result;
-        } catch (Throwable $exception) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $exception;
-        }
     }
 }
