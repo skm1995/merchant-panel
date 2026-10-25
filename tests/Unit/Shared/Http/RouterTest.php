@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Shared\Http;
 
 use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Enum\ResponseStatusEnum;
+use DomainException;
 use App\Shared\Http\CsrfToken;
+use App\Shared\Http\Exception\InvalidRequestException;
+use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -25,6 +29,9 @@ final class RouterTest extends TestCase
     private const string PRODUCT_ID = '42';
     private const string PRODUCT_PATH = '/products/42';
     private const string NESTED_PRODUCT_PATH = '/products/42/reviews';
+    private const string NON_NUMERIC_PRODUCT_PATH = '/products/abc';
+    public const string MAPPED_FAILURE = 'The product does not exist.';
+    public const string INVALID_INPUT = 'The limit must be a positive integer.';
     private const string POST_VALUE = 'post route dispatched';
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
@@ -44,6 +51,7 @@ final class RouterTest extends TestCase
     protected function tearDown(): void
     {
         $_SESSION = $this->originalSession;
+        http_response_code(ResponseStatusEnum::OK->value);
     }
 
     public function testDispatchesAttributedGetRoute(): void
@@ -210,6 +218,99 @@ final class RouterTest extends TestCase
 
         $this->expectException(LogicException::class);
         $this->router()->registerController($controller);
+    }
+
+    public function testPathParameterConstraintRejectsNonMatchingSegment(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/products/{id:\\d+}';
+            public bool $called = false;
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(Request $request): void
+            {
+                $this->called = true;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+        ob_start();
+
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::NON_NUMERIC_PRODUCT_PATH));
+        ob_end_clean();
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
+
+        self::assertTrue($controller->called);
+    }
+
+    public function testMapsDeclaredExceptionToProblemResponse(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            #[MapException(DomainException::class, ResponseStatusEnum::NOT_FOUND)]
+            public function show(): void
+            {
+                throw new DomainException(RouterTest::MAPPED_FAILURE);
+            }
+        };
+
+        $problem = $this->problemFrom($controller);
+
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
+        self::assertSame(self::MAPPED_FAILURE, $problem['detail']);
+    }
+
+    public function testMapsInvalidRequestToBadRequestProblem(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(): void
+            {
+                throw new InvalidRequestException(RouterTest::INVALID_INPUT);
+            }
+        };
+
+        $problem = $this->problemFrom($controller);
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        self::assertSame(self::INVALID_INPUT, $problem['detail']);
+    }
+
+    public function testDoesNotSwallowUndeclaredExceptions(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(): void
+            {
+                throw new DomainException(RouterTest::MAPPED_FAILURE);
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        $this->expectException(DomainException::class);
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
+    }
+
+    /** @return array<string, mixed> */
+    private function problemFrom(object $controller): array
+    {
+        $router = $this->router();
+        $router->registerController($controller);
+        ob_start();
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
+        $output = ob_get_clean();
+        self::assertIsString($output);
+        $problem = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($problem);
+
+        return $problem;
     }
 
     private function router(): Router

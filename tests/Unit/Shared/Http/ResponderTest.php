@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Shared\Http;
 
+use App\Shared\Contract\Arrayable;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Responder;
@@ -19,6 +20,9 @@ final class ResponderTest extends TestCase
     private const string CSRF_FIELD_FORMAT = 'name="%s" value="%s"';
     private const string REDIRECT_PATH = '/login';
     private const string BAD_REQUEST_BODY = '400 Bad Request';
+    private const string NAME_KEY = 'name';
+    private const string NAME = 'Zażółć/gęślą';
+    private const string DETAIL = 'The product does not exist.';
 
     /** @var array<string, mixed> */
     private array $originalSession;
@@ -61,6 +65,43 @@ final class ResponderTest extends TestCase
         $this->responder->redirect(self::REDIRECT_PATH);
 
         self::assertSame(ResponseStatusEnum::SEE_OTHER->value, http_response_code());
+    }
+
+    public function testJsonWritesUnescapedJsonWithStatus(): void
+    {
+        ob_start();
+
+        $this->responder->json(new readonly class (self::NAME_KEY, self::NAME) implements Arrayable {
+            public function __construct(private string $key, private string $value)
+            {
+            }
+
+            public function toArray(): array
+            {
+                return [$this->key => $this->value];
+            }
+        });
+        $output = ob_get_clean();
+
+        self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
+        self::assertSame('{"name":"Zażółć/gęślą"}', $output);
+    }
+
+    public function testProblemFollowsRfc9457(): void
+    {
+        ob_start();
+
+        $this->responder->problem(ResponseStatusEnum::NOT_FOUND, self::DETAIL);
+        $output = ob_get_clean();
+
+        self::assertIsString($output);
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
+        self::assertSame([
+            'type' => 'about:blank',
+            'title' => 'Not Found',
+            'status' => 404,
+            'detail' => self::DETAIL,
+        ], json_decode($output, true, flags: JSON_THROW_ON_ERROR));
     }
 
     public function testStatusWritesPlainStatusLine(): void

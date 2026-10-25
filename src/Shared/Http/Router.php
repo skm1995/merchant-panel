@@ -6,17 +6,21 @@ namespace App\Shared\Http;
 
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Shared\Http\Exception\InvalidRequestException;
 use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
+use Throwable;
 
 final class Router
 {
     private const string INVALID_ROUTE_METHOD_MESSAGE = 'Route methods must be public and accept at most a Request.';
     private const string DUPLICATE_ROUTE_MESSAGE = 'A route is already registered for this method and path.';
-    private const string PARAMETER_PATTERN = '/\{(\w+)\}/';
-    private const string PARAMETER_GROUP_FORMAT = '(?P<%s>[^/]+)';
+    private const string PARAMETER_PATTERN = '/\{(\w+)(?::([^}]+))?\}/';
+    private const string PARAMETER_GROUP_FORMAT = '(?P<%s>%s)';
+    private const string DEFAULT_PARAMETER_PATTERN = '[^/]+';
+    private const int NOT_CAPTURED_OFFSET = -1;
     private const string ROUTE_PATTERN_FORMAT = '#^%s$#';
     private const string PATTERN_DELIMITER = '#';
     private const string PATH_PARAMETER_MARKER = '{';
@@ -47,9 +51,7 @@ final class Router
                     throw new LogicException(self::DUPLICATE_ROUTE_MESSAGE);
                 }
 
-                $this->routes[$key][$route->path] = static function (Request $request) use ($controller, $method): void {
-                    $method->invoke($controller, $request);
-                };
+                $this->routes[$key][$route->path] = $this->action($controller, $method);
 
                 if (str_contains($route->path, self::PATH_PARAMETER_MARKER)) {
                     $this->patterns[$key][$route->path] = self::compile($route->path);
@@ -80,6 +82,33 @@ final class Router
         $action($request->withRouteParameters($parameters));
     }
 
+    /** @return callable(Request): void */
+    private function action(object $controller, ReflectionMethod $method): callable
+    {
+        $mappings = array_map(
+            static fn ($attribute): MapException => $attribute->newInstance(),
+            $method->getAttributes(MapException::class),
+        );
+
+        return function (Request $request) use ($controller, $method, $mappings): void {
+            try {
+                $method->invoke($controller, $request);
+            } catch (InvalidRequestException $exception) {
+                $this->responder->problem(ResponseStatusEnum::BAD_REQUEST, $exception->getMessage());
+            } catch (Throwable $exception) {
+                foreach ($mappings as $mapping) {
+                    if ($exception instanceof $mapping->exception) {
+                        $this->responder->problem($mapping->status, $exception->getMessage());
+
+                        return;
+                    }
+                }
+
+                throw $exception;
+            }
+        };
+    }
+
     /** @return array{callable(Request): void, array<string, string>}|null */
     private function match(Request $request): ?array
     {
@@ -99,21 +128,30 @@ final class Router
     }
 
     /**
-     * Compiles a path such as /products/{id} into a regular expression with one named
-     * group per parameter; each parameter matches a single path segment.
+     * Compiles a path such as /products/{id:\d+} into a regular expression with one named
+     * group per parameter; a parameter without a constraint matches a single path segment.
      */
     private static function compile(string $path): string
     {
-        $parts = preg_split(self::PARAMETER_PATTERN, $path, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$path];
-        $pattern = implode(array_map(
-            static fn (string $part, int $index): string => $index % 2 === 0
-                ? preg_quote($part, self::PATTERN_DELIMITER)
-                : sprintf(self::PARAMETER_GROUP_FORMAT, $part),
-            $parts,
-            array_keys($parts),
-        ));
+        preg_match_all(self::PARAMETER_PATTERN, $path, $parameters, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        $parts = [];
+        $offset = 0;
 
-        return sprintf(self::ROUTE_PATTERN_FORMAT, $pattern);
+        foreach ($parameters as $parameter) {
+            [$placeholder, $placeholderOffset] = $parameter[0];
+            $hasConstraint = isset($parameter[2]) && $parameter[2][1] !== self::NOT_CAPTURED_OFFSET;
+            $parts[] = preg_quote(substr($path, $offset, $placeholderOffset - $offset), self::PATTERN_DELIMITER);
+            $parts[] = sprintf(
+                self::PARAMETER_GROUP_FORMAT,
+                $parameter[1][0],
+                $hasConstraint ? $parameter[2][0] : self::DEFAULT_PARAMETER_PATTERN,
+            );
+            $offset = $placeholderOffset + strlen($placeholder);
+        }
+
+        $parts[] = preg_quote(substr($path, $offset), self::PATTERN_DELIMITER);
+
+        return sprintf(self::ROUTE_PATTERN_FORMAT, implode($parts));
     }
 
     private static function isValidRouteMethod(ReflectionMethod $method): bool
