@@ -8,6 +8,7 @@ use App\Catalog\Entity\Product;
 use App\Catalog\Message\ProductStockChangedMessage;
 use App\Shared\Cache\CacheStoreInterface;
 use App\Shared\Cache\StampedeProtectedCache;
+use App\Shared\Messaging\AsMessageHandler;
 use JsonException;
 use Money\Currency;
 use Money\Money;
@@ -55,6 +56,7 @@ final class ProductCache
         $this->store->delete(array_map(self::key(...), $ids));
     }
 
+    #[AsMessageHandler]
     public function handle(ProductStockChangedMessage $message): void
     {
         $this->forget($message->productIds);

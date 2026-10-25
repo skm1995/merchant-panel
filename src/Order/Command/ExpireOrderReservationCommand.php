@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Order\Command;
 
 use App\Order\Entity\OrderId;
+use App\Shared\Messaging\Message;
 use App\Shared\Messaging\Outbox\OutboxMessageInterface;
 
 /**
  * Scheduled through the outbox at checkout and delivered when the reservation ends.
  */
+#[Message(transport: 'orders')]
 final readonly class ExpireOrderReservationCommand implements OutboxMessageInterface
 {
     private const string TYPE = 'order.expire_reservation';

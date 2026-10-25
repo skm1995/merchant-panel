@@ -6,6 +6,7 @@ namespace App\Auth\Infrastructure\Messenger;
 
 use App\Auth\Message\ConfirmationEmailMessage;
 use App\Shared\DependencyInjection\Env;
+use App\Shared\Messaging\AsMessageHandler;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -23,6 +24,7 @@ final class SendConfirmationEmailHandler
     ) {
     }
 
+    #[AsMessageHandler]
     public function __invoke(ConfirmationEmailMessage $message): void
     {
         $confirmationUrl = sprintf(

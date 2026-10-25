@@ -9,6 +9,7 @@ use App\Order\Enum\OrderStatusEnum;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
+use App\Shared\Messaging\AsMessageHandler;
 
 /**
  * Expires an unpaid order when its reservation ends and gives its stock back.
@@ -26,6 +27,7 @@ final class ExpireOrderReservationHandler
     ) {
     }
 
+    #[AsMessageHandler]
     public function handle(ExpireOrderReservationCommand $command): void
     {
         $this->transactions->run(function () use ($command): void {

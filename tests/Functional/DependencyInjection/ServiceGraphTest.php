@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Functional\DependencyInjection;
 
-use App\Auth\Infrastructure\Messenger\SendConfirmationEmailHandler;
 use App\Catalog\Infrastructure\Cache\CachedProductRepository;
-use App\Catalog\Infrastructure\Cache\ProductCache;
 use App\Catalog\Repository\ProductRepositoryInterface;
-use App\Order\Command\ExpireOrderReservationHandler;
 use App\Shared\DependencyInjection\ContainerFactory;
+use App\Shared\Http\ControllerDiscovery;
+use App\Shared\Http\HttpApplication;
+use App\Shared\Messaging\MessagingDiscovery;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use App\Shared\Messaging\Outbox\OutboxRelay;
 use App\Shared\Messaging\Outbox\OutboxStoreInterface;
@@ -17,35 +17,30 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Builds every entry point from config/services.php, so a missing binding or environment
- * variable fails here instead of at runtime.
+ * Builds every discovered controller and message handler from config/services.php, so a
+ * missing binding, environment variable, or handler fails here instead of at runtime.
  */
 final class ServiceGraphTest extends TestCase
 {
-    private const string CONTROLLER_PATTERN = '%s/src/*/Controller/*Controller.php';
-    private const string SOURCE_PREFIX = '%s/src/';
-    private const string NAMESPACE_PREFIX = 'App\\';
-    private const string PHP_EXTENSION = '.php';
-
     /** @return iterable<string, array{class-string}> */
     public static function entryPoints(): iterable
     {
-        $root = dirname(__DIR__, 3);
-
-        foreach (glob(sprintf(self::CONTROLLER_PATTERN, $root)) ?: [] as $file) {
-            /** @var class-string $class */
-            $class = self::NAMESPACE_PREFIX . str_replace(
-                ['/', self::PHP_EXTENSION],
-                ['\\', ''],
-                substr($file, strlen(sprintf(self::SOURCE_PREFIX, $root))),
-            );
-
+        foreach ([...ControllerDiscovery::fromSource(), HttpApplication::class, OutboxRelay::class] as $class) {
             yield $class => [$class];
         }
+    }
 
-        foreach ([SendConfirmationEmailHandler::class, ExpireOrderReservationHandler::class, ProductCache::class, OutboxRelay::class] as $class) {
-            yield $class => [$class];
-        }
+    public function testContainerBuildsEveryDiscoveredMessageHandler(): void
+    {
+        $container = ContainerFactory::create();
+
+        $handlers = $container->get(MessagingDiscovery::class)->handlers($container);
+
+        self::assertEqualsCanonicalizing(
+            array_keys($container->get(MessagingDiscovery::class)->routes()),
+            array_keys($handlers),
+            'Every routed message needs a handler.',
+        );
     }
 
     /** @param class-string $class */

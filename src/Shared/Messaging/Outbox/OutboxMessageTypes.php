@@ -8,7 +8,7 @@ use App\Shared\Messaging\Exception\UnknownOutboxMessageTypeException;
 use LogicException;
 
 /**
- * Maps stable outbox type names back to the message classes registered in config/messenger.php.
+ * Maps stable outbox type names back to the discovered outbox message classes.
  */
 final class OutboxMessageTypes
 {

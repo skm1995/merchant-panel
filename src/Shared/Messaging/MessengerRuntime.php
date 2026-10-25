@@ -22,16 +22,12 @@ use App\Shared\Messaging\Outbox\OutboxMessageTypes;
 use Symfony\Component\Messenger\Worker;
 
 /**
- * Builds Messenger buses and workers from config/messenger.php: named AMQP transports whose
- * DSNs come from the environment, and the transport each message class is sent to.
+ * Builds Messenger buses and workers from the discovered messaging configuration: named AMQP
+ * transports whose DSNs come from the environment, and the transport each message class is sent to.
  */
 final class MessengerRuntime
 {
     public const string FAILED_TRANSPORT = 'failed';
-    private const string CONFIGURATION_PATH = '%s/config/messenger.php';
-    private const string TRANSPORTS_KEY = 'transports';
-    private const string ROUTES_KEY = 'routes';
-    private const string OUTBOX_MESSAGES_KEY = 'outbox_messages';
 
     /** @var array<string, TransportInterface> */
     private array $transports = [];
@@ -48,22 +44,9 @@ final class MessengerRuntime
     ) {
     }
 
-    public static function fromConfiguration(): self
+    public static function fromDiscovery(MessagingDiscovery $discovery): self
     {
-        /**
-         * @var array{
-         *     transports: array<string, string>,
-         *     routes: array<class-string, string>,
-         *     outbox_messages: list<class-string<OutboxMessageInterface>>
-         * } $configuration
-         */
-        $configuration = require sprintf(self::CONFIGURATION_PATH, dirname(__DIR__, 3));
-
-        return new self(
-            $configuration[self::TRANSPORTS_KEY],
-            $configuration[self::ROUTES_KEY],
-            $configuration[self::OUTBOX_MESSAGES_KEY],
-        );
+        return new self($discovery->transportDsnKeys(), $discovery->routes(), $discovery->outboxMessages());
     }
 
     /**

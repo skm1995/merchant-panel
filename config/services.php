@@ -32,6 +32,7 @@ use App\Shared\Database\DatabaseConnection;
 use App\Shared\Database\PdoTransactionRunner;
 use App\Shared\Database\TransactionRunnerInterface;
 use App\Shared\DependencyInjection\Container;
+use App\Shared\Messaging\MessagingDiscovery;
 use App\Shared\Messaging\MessengerRuntime;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use App\Shared\Messaging\Outbox\OutboxMessageTypes;
@@ -72,7 +73,10 @@ return [
     PDO::class => static fn (): PDO => DatabaseConnection::createFromEnvironment(),
     Redis::class => static fn (): Redis => RedisConnection::createFromEnvironment(),
     MailerInterface::class => static fn (): MailerInterface => new Mailer(Transport::fromDsn(Environment::get('MAILER_DSN'))),
-    MessengerRuntime::class => static fn (): MessengerRuntime => MessengerRuntime::fromConfiguration(),
+    MessagingDiscovery::class => static fn (): MessagingDiscovery => MessagingDiscovery::fromSource(),
+    MessengerRuntime::class => static fn (Container $container): MessengerRuntime => MessengerRuntime::fromDiscovery(
+        $container->get(MessagingDiscovery::class),
+    ),
     MessageBusInterface::class => static fn (Container $container): MessageBusInterface => $container->get(MessengerRuntime::class)->bus(),
     OutboxMessageTypes::class => static fn (Container $container): OutboxMessageTypes => $container->get(MessengerRuntime::class)->outboxMessageTypes(),
 ];

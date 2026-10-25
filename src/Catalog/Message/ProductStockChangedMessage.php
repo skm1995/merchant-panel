@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Catalog\Message;
 
+use App\Shared\Messaging\Message;
 use App\Shared\Messaging\Outbox\OutboxMessageInterface;
 
 /**
  * Recorded through the outbox whenever stock or reservations of products change, so cached
  * product data is invalidated only after the change is committed.
  */
+#[Message(transport: 'catalog')]
 final readonly class ProductStockChangedMessage implements OutboxMessageInterface
 {
     private const string TYPE = 'catalog.product_stock_changed';
