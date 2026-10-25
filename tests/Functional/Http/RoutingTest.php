@@ -20,6 +20,7 @@ final class RoutingTest extends TestCase
     private const string EMAIL_CONFIRMED_HEADING = '<h1>Email confirmed</h1>';
     private const string HTTP_OPTIONS_KEY = 'http';
     private const string IGNORE_ERRORS_KEY = 'ignore_errors';
+    private const string SESSION_COOKIE_HEADER = 'Set-Cookie: PHPSESSID=';
 
     public function testApacheRoutesRegistrationPageToFrontController(): void
     {
@@ -43,6 +44,21 @@ final class RoutingTest extends TestCase
     {
         $body = self::EMAIL_CONFIRMED_PATH |> self::get(...);
         self::assertStringContainsString(self::EMAIL_CONFIRMED_HEADING, $body);
+    }
+
+    public function testSessionCookieIsHttpOnlyAndSameSite(): void
+    {
+        self::get(self::LOGIN_PATH);
+        $headers = http_get_last_response_headers();
+        self::assertIsArray($headers);
+        $sessionCookieHeaders = array_filter(
+            $headers,
+            static fn (string $header): bool => str_starts_with($header, self::SESSION_COOKIE_HEADER),
+        );
+        $sessionCookieHeader = implode('; ', $sessionCookieHeaders);
+
+        self::assertStringContainsString('HttpOnly', $sessionCookieHeader);
+        self::assertStringContainsString('SameSite=Lax', $sessionCookieHeader);
     }
 
     private static function get(string $path): string

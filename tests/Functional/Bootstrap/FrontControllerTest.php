@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Bootstrap;
 
-use App\Controller\HomeController;
-use App\Enum\HttpMethodEnum;
-use App\Enum\ServerParameterEnum;
+use App\Home\Controller\HomeController;
+use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Enum\ServerParameterEnum;
 use PHPUnit\Framework\TestCase;
 
 final class FrontControllerTest extends TestCase
 {
     private const string FRONT_CONTROLLER_PATH = '/public/index.php';
-    private const string EXPECTED_MESSAGE = 'PHP MVC playground is running.';
+    private const string EXPECTED_MESSAGE = 'PHP MVC Playground';
 
     public function testFrontControllerBuildsDependenciesAndDispatchesHomeRoute(): void
     {

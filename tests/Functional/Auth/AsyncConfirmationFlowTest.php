@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Auth;
 
-use App\Core\DatabaseConnection;
-use App\Repository\PdoUserRepository;
+use App\Shared\Database\DatabaseConnection;
+use App\Auth\Repository\PdoUserRepository;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -16,6 +16,7 @@ final class AsyncConfirmationFlowTest extends TestCase
     private const string PASSWORD = 'functional-password-123';
     private const string REGISTER_PATH = '/register';
     private const string CONFIRM_PATH = '/confirm?token=%s';
+    private const string INVALID_CONFIRMATION_MESSAGE = 'This confirmation link is invalid or has expired.';
     private const string CONFIRMATION_LINK_PATTERN = '/confirm\?token=([a-f0-9]{64})/';
     private const string TOKEN_DELETE_QUERY = 'DELETE FROM email_verification_tokens WHERE email = :email';
     private const string USER_DELETE_QUERY = 'DELETE FROM users WHERE email = :email';
@@ -30,6 +31,7 @@ final class AsyncConfirmationFlowTest extends TestCase
     private string $email;
     private PDO $pdo;
     private ?string $mailhogMessageId = null;
+    private ?string $sessionCookie = null;
 
     protected function setUp(): void
     {
@@ -61,9 +63,14 @@ final class AsyncConfirmationFlowTest extends TestCase
 
     public function testRegistrationEmailIsSentAsynchronouslyAndConfirmsPersistedUser(): void
     {
+        $registrationPage = $this->request('/register');
+        preg_match('/name="_csrf_token" value="([a-f0-9]+)"/', $registrationPage, $csrfMatches);
+        $csrfToken = $csrfMatches[1] ?? null;
+        self::assertIsString($csrfToken);
         $this->request(self::REGISTER_PATH, [
             'email' => $this->email,
             'password' => self::PASSWORD,
+            '_csrf_token' => $csrfToken,
         ]);
 
         $messageBody = $this->waitForMail() |> quoted_printable_decode(...);
@@ -74,12 +81,25 @@ final class AsyncConfirmationFlowTest extends TestCase
 
         $encodedToken = $token |> rawurlencode(...);
         $confirmationPath = sprintf(self::CONFIRM_PATH, $encodedToken);
-        $this->request($confirmationPath);
-
+        $confirmationPage = $this->request($confirmationPath);
         $users = new PdoUserRepository($this->pdo);
+        self::assertNull($users->findByEmail($this->email)?->emailVerifiedAt);
+        preg_match('/name="_csrf_token" value="([a-f0-9]+)"/', $confirmationPage, $csrfMatches);
+        $confirmationCsrfToken = $csrfMatches[1] ?? null;
+        self::assertIsString($confirmationCsrfToken);
+        $this->request('/confirm', [
+            'token' => $token,
+            '_csrf_token' => $confirmationCsrfToken,
+        ]);
+        $replayResponse = $this->request('/confirm', [
+            'token' => $token,
+            '_csrf_token' => $confirmationCsrfToken,
+        ]);
+
         $user = $users->findByEmail($this->email);
         self::assertNotNull($user);
         self::assertNotNull($user->emailVerifiedAt);
+        self::assertStringContainsString(self::INVALID_CONFIRMATION_MESSAGE, $replayResponse);
     }
 
     /** @param array<string, string>|null $form */
@@ -93,14 +113,25 @@ final class AsyncConfirmationFlowTest extends TestCase
             'timeout' => 5,
         ];
         if ($form !== null) {
-            $httpOptions['header'] = 'Content-Type: application/x-www-form-urlencoded';
+            $headers = ['Content-Type: application/x-www-form-urlencoded'];
+            if ($this->sessionCookie !== null) {
+                $headers[] = 'Cookie: ' . $this->sessionCookie;
+            }
+            $httpOptions['header'] = implode("\r\n", $headers);
             $httpOptions['content'] = http_build_query($form);
+        } elseif ($this->sessionCookie !== null) {
+            $httpOptions['header'] = 'Cookie: ' . $this->sessionCookie;
         }
 
         $context = stream_context_create(['http' => $httpOptions]);
         $applicationBaseUrl = $baseUrl |> (static fn (string $url): string => rtrim($url, '/'));
         $requestUrl = $applicationBaseUrl . $path;
         $response = file_get_contents($requestUrl, false, $context);
+        foreach (http_get_last_response_headers() ?? [] as $header) {
+            if (str_starts_with($header, 'Set-Cookie: PHPSESSID=')) {
+                $this->sessionCookie = explode(';', substr($header, strlen('Set-Cookie: ')), 2)[0];
+            }
+        }
 
         self::assertIsString($response);
 

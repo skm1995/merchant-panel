@@ -10,6 +10,9 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Functional tests must use a dedicated test database, apply migrations first, and clean up their data. Never run them against the development database.
 - Test HTTP routing through the configured web server in the functional suite; do not rely only on directly including the front controller.
 - Test asynchronous behavior at two levels: unit-test dispatch decisions and message handlers with PHPUnit mocks, then cover the end-to-end effect in a functional test using the real local broker and service (such as RabbitMQ and MailHog). Poll for the expected result with a bounded timeout, use unique test data, and clean up test-owned data. Keep the broker-backed test separate from fast unit tests.
+- Test security-sensitive HTTP behavior explicitly: state-changing GET requests must have no side effects, and invalid or missing CSRF tokens must prevent the action and return an appropriate error status.
+- Test recovery paths for infrastructure failures. In particular, retrying registration for an existing unverified user with valid credentials must allow confirmation email delivery to be retried without creating another account.
+- Rate-limit confirmation email resends with a durable database counter, a typed integer maximum, and the rate window expressed in seconds as a typed integer constant. Test the limit and the reset after the window expires.
 
 ## Code and architecture
 
@@ -17,7 +20,21 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Prefer PHP 8.5's pipe operator (`|>`) for readable, left-to-right value transformations instead of nesting function calls. Use first-class callables for single-argument steps and a short closure or named method when a step needs additional arguments; do not force a pipe when it obscures the logic.
 - Omit redundant parentheses around `new` expressions when immediately accessing a member or calling a method.
 - Keep controllers thin. Delegate application actions and response handling to services; keep business logic, validation, persistence, and session management out of controllers.
+- Keep GET requests safe and free of state changes. Complete email confirmation and other mutations with POST requests protected by a session-bound CSRF token.
+- Add CSRF tokens to every state-changing browser form and validate them before invoking application services. Reject invalid tokens with HTTP 403.
+- Start browser sessions with strict session ID handling and cookies configured as HttpOnly and SameSite=Lax; set Secure whenever the request uses HTTPS. Regenerate the session ID after successful authentication.
+- Make asynchronous operations recoverable. Provide a documented and tested retry path for messages that could not be dispatched, and ensure the worker restarts after process failure. Keep failed messages inspectable and document how to retry them.
+- Keep sender addresses and public application URLs configurable through environment variables. Use local-only defaults for development and set deployment values explicitly.
+- Keep DRY and KISS in balance: share behavior when there is a clear single responsibility, but avoid generic frameworks, indirection, and abstractions that make a simple flow harder to follow.
 - Group related feature classes together, use matching namespaces, and use singular names for source directories.
+- Organize `src/` by feature first. Keep feature-specific controllers, entities, repositories, services, messages, and infrastructure under that feature; put code in `Shared/` only when multiple features use it. Mirror this structure in `tests/Unit/`.
+- Keep feature names such as `Auth/` and `Home/` at the top of `src/`. Do not add top-level type-only folders such as `src/Controller/` or `src/Service/`.
+- Create a layer subdirectory within a feature when it has enough related files to benefit from grouping. Avoid empty directories, and remove them when moving or deleting their last file.
+- Declare HTTP routes as method attributes on controllers and register controller instances with the router. Reject duplicate routes and route methods that are not public or require parameters.
+- Keep HTTP request parsing and response rendering at the controller boundary. Application services own use cases, and repositories own persistence. Avoid duplicate view-rendering or response helpers.
+- Give each layer a clear responsibility: controllers translate HTTP input into application calls and responses; application services implement use cases; entities hold domain state and rules; repositories load and persist data; infrastructure adapters integrate external systems. Do not move HTTP globals, headers, or view rendering into application services.
+- Put cross-cutting HTTP behavior, such as session setup, CSRF validation, and route dispatch, in shared HTTP components so every controller receives the same policy. Keep feature-specific business decisions inside that feature.
+- Keep service factories focused on their runtime: web requests must not initialize worker-only mail handlers or event listeners.
 - Declare explicit types for class constants. Prefer backed enums for public finite sets of values.
 - Empty string literals are forbidden. Define string values as constants instead of inline literals, except in enum methods where a literal directly expresses enum behavior.
 - Prefer readable path strings using `/` over assembling path segments when practical.
@@ -29,10 +46,12 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Use the configured PHP migration tool for schema changes. Give migrations descriptive names, make them reversible where practical, and never edit a migration after it has been applied.
 - Keep application and functional-test databases separate.
 - Do not commit local environment files or secrets.
+- Ignore `.env` and other local environment files in Git while keeping `.env.example` tracked. Do not rely on `.dockerignore` as Git protection.
 
 ## Quality and delivery
 
 - Keep PHPStan at level 8 and PHP CS Fixer configured for PSR-12.
 - CI must run both test suites, apply database migrations, and run PHPStan and PHP CS Fixer.
+- For email confirmation, functional tests must prove that opening the GET link does not verify the account and that an explicit valid POST does. Cover token replay or expiry where repository behavior changes.
 - Before pushing, run the full CI verification locally: migrations, unit tests, functional tests with required services, PHPStan, and PHP CS Fixer. Push only after every check passes.
 - Write commit messages in scoped Conventional Commits format: `<type>(<scope>): <description>`. Every commit must have a lowercase scope.

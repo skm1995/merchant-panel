@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-use App\Controller\AuthController;
-use App\Controller\HomeController;
-use App\Core\DatabaseConnection;
-use App\Core\Router;
-use App\Enum\HttpMethodEnum;
-use App\Enum\ServerParameterEnum;
-use App\Model\HomeModel;
-use App\Repository\PdoEmailVerificationTokenRepository;
-use App\Repository\PdoUserRepository;
-use App\Service\Auth\AuthMessengerRuntime;
-use App\Service\Auth\AuthService;
-use App\Service\Auth\ConfirmEmailService;
-use App\Service\Auth\LoginUserService;
-use App\Service\Auth\LogoutUserService;
-use App\Service\Auth\RegisterUserService;
-use App\Service\Auth\UserAuthService;
+use App\Auth\Controller\AuthController;
+use App\Auth\Infrastructure\Messenger\AuthMessengerRuntime;
+use App\Auth\Repository\PdoEmailVerificationTokenRepository;
+use App\Auth\Repository\PdoUserRepository;
+use App\Auth\Service\ConfirmEmailService;
+use App\Auth\Service\LoginUserService;
+use App\Auth\Service\LogoutUserService;
+use App\Auth\Service\RegisterUserService;
+use App\Auth\Service\UserAuthService;
+use App\Home\Controller\HomeController;
+use App\Shared\Database\DatabaseConnection;
+use App\Shared\Http\CsrfToken;
+use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Enum\ServerParameterEnum;
+use App\Shared\Http\Router;
+use App\Shared\Http\Session;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+$session = new Session();
+$session->start();
+$csrfToken = new CsrfToken($session);
 
 $requestMethod = $_SERVER[ServerParameterEnum::REQUEST_METHOD->value]
     ?? HttpMethodEnum::GET->value;
@@ -42,53 +42,22 @@ $pdo = DatabaseConnection::createFromEnvironment();
 $userRepository = new PdoUserRepository($pdo);
 $tokenRepository = new PdoEmailVerificationTokenRepository($pdo);
 $userAuthService = new UserAuthService($userRepository);
-$messengerRuntime = AuthMessengerRuntime::createFromEnvironment();
 $registerUserService = new RegisterUserService(
     $userAuthService,
     $tokenRepository,
-    $messengerRuntime->queue(),
+    AuthMessengerRuntime::createQueueFromEnvironment(),
 );
-$loginUserService = new LoginUserService($userAuthService);
-$logoutUserService = new LogoutUserService();
-$authService = new AuthService(
+$authController = new AuthController(
     $registerUserService,
-    $loginUserService,
-    $logoutUserService,
+    new LoginUserService($userAuthService, $session),
+    new LogoutUserService($session),
     new ConfirmEmailService($tokenRepository),
+    $csrfToken,
 );
-$authController = new AuthController($authService);
-$homeModel = new HomeModel();
-$homeController = new HomeController($homeModel);
-$router = new Router();
-$router->get(
-    HomeController::ROUTE_PATH,
-    static function () use ($homeController): void {
-        $homeController->index();
-    },
-);
-$router->get(AuthController::REGISTER_ROUTE_PATH, [$authController, 'showRegister']);
-$router->post(AuthController::REGISTER_ROUTE_PATH, [$authController, 'register']);
-$router->get(AuthController::LOGIN_ROUTE_PATH, [$authController, 'showLogin']);
-$router->post(AuthController::LOGIN_ROUTE_PATH, [$authController, 'login']);
-$router->post(AuthController::LOGOUT_ROUTE_PATH, [$authController, 'logout']);
-$router->get(
-    AuthController::CONFIRMATION_SENT_ROUTE_PATH,
-    static function () use ($authController): void {
-        $authController->showConfirmationSent();
-    },
-);
-$router->get(
-    AuthController::CONFIRM_ROUTE_PATH,
-    static function () use ($authController): void {
-        $authController->confirm();
-    },
-);
-$router->get(
-    AuthController::EMAIL_CONFIRMED_ROUTE_PATH,
-    static function () use ($authController): void {
-        $authController->showEmailConfirmed();
-    },
-);
+$homeController = new HomeController($session, $csrfToken);
+$router = new Router($csrfToken);
+$router->registerController($homeController);
+$router->registerController($authController);
 
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 

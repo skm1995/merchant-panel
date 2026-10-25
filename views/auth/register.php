@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Enum\CharacterEncodingEnum;
-use App\Enum\ContentTypeEnum;
-use App\Enum\HeaderNameEnum;
+use App\Shared\Http\Enum\CharacterEncodingEnum;
+use App\Shared\Http\Enum\ContentTypeEnum;
+use App\Shared\Http\Enum\HeaderNameEnum;
 
 header(HeaderNameEnum::CONTENT_TYPE->value . ': ' . ContentTypeEnum::HTML->value);
 $emailValue = isset($email) && is_string($email)
     ? htmlspecialchars($email, ENT_QUOTES, CharacterEncodingEnum::UTF8->value)
     : null;
+/** @var string $csrfToken */
 ?>
 <!doctype html>
 <html lang="en">
@@ -25,6 +26,7 @@ $emailValue = isset($email) && is_string($email)
         <p role="alert"><?= htmlspecialchars($error, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?></p>
     <?php endif; ?>
     <form method="post" action="/register">
+        <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?>">
         <label>Email <input type="email" name="email"<?php if ($emailValue !== null): ?> value="<?= $emailValue ?>"<?php endif; ?> required></label>
         <label>Password <input type="password" name="password" minlength="8" required></label>
         <button type="submit">Register</button>
