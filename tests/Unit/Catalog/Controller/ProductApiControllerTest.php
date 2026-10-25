@@ -7,14 +7,11 @@ namespace Tests\Unit\Catalog\Controller;
 use App\Catalog\Controller\ProductApiController;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Catalog\Service\ProductCatalog;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
-use App\Shared\Http\Responder;
-use App\Shared\Http\Router;
-use App\Shared\Http\Session;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Catalog\ProductFactory;
 
 final class ProductApiControllerTest extends TestCase
@@ -98,21 +95,15 @@ final class ProductApiControllerTest extends TestCase
         array $query = [],
         bool $decodeJson = true,
     ): array {
-        $responder = new Responder(new CsrfToken(new Session()));
-        $router = new Router(new CsrfToken(new Session()), $responder);
-        $router->registerController(new ProductApiController(new ProductCatalog($products), $responder));
-        ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, $path, $query));
-        $output = ob_get_clean();
-        self::assertIsString($output);
+        $request = new Request(HttpMethodEnum::GET->value, $path, $query);
+        $controller = new ProductApiController(new ProductCatalog($products), HttpHarness::responder());
 
         if (!$decodeJson) {
+            HttpHarness::dispatch($request, $controller);
+
             return [];
         }
 
-        $body = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($body);
-
-        return $body;
+        return HttpHarness::json($request, $controller);
     }
 }

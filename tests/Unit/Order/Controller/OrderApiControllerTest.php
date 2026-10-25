@@ -15,15 +15,12 @@ use App\Order\Controller\OrderApiController;
 use App\Order\Query\GetOrderHandler;
 use App\Order\Repository\OrderReadRepositoryInterface;
 use App\Order\Repository\OrderRepositoryInterface;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
-use App\Shared\Http\Responder;
-use App\Shared\Http\Router;
-use App\Shared\Http\Session;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\HttpHarness;
 use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Order\OrderFixtures;
@@ -33,6 +30,7 @@ final class OrderApiControllerTest extends TestCase
 {
     private const string CHECKOUT_PATH = '/api/v1/carts/' . CartFixtures::CART_ID . '/checkout';
     private const string ORDER_PATH = '/api/v1/orders/' . OrderFixtures::ORDER_ID;
+    private const int RESERVATION_SECONDS = 900;
 
     protected function tearDown(): void
     {
@@ -67,33 +65,21 @@ final class OrderApiControllerTest extends TestCase
         $readOrders = $this->createStub(OrderReadRepositoryInterface::class);
         $readOrders->method('find')->willReturn(OrderFixtures::view());
         $transactions = new ImmediateTransactionRunner();
-        $responder = new Responder(new CsrfToken(new Session()));
-        $router = new Router(new CsrfToken(new Session()), $responder);
-        $router->registerController(new OrderApiController(
+        $stock = new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock());
+
+        return HttpHarness::json($request, new OrderApiController(
             new PlaceOrderHandler(
                 $this->createStub(OrderRepositoryInterface::class),
                 new CartService($carts, new ProductCatalog($products), $transactions),
-                new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()),
+                $stock,
                 $this->createStub(OutboxInterface::class),
                 $transactions,
                 new MockClock(),
-                900,
+                self::RESERVATION_SECONDS,
             ),
             new GetOrderHandler($readOrders),
-            new CancelOrderHandler(
-                $this->createStub(OrderRepositoryInterface::class),
-                new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()),
-                $transactions,
-            ),
-            $responder,
+            new CancelOrderHandler($this->createStub(OrderRepositoryInterface::class), $stock, $transactions),
+            HttpHarness::responder(),
         ));
-        ob_start();
-        $router->dispatch($request);
-        $output = ob_get_clean();
-        self::assertIsString($output);
-        $body = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($body);
-
-        return $body;
     }
 }

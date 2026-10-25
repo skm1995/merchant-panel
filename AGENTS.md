@@ -7,6 +7,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Follow TDD: first write a failing test for the expected behavior, then make the smallest change that passes it, and refactor while keeping tests green.
 - Cover application behavior with PHPUnit, including relevant failure paths. Test behavior, not declarations: do not add tests that only restate constant or enum values.
 - Give each production class its own `<ClassName>Test` in the mirrored test namespace; do not group several classes in one test class.
+- Unit-test controllers through `Tests\Unit\Support\HttpHarness`, which dispatches requests via the real router so routes, constraints, and exception mapping are covered; build the controller's services directly with test doubles.
 - Make mocks of third-party APIs follow their real contract (for example, an AMQP receiver's `get()` returns at most one message per call), and verify recovery commands such as failed-message retries against the real local broker.
 - Keep unit and functional tests in separate suites. Run both suites before considering a change complete.
 - Functional tests must use a dedicated test database, apply migrations first, and clean up their data. Never run them against the development database.

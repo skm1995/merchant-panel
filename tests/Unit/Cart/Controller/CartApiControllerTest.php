@@ -10,14 +10,11 @@ use App\Cart\Repository\CartRepositoryInterface;
 use App\Cart\Service\CartService;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Catalog\Service\ProductCatalog;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
-use App\Shared\Http\Responder;
-use App\Shared\Http\Router;
-use App\Shared\Http\Session;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Support\ImmediateTransactionRunner;
@@ -81,19 +78,10 @@ final class CartApiControllerTest extends TestCase
     {
         $products = $this->createStub(ProductRepositoryInterface::class);
         $products->method('findById')->willReturn(ProductFactory::create(5));
-        $responder = new Responder(new CsrfToken(new Session()));
-        $router = new Router(new CsrfToken(new Session()), $responder);
-        $router->registerController(new CartApiController(
-            new CartService($carts, new ProductCatalog($products), new ImmediateTransactionRunner()),
-            $responder,
-        ));
-        ob_start();
-        $router->dispatch($request);
-        $output = ob_get_clean();
-        self::assertIsString($output);
-        $body = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($body);
 
-        return $body;
+        return HttpHarness::json($request, new CartApiController(
+            new CartService($carts, new ProductCatalog($products), new ImmediateTransactionRunner()),
+            HttpHarness::responder(),
+        ));
     }
 }

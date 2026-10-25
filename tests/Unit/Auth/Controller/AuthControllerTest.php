@@ -12,15 +12,14 @@ use App\Auth\Service\CurrentUser;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
-use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\HttpHarness;
 use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Support\ImmediateTransactionRunner;
 
@@ -140,7 +139,7 @@ final class AuthControllerTest extends TestCase
             new LoginUserService($userAuthService, $currentUser),
             new ConfirmEmailService($tokens, new ImmediateTransactionRunner()),
             $currentUser,
-            new Responder(new CsrfToken($this->session)),
+            HttpHarness::responder($this->session),
         );
     }
 }

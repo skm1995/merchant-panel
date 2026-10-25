@@ -7,11 +7,10 @@ namespace Tests\Unit\Home\Controller;
 use App\Auth\Entity\User;
 use App\Auth\Service\CurrentUser;
 use App\Home\Controller\HomeController;
-use App\Shared\Http\CsrfToken;
-use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\HttpHarness;
 
 final class HomeControllerTest extends TestCase
 {
@@ -56,7 +55,7 @@ final class HomeControllerTest extends TestCase
 
     private function render(): string
     {
-        $controller = new HomeController($this->currentUser, new Responder(new CsrfToken($this->session)));
+        $controller = new HomeController($this->currentUser, HttpHarness::responder($this->session));
         ob_start();
         $controller->index();
         $output = ob_get_clean();

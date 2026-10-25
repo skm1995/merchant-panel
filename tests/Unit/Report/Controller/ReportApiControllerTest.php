@@ -8,14 +8,11 @@ use App\Report\Controller\ReportApiController;
 use App\Report\Query\DailyRevenueHandler;
 use App\Report\Query\TopProductsHandler;
 use App\Report\Repository\ReportReadRepositoryInterface;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
-use App\Shared\Http\Responder;
-use App\Shared\Http\Router;
-use App\Shared\Http\Session;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Report\ReportFixtures;
 
 final class ReportApiControllerTest extends TestCase
@@ -69,25 +66,9 @@ final class ReportApiControllerTest extends TestCase
      */
     private function dispatch(string $path, array $headers, ReportReadRepositoryInterface $reports): array
     {
-        $responder = new Responder(new CsrfToken(new Session()));
-        $router = new Router(new CsrfToken(new Session()), $responder);
-        $router->registerController(new ReportApiController(
-            new DailyRevenueHandler($reports),
-            new TopProductsHandler($reports),
-            $responder,
-        ));
-        ob_start();
-        $router->dispatch(new Request(
-            HttpMethodEnum::GET->value,
-            $path,
-            ['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO],
-            headers: $headers,
-        ));
-        $output = ob_get_clean();
-        self::assertIsString($output);
-        $body = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($body);
-
-        return $body;
+        return HttpHarness::json(
+            new Request(HttpMethodEnum::GET->value, $path, ['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO], headers: $headers),
+            new ReportApiController(new DailyRevenueHandler($reports), new TopProductsHandler($reports), HttpHarness::responder()),
+        );
     }
 }
