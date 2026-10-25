@@ -15,7 +15,8 @@
         "symfony/amqp-messenger": "^8.1",
         "symfony/event-dispatcher": "^8.1",
         "symfony/mailer": "^8.1",
-        "symfony/messenger": "^8.1"
+        "symfony/messenger": "^8.1",
+        "symfony/uid": "^8.1"
     },
     "require-dev": {
         "ext-json": "*",

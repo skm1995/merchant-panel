@@ -11,6 +11,9 @@ use App\Auth\Service\CurrentUser;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
+use App\Cart\Controller\CartApiController;
+use App\Cart\Repository\PdoCartRepository;
+use App\Cart\Service\CartService;
 use App\Catalog\Controller\ProductApiController;
 use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Service\ProductCatalog;
@@ -32,7 +35,8 @@ $responder = new Responder($csrfToken);
 $currentUser = new CurrentUser($session);
 
 $pdo = DatabaseConnection::createFromEnvironment();
-$tokenRepository = new PdoEmailVerificationTokenRepository($pdo, new PdoTransactionRunner($pdo));
+$transactions = new PdoTransactionRunner($pdo);
+$tokenRepository = new PdoEmailVerificationTokenRepository($pdo, $transactions);
 $userAuthService = new UserAuthService(new PdoUserRepository($pdo));
 
 $router = new Router($csrfToken, $responder);
@@ -48,8 +52,10 @@ $router->registerController(new AuthController(
     $currentUser,
     $responder,
 ));
-$router->registerController(new ProductApiController(
-    new ProductCatalog(new PdoProductRepository($pdo)),
+$productCatalog = new ProductCatalog(new PdoProductRepository($pdo));
+$router->registerController(new ProductApiController($productCatalog, $responder));
+$router->registerController(new CartApiController(
+    new CartService(new PdoCartRepository($pdo), $productCatalog, $transactions),
     $responder,
 ));
 $router->dispatch(Request::fromGlobals());

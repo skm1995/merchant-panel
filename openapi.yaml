@@ -3,7 +3,8 @@ info:
   title: Vanilla PHP Playground API
   version: 1.0.0
   description: >-
-    Product catalog API. Monetary amounts are strings in minor currency units
+    Product catalog and cart API. The API is sessionless; a cart id is an
+    unguessable UUID that grants access to the cart. Monetary amounts are strings in minor currency units
     (for example grosze) with an ISO 4217 currency code. Errors use RFC 9457
     problem details.
 paths:
@@ -56,7 +57,87 @@ paths:
                 $ref: '#/components/schemas/Product'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/v1/carts:
+    post:
+      operationId: createCart
+      summary: Create an empty cart
+      responses:
+        '201':
+          description: The created cart.
+          headers:
+            Location:
+              description: URL of the created cart.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+  /api/v1/carts/{id}:
+    get:
+      operationId: getCart
+      summary: Get a cart at current prices
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: The cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/carts/{id}/items/{productId}:
+    put:
+      operationId: setCartItemQuantity
+      summary: Set the quantity of a product in an open cart
+      description: Idempotent; a quantity of 0 removes the product.
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 0
+                  maximum: 99
+      responses:
+        '200':
+          description: The updated cart.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
 components:
+  parameters:
+    CartId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     Problem:
       description: An RFC 9457 problem details response.
@@ -111,6 +192,46 @@ components:
           type: integer
           minimum: 1
           nullable: true
+    CartItem:
+      type: object
+      additionalProperties: false
+      required: [product_id, sku, name, quantity, unit_price, line_total]
+      properties:
+        product_id:
+          type: integer
+          minimum: 1
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+        unit_price:
+          $ref: '#/components/schemas/Money'
+        line_total:
+          $ref: '#/components/schemas/Money'
+    Cart:
+      type: object
+      additionalProperties: false
+      required: [id, status, items, total]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [open, checked_out]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          nullable: true
+          description: Null for an empty cart.
     Problem:
       type: object
       required: [type, title, status, detail]
