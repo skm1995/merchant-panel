@@ -33,6 +33,9 @@ docker compose exec php php bin/retry-failed-emails.php
 The command acknowledges a failed message only after it has been dispatched to
 the normal email queue. If dispatch fails, that message remains in the failed
 queue. The command retries every message currently available in that queue.
+Messages that can no longer be decoded, for example after a message class was
+renamed, are left in the failure queue and reported so they can be inspected
+in the RabbitMQ management UI.
 
 An unverified account can request at most five resend attempts in each
 24-hour window. The initial confirmation email is not counted as a resend.

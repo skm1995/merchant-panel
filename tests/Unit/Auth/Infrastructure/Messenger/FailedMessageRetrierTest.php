@@ -8,6 +8,7 @@ use App\Auth\Message\ConfirmationEmailMessage;
 use App\Auth\Infrastructure\Messenger\FailedMessageRetrier;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
 use Symfony\Component\Messenger\Stamp\SentToFailureTransportStamp;
@@ -18,6 +19,7 @@ final class FailedMessageRetrierTest extends TestCase
     private const string EMAIL = 'person@example.com';
     private const string SECOND_EMAIL = 'second@example.com';
     private const string TOKEN = 'email-confirmation-token';
+    private const string DECODING_FAILURE = 'Message class not found during decoding.';
 
     public function testDispatchesFailedMessagesAgainAndAcknowledgesThem(): void
     {
@@ -38,9 +40,10 @@ final class FailedMessageRetrierTest extends TestCase
             ),
         )->willReturnCallback(static fn (object $message): Envelope => new Envelope($message));
 
-        $count = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
+        $result = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
 
-        self::assertSame(1, $count);
+        self::assertSame(1, $result->retried);
+        self::assertSame(0, $result->skipped);
     }
 
     public function testRetriesEveryMessageWhenTransportReturnsOneMessagePerFetch(): void
@@ -57,9 +60,31 @@ final class FailedMessageRetrierTest extends TestCase
             ->method('dispatch')
             ->willReturnCallback(static fn (object $message): Envelope => new Envelope($message));
 
-        $count = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
+        $result = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
 
-        self::assertSame(2, $count);
+        self::assertSame(2, $result->retried);
+    }
+
+    public function testKeepsUndecodableMessagesInspectableAndRetriesTheRest(): void
+    {
+        $undecodable = new Envelope(new MessageDecodingFailedException(self::DECODING_FAILURE));
+        $decodable = new Envelope(new ConfirmationEmailMessage(self::EMAIL, self::TOKEN));
+        $failedTransport = $this->createMock(TransportInterface::class);
+        $failedTransport->expects(self::exactly(3))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls([$undecodable], [$decodable], []);
+        $failedTransport->expects(self::once())->method('ack')->with($decodable);
+        $failedTransport->expects(self::never())->method('reject');
+        $bus = $this->createMock(MessageBusInterface::class);
+        $bus->expects(self::once())
+            ->method('dispatch')
+            ->with(self::isInstanceOf(ConfirmationEmailMessage::class))
+            ->willReturnCallback(static fn (object $message): Envelope => new Envelope($message));
+
+        $result = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
+
+        self::assertSame(1, $result->retried);
+        self::assertSame(1, $result->skipped);
     }
 
     public function testKeepsFailedMessageWhenRedispatchFails(): void

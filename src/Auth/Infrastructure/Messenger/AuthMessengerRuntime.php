@@ -57,7 +57,7 @@ final class AuthMessengerRuntime
         return new Worker([self::TRANSPORT_NAME => $transport], $bus, $eventDispatcher);
     }
 
-    public static function retryFailedMessagesFromEnvironment(): int
+    public static function retryFailedMessagesFromEnvironment(): FailedMessageRetryResult
     {
         $failedTransport = self::createTransport(self::FAILURE_TRANSPORT_DSN_ENV);
         $emailTransport = self::createTransport(self::TRANSPORT_DSN_ENV);
