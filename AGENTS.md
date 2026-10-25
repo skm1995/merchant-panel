@@ -8,6 +8,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Cover application behavior with PHPUnit, including relevant failure paths.
 - Keep unit and functional tests in separate suites. Run both suites before considering a change complete.
 - Functional tests must use a dedicated test database, apply migrations first, and clean up their data. Never run them against the development database.
+- Test HTTP routing through the configured web server in the functional suite; do not rely only on directly including the front controller.
 
 ## Code and architecture
 

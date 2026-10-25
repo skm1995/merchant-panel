@@ -44,6 +44,30 @@ jobs:
           DB_USERNAME: app
           DB_PASSWORD: app
         run: composer migrate
+      - name: Build Apache application image
+        run: docker build --tag vanilla-php-ci --file docker/php/Dockerfile .
+      - name: Start Apache application
+        run: >-
+          docker run --detach --name vanilla-php-ci --publish 8080:80
+          --add-host host.docker.internal:host-gateway
+          --volume "$GITHUB_WORKSPACE:/var/www/html"
+          --env XDEBUG_MODE=off
+          --env DB_HOST=host.docker.internal
+          --env DB_PORT=3306
+          --env DB_DATABASE=app_test
+          --env DB_USERNAME=app
+          --env DB_PASSWORD=app
+          vanilla-php-ci
+      - name: Wait for Apache routes
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8080/register >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs vanilla-php-ci
+          exit 1
       - name: Run functional tests
         env:
           DB_HOST: 127.0.0.1
@@ -51,8 +75,12 @@ jobs:
           DB_DATABASE: app_test
           DB_USERNAME: app
           DB_PASSWORD: app
+          APP_BASE_URL: http://127.0.0.1:8080
         run: composer test-functional
       - name: Run PHPStan
         run: composer analyse
       - name: Check PSR-12 formatting
         run: composer cs-check
+      - name: Stop Apache application
+        if: always()
+        run: docker rm --force vanilla-php-ci
