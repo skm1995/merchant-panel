@@ -6,7 +6,7 @@
 - Run the PHPUnit test suite before considering a change complete.
 - Empty string literals are forbidden in code.
 - Define string values used by code as constants instead of inline string literals.
-- Declare an explicit type on every class constant, such as `string`, `int`, or `bool`.
+- Declare an explicit type on every `private` or `public` class constant, such as `string`, `int`, or `bool`.
 - Prefer backed enums for public sets of values instead of public class constants.
 - Keep a controller's route path in that controller as a typed `public const string`; do not create a route enum for a single controller route.
 - Use `/` directly in path strings; avoid concatenating path segments with `DIRECTORY_SEPARATOR` when a readable path format string is sufficient.
