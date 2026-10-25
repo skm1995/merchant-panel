@@ -16,4 +16,18 @@ interface ProductRepositoryInterface
      * @return list<Product>
      */
     public function findPage(int $limit, ?int $afterId): array;
+
+    /**
+     * Locks the products with FOR UPDATE until the surrounding transaction ends,
+     * in ascending id order, and returns them ordered by id.
+     *
+     * @param list<int> $ids
+     * @return list<Product>
+     */
+    public function lockForUpdate(array $ids): array;
+
+    /**
+     * Atomically reserves the quantity when that much stock is still available.
+     */
+    public function reserve(int $productId, int $quantity): bool;
 }

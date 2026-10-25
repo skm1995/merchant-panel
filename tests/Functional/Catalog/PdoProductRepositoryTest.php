@@ -56,6 +56,30 @@ final class PdoProductRepositoryTest extends TestCase
         self::assertSame([$ids[1], $ids[2]], array_map(static fn ($product): int => $product->id, $page));
     }
 
+    public function testLocksRequestedProductsOrderedById(): void
+    {
+        $ids = TestProductData::create($this->pdo, $this->prefix, 3, self::PRICE_IN_GROSZE, self::STOCK);
+
+        $this->pdo->beginTransaction();
+        $locked = $this->products->lockForUpdate([$ids[2], $ids[0]]);
+        $this->pdo->commit();
+
+        self::assertSame([$ids[0], $ids[2]], array_map(static fn ($product): int => $product->id, $locked));
+    }
+
+    public function testReservesOnlyWhileEnoughStockIsAvailable(): void
+    {
+        [$id] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, self::STOCK, self::RESERVED);
+        $available = self::STOCK - self::RESERVED;
+
+        self::assertTrue($this->products->reserve($id, $available));
+        self::assertFalse($this->products->reserve($id, 1));
+        $product = $this->products->findById($id);
+        self::assertNotNull($product);
+        self::assertSame(0, $product->availableQuantity());
+        self::assertSame(2, $product->version);
+    }
+
     public function testReturnsNullForUnknownProduct(): void
     {
         self::assertNull($this->products->findById(PHP_INT_MAX));
