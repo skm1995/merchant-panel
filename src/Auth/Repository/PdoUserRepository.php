@@ -29,7 +29,7 @@ final class PdoUserRepository implements UserRepositoryInterface
         $statement = $this->pdo->prepare(self::FIND_QUERY);
         $statement->execute([self::EMAIL_PARAMETER => $email]);
 
-        return RecordFetcher::one($statement, UserRecord::class)?->toUser();
+        return RecordFetcher::one($statement, UserRecord::class)?->toEntity();
     }
 
     public function create(string $email, string $passwordHash): User

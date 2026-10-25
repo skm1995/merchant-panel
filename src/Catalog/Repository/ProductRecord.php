@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Catalog\Repository;
 
 use App\Catalog\Entity\Product;
+use App\Shared\Contract\EntityRecord;
 use App\Shared\Database\HydratedRecord;
 use Money\Currency;
 use Money\Money;
 
+/** @implements EntityRecord<Product> */
 #[HydratedRecord]
-final readonly class ProductRecord
+final readonly class ProductRecord implements EntityRecord
 {
     public int $id;
     public string $sku;
@@ -22,7 +24,7 @@ final readonly class ProductRecord
     public int $reserved;
     public int $version;
 
-    public function toProduct(): Product
+    public function toEntity(): Product
     {
         return new Product(
             $this->id,

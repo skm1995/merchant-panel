@@ -27,7 +27,7 @@ final class PdoProductRepository implements ProductRepositoryInterface
         $statement = $this->pdo->prepare(self::FIND_QUERY);
         $statement->execute([self::ID_PARAMETER => $id]);
 
-        return RecordFetcher::one($statement, ProductRecord::class)?->toProduct();
+        return RecordFetcher::one($statement, ProductRecord::class)?->toEntity();
     }
 
     public function findPage(int $limit, ?int $afterId): array
@@ -38,7 +38,7 @@ final class PdoProductRepository implements ProductRepositoryInterface
         $statement->execute();
 
         return array_map(
-            static fn (ProductRecord $record): Product => $record->toProduct(),
+            static fn (ProductRecord $record): Product => $record->toEntity(),
             RecordFetcher::all($statement, ProductRecord::class),
         );
     }

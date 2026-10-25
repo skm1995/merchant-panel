@@ -48,7 +48,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Views only produce markup: they never send headers or build response metadata, and they escape output through the shared renderer's escaping helper.
 - Keep service factories focused on their runtime: web requests must not initialize worker-only mail handlers or event listeners.
 - Represent monetary amounts with `Money\Money` (moneyphp/money) everywhere in the domain; never use floats or bare integers. Store them as an unsigned `BIGINT` in minor units plus a `CHAR(3)` ISO 4217 currency code, and expose them in APIs as `{"amount": "<minor units as string>", "currency": "<code>"}`.
-- Hydrate query results into readonly record DTOs marked `#[HydratedRecord]` through `RecordFetcher`, selecting columns with aliases that match the record's properties; records convert themselves into entities. Never pass associative row arrays between methods, and return report or listing results as DTOs.
+- Hydrate query results into readonly record DTOs marked `#[HydratedRecord]` through `RecordFetcher`, selecting columns with aliases that match the record's properties; records that represent an entity implement `App\Shared\Contract\EntityRecord` and convert themselves with `toEntity()`. Never pass associative row arrays between methods, and return report or listing results as DTOs.
 - DTOs that need an array form, such as API response bodies, implement `App\Shared\Contract\Arrayable`.
 - Declare explicit types for class constants. Prefer backed enums for public finite sets of values.
 - Empty string literals are forbidden. Define string values as constants instead of inline literals, except in enum methods where a literal directly expresses enum behavior.

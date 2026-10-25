@@ -5,18 +5,20 @@ declare(strict_types=1);
 namespace App\Auth\Repository;
 
 use App\Auth\Entity\User;
+use App\Shared\Contract\EntityRecord;
 use App\Shared\Database\HydratedRecord;
 use DateTimeImmutable;
 
+/** @implements EntityRecord<User> */
 #[HydratedRecord]
-final readonly class UserRecord
+final readonly class UserRecord implements EntityRecord
 {
     public string $email;
     public string $passwordHash;
     public string $createdAt;
     public ?string $emailVerifiedAt;
 
-    public function toUser(): User
+    public function toEntity(): User
     {
         return new User(
             $this->email,
