@@ -108,6 +108,38 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  outbox-relay:
+    build: *php-build
+    working_dir: /var/www/html
+    command: php bin/outbox-relay.php
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    environment:
+      <<: [*database-environment, *messenger-environment]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  outbox-relay-test:
+    build: *php-build
+    working_dir: /var/www/html
+    command: php bin/outbox-relay.php
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    profiles:
+      - test
+    environment:
+      <<: [*test-database-environment, *test-messenger-environment]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   worker-test:
     build: *php-build
     working_dir: /var/www/html

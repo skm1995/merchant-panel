@@ -60,6 +60,16 @@ sold stock. A payment for an order that was cancelled meanwhile becomes
 `refund_required`. Webhook secrets and checkout URLs come from the
 `FAKEPAY_*` and `QUICKPAY_*` environment variables.
 
+## Outbox
+
+Features store messages in the `outbox_messages` table in the same transaction
+as the data they describe. The `outbox-relay` service (`bin/outbox-relay.php`)
+leases batches with `SELECT ... FOR UPDATE SKIP LOCKED`, publishes them to
+RabbitMQ, and deletes them; messages due later are published with a delay and
+wait in RabbitMQ. Several relays can run side by side, and a message whose relay
+crashed is published again after its 30-second lease, so delivery is at least
+once and consumers are idempotent.
+
 ## Failed messages
 
 After the worker exhausts its configured retries, messages are stored in the

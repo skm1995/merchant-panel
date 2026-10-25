@@ -19,6 +19,7 @@ final class SchemaTest extends TestCase
     private const array INTENTIONALLY_NULLABLE_COLUMNS = [
         'carts.updated_at',
         'orders.updated_at',
+        'outbox_messages.claimed_until',
         'payments.updated_at',
         'products.updated_at',
         'users.email_verified_at',

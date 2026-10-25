@@ -17,6 +17,8 @@ use Symfony\Component\Messenger\Retry\MultiplierRetryStrategy;
 use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 use App\Shared\Messaging\Exception\UnknownTransportException;
+use App\Shared\Messaging\Outbox\OutboxMessageInterface;
+use App\Shared\Messaging\Outbox\OutboxMessageTypes;
 use Symfony\Component\Messenger\Worker;
 
 /**
@@ -29,6 +31,7 @@ final class MessengerRuntime
     private const string CONFIGURATION_PATH = '%s/config/messenger.php';
     private const string TRANSPORTS_KEY = 'transports';
     private const string ROUTES_KEY = 'routes';
+    private const string OUTBOX_MESSAGES_KEY = 'outbox_messages';
 
     /** @var array<string, TransportInterface> */
     private array $transports = [];
@@ -36,19 +39,31 @@ final class MessengerRuntime
     /**
      * @param array<string, string> $transportDsnKeys environment keys of transport DSNs keyed by transport name
      * @param array<class-string, string> $routes transport names keyed by message class
+     * @param list<class-string<OutboxMessageInterface>> $outboxMessages
      */
     public function __construct(
         private readonly array $transportDsnKeys,
         private readonly array $routes,
+        private readonly array $outboxMessages = [],
     ) {
     }
 
     public static function fromConfiguration(): self
     {
-        /** @var array{transports: array<string, string>, routes: array<class-string, string>} $configuration */
+        /**
+         * @var array{
+         *     transports: array<string, string>,
+         *     routes: array<class-string, string>,
+         *     outbox_messages: list<class-string<OutboxMessageInterface>>
+         * } $configuration
+         */
         $configuration = require sprintf(self::CONFIGURATION_PATH, dirname(__DIR__, 3));
 
-        return new self($configuration[self::TRANSPORTS_KEY], $configuration[self::ROUTES_KEY]);
+        return new self(
+            $configuration[self::TRANSPORTS_KEY],
+            $configuration[self::ROUTES_KEY],
+            $configuration[self::OUTBOX_MESSAGES_KEY],
+        );
     }
 
     /**
@@ -87,6 +102,11 @@ final class MessengerRuntime
         $events->addSubscriber(new SendFailedMessageToFailureTransportListener(new RuntimeServiceContainer($failureSenders)));
 
         return new Worker($receivers, $this->bus($handlers), $events);
+    }
+
+    public function outboxMessageTypes(): OutboxMessageTypes
+    {
+        return new OutboxMessageTypes($this->outboxMessages);
     }
 
     public function failedMessageRetrier(): FailedMessageRetrier

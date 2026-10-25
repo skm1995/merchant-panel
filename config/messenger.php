@@ -7,7 +7,8 @@ use App\Shared\Messaging\MessengerRuntime;
 
 /*
  * Messenger transports and routing. Transport DSNs come from the environment; each
- * message class is sent to one transport and consumed by bin/worker.php.
+ * message class is sent to one transport and consumed by bin/worker.php. Outbox message
+ * classes are the ones bin/outbox-relay.php may publish from the outbox table.
  */
 return [
     'transports' => [
@@ -17,4 +18,5 @@ return [
     'routes' => [
         ConfirmationEmailMessage::class => 'emails',
     ],
+    'outbox_messages' => [],
 ];
