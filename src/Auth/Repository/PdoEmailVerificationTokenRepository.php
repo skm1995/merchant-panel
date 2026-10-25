@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Auth\Repository;
 
+use App\Shared\Database\RecordFetcher;
 use DateTimeImmutable;
 use PDO;
 use Throwable;
@@ -11,7 +12,7 @@ use Throwable;
 final class PdoEmailVerificationTokenRepository implements EmailVerificationTokenRepositoryInterface
 {
     private const string STORE_QUERY = 'INSERT INTO email_verification_tokens (email, token_hash, expires_at) VALUES (:email, :token_hash, :expires_at) ON DUPLICATE KEY UPDATE token_hash = VALUES(token_hash), expires_at = VALUES(expires_at)';
-    private const string RESEND_STATE_QUERY = 'SELECT resend_count, resend_window_started_at FROM email_verification_tokens WHERE email = :email FOR UPDATE';
+    private const string RESEND_STATE_QUERY = 'SELECT resend_count AS resendCount, resend_window_started_at AS resendWindowStartedAt FROM email_verification_tokens WHERE email = :email FOR UPDATE';
     private const string INSERT_RESEND_QUERY = 'INSERT INTO email_verification_tokens (email, token_hash, expires_at, resend_count, resend_window_started_at) VALUES (:email, :token_hash, :expires_at, 1, :window_started_at)';
     private const string UPDATE_RESEND_QUERY = 'UPDATE email_verification_tokens SET token_hash = :token_hash, expires_at = :expires_at, resend_count = :resend_count, resend_window_started_at = :window_started_at WHERE email = :email';
     private const string FIND_VALID_TOKEN_QUERY = 'SELECT email FROM email_verification_tokens WHERE token_hash = :token_hash AND expires_at > :confirmed_at FOR UPDATE';
@@ -23,8 +24,6 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
     private const string CONFIRMED_AT_PARAMETER = 'confirmed_at';
     private const string RESEND_COUNT_PARAMETER = 'resend_count';
     private const string WINDOW_STARTED_AT_PARAMETER = 'window_started_at';
-    private const string RESEND_COUNT_COLUMN = 'resend_count';
-    private const string RESEND_WINDOW_STARTED_AT_COLUMN = 'resend_window_started_at';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string WINDOW_START_MODIFIER_FORMAT = '-%d seconds';
 
@@ -59,9 +58,9 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
         ): bool {
             $stateStatement = $this->pdo->prepare(self::RESEND_STATE_QUERY);
             $stateStatement->execute([self::EMAIL_PARAMETER => $email]);
-            $state = $stateStatement->fetch(PDO::FETCH_ASSOC);
+            $state = RecordFetcher::one($stateStatement, ResendStateRecord::class);
 
-            if (!is_array($state)) {
+            if ($state === null) {
                 $this->pdo->prepare(self::INSERT_RESEND_QUERY)->execute([
                     self::EMAIL_PARAMETER => $email,
                     self::TOKEN_HASH_PARAMETER => $tokenHash,
@@ -72,11 +71,11 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
                 return true;
             }
 
-            $windowStartedAt = new DateTimeImmutable((string) $state[self::RESEND_WINDOW_STARTED_AT_COLUMN]);
+            $windowStartedAt = $state->windowStartedAt();
             $windowExpired = $windowStartedAt <= $now->modify(
                 sprintf(self::WINDOW_START_MODIFIER_FORMAT, $windowSeconds),
             );
-            $resendCount = $windowExpired ? 0 : (int) $state[self::RESEND_COUNT_COLUMN];
+            $resendCount = $windowExpired ? 0 : $state->resendCount;
 
             if ($resendCount >= $maximumAttempts) {
                 return false;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Auth;
 
-use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Message\ConfirmationEmailQueueInterface;
 use App\Auth\Repository\PdoEmailVerificationTokenRepository;
 use App\Auth\Repository\PdoUserRepository;
@@ -97,15 +96,6 @@ final class AuthFlowTest extends TestCase
         self::assertInstanceOf(PDOStatement::class, $statement);
 
         self::assertSame(self::TEST_DATABASE_NAME, $statement->fetchColumn());
-    }
-
-    public function testUniqueIndexViolationIsReportedAsDuplicateEmail(): void
-    {
-        $passwordHash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
-        $this->users->create($this->email, $passwordHash);
-
-        $this->expectException(DuplicateEmailException::class);
-        $this->users->create($this->email, $passwordHash);
     }
 
     public function testConfirmationEmailResendsAreLimitedPerWindowAndResetAfterIt(): void

@@ -22,10 +22,9 @@ final class SchemaTest extends TestCase
 
     public function testOnlyColumnsWithMeaningfulNullAreNullable(): void
     {
-        $columns = DatabaseConnection::createFromEnvironment()
-            ->query(self::NULLABLE_COLUMNS_QUERY)
-            ?->fetchAll(PDO::FETCH_COLUMN);
+        $statement = DatabaseConnection::createFromEnvironment()->prepare(self::NULLABLE_COLUMNS_QUERY);
+        $statement->execute();
 
-        self::assertSame(self::INTENTIONALLY_NULLABLE_COLUMNS, $columns);
+        self::assertSame(self::INTENTIONALLY_NULLABLE_COLUMNS, $statement->fetchAll(PDO::FETCH_COLUMN));
     }
 }

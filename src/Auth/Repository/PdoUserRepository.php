@@ -6,20 +6,17 @@ namespace App\Auth\Repository;
 
 use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
+use App\Shared\Database\RecordFetcher;
 use DateTimeImmutable;
 use PDO;
 use PDOException;
 
 final class PdoUserRepository implements UserRepositoryInterface
 {
-    private const string FIND_QUERY = 'SELECT email, password, created_at, email_verified_at FROM users WHERE email = :email';
+    private const string FIND_QUERY = 'SELECT email, password AS passwordHash, created_at AS createdAt, email_verified_at AS emailVerifiedAt FROM users WHERE email = :email';
     private const string INSERT_QUERY = 'INSERT INTO users (email, password, created_at) VALUES (:email, :password, CURRENT_TIMESTAMP)';
     private const string EMAIL_PARAMETER = 'email';
     private const string PASSWORD_PARAMETER = 'password';
-    private const string EMAIL_COLUMN = 'email';
-    private const string PASSWORD_COLUMN = 'password';
-    private const string CREATED_AT_COLUMN = 'created_at';
-    private const string EMAIL_VERIFIED_AT_COLUMN = 'email_verified_at';
     private const int DRIVER_ERROR_CODE_INDEX = 1;
     private const int DUPLICATE_KEY_ERROR_CODE = 1062;
 
@@ -31,20 +28,8 @@ final class PdoUserRepository implements UserRepositoryInterface
     {
         $statement = $this->pdo->prepare(self::FIND_QUERY);
         $statement->execute([self::EMAIL_PARAMETER => $email]);
-        $row = $statement->fetch(PDO::FETCH_ASSOC);
 
-        if (!is_array($row)) {
-            return null;
-        }
-
-        $emailVerifiedAt = $row[self::EMAIL_VERIFIED_AT_COLUMN] ?? null;
-
-        return new User(
-            (string) $row[self::EMAIL_COLUMN],
-            (string) $row[self::PASSWORD_COLUMN],
-            new DateTimeImmutable((string) $row[self::CREATED_AT_COLUMN]),
-            is_string($emailVerifiedAt) ? new DateTimeImmutable($emailVerifiedAt) : null,
-        );
+        return RecordFetcher::one($statement, UserRecord::class)?->toUser();
     }
 
     public function create(string $email, string $passwordHash): User

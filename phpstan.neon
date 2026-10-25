@@ -7,4 +7,11 @@ parameters:
         - views
         - database/migrations
         - phinx.php
+        - tools
     tmpDir: .phpstan-cache
+
+services:
+    -
+        class: Tools\PHPStan\HydratedRecordPropertiesExtension
+        tags:
+            - phpstan.properties.readWriteExtension
