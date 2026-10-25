@@ -8,14 +8,20 @@ use App\Cart\Exception\CartNotFoundException;
 use App\Cart\Exception\CartNotOpenException;
 use App\Cart\Exception\EmptyCartException;
 use App\Catalog\Exception\InsufficientStockException;
+use App\Order\Command\CancelOrderHandler;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Entity\OrderId;
 use App\Order\Exception\IdempotencyKeyReusedException;
+use App\Order\Exception\InvalidOrderTransitionException;
 use App\Order\Exception\OrderNotFoundException;
+use App\Order\Exception\OrderVersionMismatchException;
 use App\Order\Query\GetOrderHandler;
 use App\Order\Query\GetOrderQuery;
+use App\Order\ReadModel\OrderView;
+use App\Order\Request\CancelOrderRequest;
 use App\Order\Request\PlaceOrderRequest;
 use App\Order\Response\OrderResponse;
+use App\Shared\Http\EntityTag;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
@@ -28,12 +34,14 @@ final class OrderApiController
 {
     private const string CHECKOUT_ROUTE_PATH = '/api/v1/carts/{id:' . RandomUuid::PATTERN . '}/checkout';
     private const string ORDER_ROUTE_PATH = '/api/v1/orders/{id:' . RandomUuid::PATTERN . '}';
+    private const string CANCEL_ROUTE_PATH = self::ORDER_ROUTE_PATH . '/cancel';
     private const string ORDER_LOCATION_FORMAT = '/api/v1/orders/%s';
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
         private readonly PlaceOrderHandler $placeOrder,
         private readonly GetOrderHandler $getOrder,
+        private readonly CancelOrderHandler $cancelOrder,
         private readonly Responder $responder,
     ) {
     }
@@ -49,7 +57,11 @@ final class OrderApiController
         $orderId = $this->placeOrder->handle(PlaceOrderRequest::fromRequest($request)->toCommand());
         $order = $this->getOrder->handle(new GetOrderQuery($orderId));
 
-        $this->responder->created(OrderResponse::fromView($order), sprintf(self::ORDER_LOCATION_FORMAT, $orderId->value));
+        $this->responder->created(
+            OrderResponse::fromView($order),
+            sprintf(self::ORDER_LOCATION_FORMAT, $orderId->value),
+            self::entityTag($order),
+        );
     }
 
     #[Route(HttpMethodEnum::GET, self::ORDER_ROUTE_PATH)]
@@ -57,7 +69,26 @@ final class OrderApiController
     public function show(Request $request): void
     {
         $orderId = OrderId::fromString((string) $request->routeParameter(self::ID_PARAMETER));
+        $order = $this->getOrder->handle(new GetOrderQuery($orderId));
 
-        $this->responder->json(OrderResponse::fromView($this->getOrder->handle(new GetOrderQuery($orderId))));
+        $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
+    }
+
+    #[Route(HttpMethodEnum::POST, self::CANCEL_ROUTE_PATH)]
+    #[MapException(OrderNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
+    #[MapException(OrderVersionMismatchException::class, ResponseStatusEnum::PRECONDITION_FAILED)]
+    #[MapException(InvalidOrderTransitionException::class, ResponseStatusEnum::CONFLICT)]
+    public function cancel(Request $request): void
+    {
+        $command = CancelOrderRequest::fromRequest($request)->toCommand();
+        $this->cancelOrder->handle($command);
+        $order = $this->getOrder->handle(new GetOrderQuery($command->orderId));
+
+        $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
+    }
+
+    private static function entityTag(OrderView $order): EntityTag
+    {
+        return EntityTag::fromVersion($order->version);
     }
 }

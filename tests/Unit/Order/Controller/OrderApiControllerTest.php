@@ -9,6 +9,7 @@ use App\Cart\Service\CartService;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Catalog\Service\ProductCatalog;
 use App\Catalog\Service\StockReservation;
+use App\Order\Command\CancelOrderHandler;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Controller\OrderApiController;
 use App\Order\Query\GetOrderHandler;
@@ -76,6 +77,11 @@ final class OrderApiControllerTest extends TestCase
                 new MockClock(),
             ),
             new GetOrderHandler($readOrders),
+            new CancelOrderHandler(
+                $this->createStub(OrderRepositoryInterface::class),
+                new StockReservation($products),
+                $transactions,
+            ),
             $responder,
         ));
         ob_start();

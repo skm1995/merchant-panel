@@ -18,7 +18,7 @@ final class PdoOrderReadRepository implements OrderReadRepositoryInterface
 {
     private const string ORDER_QUERY = <<<'SQL'
         SELECT id AS internalId, public_id AS publicId, status, total_amount AS totalAmount,
-            total_currency AS totalCurrency, reservation_expires_at AS reservationExpiresAt, created_at AS createdAt
+            total_currency AS totalCurrency, reservation_expires_at AS reservationExpiresAt, created_at AS createdAt, version
         FROM orders
         WHERE public_id = :public_id
         SQL;
@@ -59,6 +59,7 @@ final class PdoOrderReadRepository implements OrderReadRepositoryInterface
             new Money($order->totalAmount, new Currency($order->totalCurrency)),
             new DateTimeImmutable($order->reservationExpiresAt),
             new DateTimeImmutable($order->createdAt),
+            $order->version,
         );
     }
 }

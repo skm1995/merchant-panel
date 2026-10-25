@@ -19,6 +19,7 @@ use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Service\ProductCatalog;
 use App\Catalog\Service\StockReservation;
 use App\Home\Controller\HomeController;
+use App\Order\Command\CancelOrderHandler;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Controller\OrderApiController;
 use App\Order\Query\GetOrderHandler;
@@ -62,17 +63,14 @@ $router->registerController(new AuthController(
 $productRepository = new PdoProductRepository($pdo);
 $productCatalog = new ProductCatalog($productRepository);
 $cartService = new CartService(new PdoCartRepository($pdo), $productCatalog, $transactions);
+$stockReservation = new StockReservation($productRepository);
+$orderRepository = new PdoOrderRepository($pdo);
 $router->registerController(new ProductApiController($productCatalog, $responder));
 $router->registerController(new CartApiController($cartService, $responder));
 $router->registerController(new OrderApiController(
-    new PlaceOrderHandler(
-        new PdoOrderRepository($pdo),
-        $cartService,
-        new StockReservation($productRepository),
-        $transactions,
-        new NativeClock(),
-    ),
+    new PlaceOrderHandler($orderRepository, $cartService, $stockReservation, $transactions, new NativeClock()),
     new GetOrderHandler(new PdoOrderReadRepository($pdo)),
+    new CancelOrderHandler($orderRepository, $stockReservation, $transactions),
     $responder,
 ));
 $router->dispatch(Request::fromGlobals());

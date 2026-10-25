@@ -8,4 +8,6 @@ enum HeaderNameEnum: string
 {
     case CONTENT_TYPE = 'Content-Type';
     case LOCATION = 'Location';
+    case ETAG = 'ETag';
+    case IF_MATCH = 'If-Match';
 }

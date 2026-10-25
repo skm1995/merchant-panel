@@ -16,6 +16,7 @@ final class OrderFixtures
 {
     public const string ORDER_ID = '9b1d2c3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e';
     public const string IDEMPOTENCY_KEY = 'checkout-key-1';
+    public const int VERSION = 1;
     public const string CREATED_AT = '2026-10-25T12:00:00+00:00';
     public const string RESERVATION_EXPIRES_AT = '2026-10-25T12:15:00+00:00';
 
@@ -38,6 +39,7 @@ final class OrderFixtures
             Money::PLN(2500),
             new DateTimeImmutable(self::RESERVATION_EXPIRES_AT),
             new DateTimeImmutable(self::CREATED_AT),
+            self::VERSION,
         );
     }
 }

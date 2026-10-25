@@ -9,6 +9,7 @@ use App\Shared\Http\Enum\ResponseStatusEnum;
 use DomainException;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Exception\InvalidRequestException;
+use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
@@ -335,6 +336,24 @@ final class RouterTest extends TestCase
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
         self::assertSame(self::INVALID_INPUT, $problem['detail']);
+    }
+
+    public function testMissingPreconditionIsPreconditionRequiredProblem(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/api/v1/orders/x/cancel';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function cancel(): void
+            {
+                throw new PreconditionRequiredException(RouterTest::INVALID_INPUT);
+            }
+        };
+
+        $problem = $this->problemFrom($controller, $controller::PATH);
+
+        self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, $problem['status']);
     }
 
     public function testInvalidBrowserRequestIsPlainBadRequest(): void

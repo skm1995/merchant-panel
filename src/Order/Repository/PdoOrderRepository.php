@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Order\Repository;
 
 use App\Order\Entity\Order;
+use App\Order\Entity\OrderId;
 use App\Order\Entity\OrderPlacement;
+use App\Order\Entity\OrderState;
+use App\Order\Enum\OrderStatusEnum;
 use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Shared\Database\RecordFetcher;
 use PDO;
@@ -22,6 +25,16 @@ final class PdoOrderRepository implements OrderRepositoryInterface
         VALUES (:order_id, :product_id, :sku, :name, :quantity, :unit_price_amount, :unit_price_currency)
         SQL;
     private const string FIND_PLACEMENT_QUERY = 'SELECT public_id AS publicId, cart_id AS cartId FROM orders WHERE idempotency_key = :idempotency_key';
+    private const string FIND_STATE_QUERY = 'SELECT id AS internalId, public_id AS publicId, status, version FROM orders WHERE public_id = :public_id';
+    private const string QUANTITIES_QUERY = 'SELECT product_id, quantity FROM order_items WHERE order_id = :order_id ORDER BY product_id';
+    private const string TRANSITION_QUERY = <<<'SQL'
+        UPDATE orders
+        SET status = :to_status, version = version + 1
+        WHERE public_id = :public_id AND status = :from_status AND version = :expected_version
+        SQL;
+    private const string TO_STATUS_PARAMETER = 'to_status';
+    private const string FROM_STATUS_PARAMETER = 'from_status';
+    private const string EXPECTED_VERSION_PARAMETER = 'expected_version';
     private const string IDEMPOTENCY_KEY_INDEX = 'orders_idempotency_key_unique';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string PUBLIC_ID_PARAMETER = 'public_id';
@@ -86,6 +99,43 @@ final class PdoOrderRepository implements OrderRepositoryInterface
         $statement->execute([self::IDEMPOTENCY_KEY_PARAMETER => $idempotencyKey]);
 
         return RecordFetcher::one($statement, OrderPlacementRecord::class)?->toEntity();
+    }
+
+    public function findState(OrderId $id): ?OrderState
+    {
+        $statement = $this->pdo->prepare(self::FIND_STATE_QUERY);
+        $statement->execute([self::PUBLIC_ID_PARAMETER => $id->toBinary()]);
+        $record = RecordFetcher::one($statement, OrderStateRecord::class);
+
+        if ($record === null) {
+            return null;
+        }
+
+        $quantities = $this->pdo->prepare(self::QUANTITIES_QUERY);
+        $quantities->execute([self::ORDER_ID_PARAMETER => $record->internalId]);
+
+        /** @var array<int, int> $quantitiesByProduct */
+        $quantitiesByProduct = $quantities->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        return new OrderState(
+            OrderId::fromBinary($record->publicId),
+            OrderStatusEnum::from($record->status),
+            $record->version,
+            $quantitiesByProduct,
+        );
+    }
+
+    public function transition(OrderId $id, OrderStatusEnum $from, OrderStatusEnum $to, int $expectedVersion): bool
+    {
+        $statement = $this->pdo->prepare(self::TRANSITION_QUERY);
+        $statement->execute([
+            self::PUBLIC_ID_PARAMETER => $id->toBinary(),
+            self::FROM_STATUS_PARAMETER => $from->value,
+            self::TO_STATUS_PARAMETER => $to->value,
+            self::EXPECTED_VERSION_PARAMETER => $expectedVersion,
+        ]);
+
+        return $statement->rowCount() === 1;
     }
 
     private static function isIdempotencyKeyConflict(PDOException $exception): bool

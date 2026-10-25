@@ -7,6 +7,7 @@ namespace App\Shared\Http;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
+use App\Shared\Http\Exception\PreconditionRequiredException;
 use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
@@ -109,6 +110,8 @@ final class Router
                 $method->invoke($controller, $request);
             } catch (InvalidRequestException $exception) {
                 $this->reject($request, ResponseStatusEnum::BAD_REQUEST, $exception->getMessage());
+            } catch (PreconditionRequiredException $exception) {
+                $this->reject($request, ResponseStatusEnum::PRECONDITION_REQUIRED, $exception->getMessage());
             } catch (Throwable $exception) {
                 foreach ($mappings as $mapping) {
                     if ($exception instanceof $mapping->exception) {

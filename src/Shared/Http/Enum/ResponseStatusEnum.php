@@ -13,7 +13,9 @@ enum ResponseStatusEnum: int
     case FORBIDDEN = 403;
     case NOT_FOUND = 404;
     case CONFLICT = 409;
+    case PRECONDITION_FAILED = 412;
     case UNPROCESSABLE_CONTENT = 422;
+    case PRECONDITION_REQUIRED = 428;
 
     public function message(): string
     {
@@ -25,7 +27,9 @@ enum ResponseStatusEnum: int
             self::FORBIDDEN => 'Forbidden',
             self::NOT_FOUND => 'Not Found',
             self::CONFLICT => 'Conflict',
+            self::PRECONDITION_FAILED => 'Precondition Failed',
             self::UNPROCESSABLE_CONTENT => 'Unprocessable Content',
+            self::PRECONDITION_REQUIRED => 'Precondition Required',
         };
     }
 }

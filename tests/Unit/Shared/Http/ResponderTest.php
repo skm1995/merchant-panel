@@ -6,6 +6,7 @@ namespace Tests\Unit\Shared\Http;
 
 use App\Shared\Contract\Arrayable;
 use App\Shared\Http\CsrfToken;
+use App\Shared\Http\EntityTag;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
@@ -85,6 +86,20 @@ final class ResponderTest extends TestCase
 
         self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
         self::assertSame('{"name":"Zażółć/gęślą"}', $output);
+    }
+
+    public function testJsonCanCarryAnEntityTag(): void
+    {
+        ob_start();
+        $this->responder->json(new readonly class () implements Arrayable {
+            public function toArray(): array
+            {
+                return [];
+            }
+        }, ResponseStatusEnum::OK, EntityTag::fromVersion(3));
+        ob_end_clean();
+
+        self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
     }
 
     public function testProblemFollowsRfc9457(): void

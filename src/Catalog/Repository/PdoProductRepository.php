@@ -19,6 +19,11 @@ final class PdoProductRepository implements ProductRepositoryInterface
         SET reserved = reserved + :quantity, version = version + 1
         WHERE id = :id AND stock - reserved >= :required_quantity
         SQL;
+    private const string RELEASE_QUERY = <<<'SQL'
+        UPDATE products
+        SET reserved = reserved - :quantity, version = version + 1
+        WHERE id = :id AND reserved >= :required_quantity
+        SQL;
     private const string POSITIONAL_PLACEHOLDER = '?';
     private const string PLACEHOLDER_SEPARATOR = ', ';
     private const string QUANTITY_PARAMETER = 'quantity';
@@ -71,7 +76,17 @@ final class PdoProductRepository implements ProductRepositoryInterface
 
     public function reserve(int $productId, int $quantity): bool
     {
-        $statement = $this->pdo->prepare(self::RESERVE_QUERY);
+        return $this->changeReservation(self::RESERVE_QUERY, $productId, $quantity);
+    }
+
+    public function release(int $productId, int $quantity): bool
+    {
+        return $this->changeReservation(self::RELEASE_QUERY, $productId, $quantity);
+    }
+
+    private function changeReservation(string $query, int $productId, int $quantity): bool
+    {
+        $statement = $this->pdo->prepare($query);
         $statement->execute([
             self::ID_PARAMETER => $productId,
             self::QUANTITY_PARAMETER => $quantity,

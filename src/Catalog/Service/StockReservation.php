@@ -8,6 +8,7 @@ use App\Catalog\Entity\Product;
 use App\Catalog\Exception\InsufficientStockException;
 use App\Catalog\Exception\ProductNotFoundException;
 use App\Catalog\Repository\ProductRepositoryInterface;
+use LogicException;
 
 /**
  * Reserves stock for several products at once. Callers must run it inside a transaction:
@@ -16,6 +17,8 @@ use App\Catalog\Repository\ProductRepositoryInterface;
  */
 final class StockReservation
 {
+    private const string RELEASE_INCONSISTENCY_FORMAT = 'Product %d has fewer reserved units than are being released.';
+
     public function __construct(private readonly ProductRepositoryInterface $products)
     {
     }
@@ -48,5 +51,22 @@ final class StockReservation
         }
 
         return array_values($products);
+    }
+
+    /**
+     * Gives back reserved stock, for example when an order is cancelled or expires.
+     * Callers must run it inside a transaction; rows are updated in ascending id order.
+     *
+     * @param array<int, int> $quantities quantities keyed by product id
+     */
+    public function release(array $quantities): void
+    {
+        ksort($quantities);
+
+        foreach ($quantities as $productId => $quantity) {
+            if (!$this->products->release($productId, $quantity)) {
+                throw new LogicException(sprintf(self::RELEASE_INCONSISTENCY_FORMAT, $productId));
+            }
+        }
     }
 }

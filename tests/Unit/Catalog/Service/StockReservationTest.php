@@ -66,4 +66,30 @@ final class StockReservationTest extends TestCase
         $this->expectException(InsufficientStockException::class);
         new StockReservation($products)->reserve([3 => 1]);
     }
+
+    public function testReleasesReservationsInIdOrder(): void
+    {
+        $products = $this->createMock(ProductRepositoryInterface::class);
+        $released = [];
+        $products->expects(self::exactly(2))
+            ->method('release')
+            ->willReturnCallback(static function (int $productId, int $quantity) use (&$released): bool {
+                $released[] = [$productId, $quantity];
+
+                return true;
+            });
+
+        new StockReservation($products)->release([8 => 1, 3 => 2]);
+
+        self::assertSame([[3, 2], [8, 1]], $released);
+    }
+
+    public function testReleasingMoreThanReservedIsAnInconsistency(): void
+    {
+        $products = $this->createStub(ProductRepositoryInterface::class);
+        $products->method('release')->willReturn(false);
+
+        $this->expectException(\LogicException::class);
+        new StockReservation($products)->release([3 => 1]);
+    }
 }

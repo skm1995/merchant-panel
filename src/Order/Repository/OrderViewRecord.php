@@ -17,4 +17,5 @@ final readonly class OrderViewRecord
     public string $totalCurrency;
     public string $reservationExpiresAt;
     public string $createdAt;
+    public int $version;
 }

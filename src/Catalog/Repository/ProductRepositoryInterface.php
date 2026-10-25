@@ -30,4 +30,9 @@ interface ProductRepositoryInterface
      * Atomically reserves the quantity when that much stock is still available.
      */
     public function reserve(int $productId, int $quantity): bool;
+
+    /**
+     * Atomically gives back reserved stock; false when fewer units are reserved.
+     */
+    public function release(int $productId, int $quantity): bool;
 }

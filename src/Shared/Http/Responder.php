@@ -50,15 +50,22 @@ final class Responder
         self::header(HeaderNameEnum::LOCATION, $path);
     }
 
-    public function json(Arrayable $body, ResponseStatusEnum $status = ResponseStatusEnum::OK): void
-    {
+    public function json(
+        Arrayable $body,
+        ResponseStatusEnum $status = ResponseStatusEnum::OK,
+        ?EntityTag $entityTag = null,
+    ): void {
+        if ($entityTag !== null) {
+            self::header(HeaderNameEnum::ETAG, $entityTag->value);
+        }
+
         $this->writeJson($body->toArray(), $status, ContentTypeEnum::JSON);
     }
 
-    public function created(Arrayable $body, string $location): void
+    public function created(Arrayable $body, string $location, ?EntityTag $entityTag = null): void
     {
         self::header(HeaderNameEnum::LOCATION, $location);
-        $this->json($body, ResponseStatusEnum::CREATED);
+        $this->json($body, ResponseStatusEnum::CREATED, $entityTag);
     }
 
     /**

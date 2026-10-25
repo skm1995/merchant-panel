@@ -22,6 +22,7 @@ final readonly class OrderView
         public Money $total,
         public DateTimeImmutable $reservationExpiresAt,
         public DateTimeImmutable $createdAt,
+        public int $version,
     ) {
     }
 }
