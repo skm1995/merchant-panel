@@ -18,8 +18,8 @@ use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use DomainException;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class RegisterUserServiceTest extends TestCase
 {
@@ -135,7 +135,7 @@ final class RegisterUserServiceTest extends TestCase
             $tokens,
             $outbox,
             $transactions ?? new ImmediateTransactionRunner(),
-            new MockClock(self::NOW),
+            new FrozenClock(self::NOW),
         );
     }
 

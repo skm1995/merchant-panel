@@ -16,9 +16,9 @@ use App\Order\Exception\OrderVersionMismatchException;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class CancelOrderHandlerTest extends TestCase
 {
@@ -86,7 +86,7 @@ final class CancelOrderHandlerTest extends TestCase
     {
         return new CancelOrderHandler(
             $orders,
-            new StockReservation($products ?? $this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new MockClock()),
+            new StockReservation($products ?? $this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()),
             new ImmediateTransactionRunner(),
         );
     }

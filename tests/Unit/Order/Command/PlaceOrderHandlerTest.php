@@ -27,11 +27,11 @@ use DateTimeImmutable;
 use Money\Money;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class PlaceOrderHandlerTest extends TestCase
 {
@@ -170,10 +170,10 @@ final class PlaceOrderHandlerTest extends TestCase
         return new PlaceOrderHandler(
             $orders,
             new CartService($carts, new ProductCatalog($products), $this->transactions),
-            new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()),
+            new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()),
             $outbox ?? $this->createStub(OutboxInterface::class),
             $this->transactions,
-            new MockClock(self::NOW),
+            new FrozenClock(self::NOW),
             self::RESERVATION_SECONDS,
         );
     }

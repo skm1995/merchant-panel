@@ -28,10 +28,10 @@ use App\Shared\Database\Enum\IsolationLevelEnum;
 use Money\Money;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Payment\PaymentFixtures;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class HandlePaymentWebhookHandlerTest extends TestCase
 {
@@ -162,7 +162,7 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
             $gateways,
             $inbox,
             $payments,
-            new OrderSettlement($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock())),
+            new OrderSettlement($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())),
             $this->transactions,
         );
     }

@@ -10,8 +10,8 @@ use App\Payment\Infrastructure\Gateway\PaymentGatewayFactory;
 use App\Payment\Infrastructure\Gateway\QuickPayGateway;
 use App\Shared\Config\Exception\MissingEnvironmentVariableException;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Payment\PaymentFixtures;
+use Tests\Unit\Support\FrozenClock;
 
 final class PaymentGatewayFactoryTest extends TestCase
 {
@@ -46,7 +46,7 @@ final class PaymentGatewayFactoryTest extends TestCase
             putenv(sprintf(self::ASSIGNMENT_FORMAT, $variable, PaymentFixtures::CHECKOUT_BASE_URL));
         }
 
-        $factory = new PaymentGatewayFactory(new MockClock());
+        $factory = new PaymentGatewayFactory(new FrozenClock());
 
         self::assertInstanceOf(FakePayGateway::class, $factory->create(PaymentProviderEnum::FAKEPAY));
         self::assertInstanceOf(QuickPayGateway::class, $factory->create(PaymentProviderEnum::QUICKPAY));
@@ -57,7 +57,7 @@ final class PaymentGatewayFactoryTest extends TestCase
         putenv(sprintf(self::ASSIGNMENT_FORMAT, 'FAKEPAY_CHECKOUT_URL', PaymentFixtures::CHECKOUT_BASE_URL));
         putenv(sprintf(self::ASSIGNMENT_FORMAT, 'FAKEPAY_WEBHOOK_SECRET', PaymentFixtures::WEBHOOK_SECRET));
         putenv('QUICKPAY_WEBHOOK_SECRET');
-        $factory = new PaymentGatewayFactory(new MockClock());
+        $factory = new PaymentGatewayFactory(new FrozenClock());
 
         self::assertInstanceOf(FakePayGateway::class, $factory->create(PaymentProviderEnum::FAKEPAY));
         $this->expectException(MissingEnvironmentVariableException::class);

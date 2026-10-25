@@ -9,9 +9,9 @@ use App\Catalog\Infrastructure\Cache\ProductCache;
 use App\Catalog\Message\ProductStockChangedMessage;
 use App\Shared\Cache\StampedeProtectedCache;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Support\InMemoryCacheStore;
+use Tests\Unit\Support\FrozenClock;
 
 final class ProductCacheTest extends TestCase
 {
@@ -26,7 +26,7 @@ final class ProductCacheTest extends TestCase
     {
         $this->store = new InMemoryCacheStore();
         $this->cache = new ProductCache(
-            new StampedeProtectedCache($this->store, new MockClock(), static fn (): float => 1.0, 0),
+            new StampedeProtectedCache($this->store, new FrozenClock(), static fn (): float => 1.0, 0),
             $this->store,
         );
     }

@@ -11,11 +11,11 @@ use App\Shared\Messaging\Outbox\OutboxStoreInterface;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class OutboxRelayTest extends TestCase
 {
@@ -85,7 +85,7 @@ final class OutboxRelayTest extends TestCase
             new ImmediateTransactionRunner(),
             $bus,
             new OutboxMessageTypes([ExampleOutboxMessage::class]),
-            new MockClock(self::NOW),
+            new FrozenClock(self::NOW),
         );
     }
 }

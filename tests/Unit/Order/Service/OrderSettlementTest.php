@@ -13,8 +13,8 @@ use App\Order\Repository\OrderRepositoryInterface;
 use App\Order\Service\OrderSettlement;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Order\OrderFixtures;
+use Tests\Unit\Support\FrozenClock;
 
 final class OrderSettlementTest extends TestCase
 {
@@ -30,7 +30,7 @@ final class OrderSettlementTest extends TestCase
         $products = $this->createMock(ProductRepositoryInterface::class);
         $products->expects(self::once())->method('commit')->with(5, 2)->willReturn(true);
 
-        self::assertTrue(new OrderSettlement($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()))->markPaid(OrderFixtures::orderId()));
+        self::assertTrue(new OrderSettlement($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()))->markPaid(OrderFixtures::orderId()));
     }
 
     public function testCancelledOrderIsNotPaid(): void
@@ -67,6 +67,6 @@ final class OrderSettlementTest extends TestCase
 
     private function settlement(OrderRepositoryInterface $orders): OrderSettlement
     {
-        return new OrderSettlement($orders, new StockReservation($this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new MockClock()));
+        return new OrderSettlement($orders, new StockReservation($this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()));
     }
 }

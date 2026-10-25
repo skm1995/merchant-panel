@@ -20,7 +20,7 @@ use PDO;
 use PDOStatement;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\NativeClock;
+use App\Shared\Clock\SystemClock;
 use Tests\Functional\Support\TestUserData;
 
 final class AuthFlowTest extends TestCase
@@ -61,7 +61,7 @@ final class AuthFlowTest extends TestCase
             $this->tokens,
             $this->createStub(OutboxInterface::class),
             new PdoTransactionRunner($this->pdo),
-            new NativeClock(),
+            new SystemClock(),
         );
         $session = new Session();
         $session->start();

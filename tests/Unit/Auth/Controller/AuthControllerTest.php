@@ -20,8 +20,8 @@ use App\Shared\Http\Session;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Support\HttpHarness;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class AuthControllerTest extends TestCase
 {
@@ -134,7 +134,7 @@ final class AuthControllerTest extends TestCase
                 $tokens,
                 $this->createStub(OutboxInterface::class),
                 new ImmediateTransactionRunner(),
-                new MockClock(),
+                new FrozenClock(),
             ),
             new LoginUserService($userAuthService, $currentUser),
             new ConfirmEmailService($tokens, new ImmediateTransactionRunner()),

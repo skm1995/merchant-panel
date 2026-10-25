@@ -10,8 +10,8 @@ use App\Payment\Exception\InvalidWebhookSignatureException;
 use App\Payment\Infrastructure\Gateway\QuickPayGateway;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Payment\PaymentFixtures;
+use Tests\Unit\Support\FrozenClock;
 
 final class QuickPayGatewayTest extends TestCase
 {
@@ -25,7 +25,7 @@ final class QuickPayGatewayTest extends TestCase
 
     public function testCreatesPaymentWithReferenceInCheckoutUrl(): void
     {
-        $gateway = new QuickPayGateway(PaymentFixtures::CHECKOUT_BASE_URL, PaymentFixtures::WEBHOOK_SECRET, new MockClock());
+        $gateway = new QuickPayGateway(PaymentFixtures::CHECKOUT_BASE_URL, PaymentFixtures::WEBHOOK_SECRET, new FrozenClock());
 
         $payment = $gateway->createPayment(PaymentFixtures::paymentId(), Money::PLN(2500));
 
@@ -36,7 +36,7 @@ final class QuickPayGatewayTest extends TestCase
 
     public function testParsesTimestampSignedWebhookWithDecimalAmount(): void
     {
-        $clock = new MockClock(self::NOW);
+        $clock = new FrozenClock(self::NOW);
 
         $event = self::gateway($clock)->parseWebhook(self::PAYLOAD, self::signed(self::PAYLOAD, $clock->now()->getTimestamp()));
 
@@ -48,7 +48,7 @@ final class QuickPayGatewayTest extends TestCase
 
     public function testRejectsReplayedWebhookOutsideTheTolerance(): void
     {
-        $clock = new MockClock(self::NOW);
+        $clock = new FrozenClock(self::NOW);
         $staleTimestamp = $clock->now()->getTimestamp() - QuickPayGateway::SIGNATURE_TOLERANCE_SECONDS - 1;
 
         $this->expectException(InvalidWebhookSignatureException::class);
@@ -57,14 +57,14 @@ final class QuickPayGatewayTest extends TestCase
 
     public function testRejectsSignatureOverDifferentContent(): void
     {
-        $clock = new MockClock(self::NOW);
+        $clock = new FrozenClock(self::NOW);
         $headers = self::signed(self::PAYLOAD, $clock->now()->getTimestamp());
 
         $this->expectException(InvalidWebhookSignatureException::class);
         self::gateway($clock)->parseWebhook(str_replace('25.00', '0.01', self::PAYLOAD), $headers);
     }
 
-    private static function gateway(MockClock $clock): QuickPayGateway
+    private static function gateway(FrozenClock $clock): QuickPayGateway
     {
         return new QuickPayGateway(PaymentFixtures::CHECKOUT_BASE_URL, PaymentFixtures::WEBHOOK_SECRET, $clock);
     }

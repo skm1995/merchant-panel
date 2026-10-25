@@ -6,8 +6,8 @@ namespace Tests\Unit\Shared\Cache;
 
 use App\Shared\Cache\StampedeProtectedCache;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Support\InMemoryCacheStore;
+use Tests\Unit\Support\FrozenClock;
 
 final class StampedeProtectedCacheTest extends TestCase
 {
@@ -22,13 +22,13 @@ final class StampedeProtectedCacheTest extends TestCase
     private const float EXPENSIVE_COMPUTATION_SECONDS = 0.5;
 
     private InMemoryCacheStore $store;
-    private MockClock $clock;
+    private FrozenClock $clock;
     private int $computations = 0;
 
     protected function setUp(): void
     {
         $this->store = new InMemoryCacheStore();
-        $this->clock = new MockClock(self::NOW);
+        $this->clock = new FrozenClock(self::NOW);
     }
 
     public function testComputesAndStoresOnMissThenServesFromCache(): void

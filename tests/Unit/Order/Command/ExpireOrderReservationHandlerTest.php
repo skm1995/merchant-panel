@@ -14,9 +14,9 @@ use App\Order\Repository\OrderRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class ExpireOrderReservationHandlerTest extends TestCase
 {
@@ -33,7 +33,7 @@ final class ExpireOrderReservationHandlerTest extends TestCase
         $products->expects(self::once())->method('release')->with(5, 2)->willReturn(true);
         $transactions = new ImmediateTransactionRunner();
 
-        new ExpireOrderReservationHandler($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()), $transactions)
+        new ExpireOrderReservationHandler($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()), $transactions)
             ->handle(new ExpireOrderReservationCommand(OrderFixtures::orderId()));
 
         self::assertSame(IsolationLevelEnum::READ_COMMITTED, $transactions->lastIsolationLevel);
@@ -58,7 +58,7 @@ final class ExpireOrderReservationHandlerTest extends TestCase
         $products = $this->createMock(ProductRepositoryInterface::class);
         $products->expects(self::never())->method('release');
 
-        new ExpireOrderReservationHandler($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock()), new ImmediateTransactionRunner())
+        new ExpireOrderReservationHandler($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()), new ImmediateTransactionRunner())
             ->handle(new ExpireOrderReservationCommand(OrderFixtures::orderId()));
     }
 
@@ -88,7 +88,7 @@ final class ExpireOrderReservationHandlerTest extends TestCase
     {
         return new ExpireOrderReservationHandler(
             $orders,
-            new StockReservation($this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new MockClock()),
+            new StockReservation($this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()),
             new ImmediateTransactionRunner(),
         );
     }

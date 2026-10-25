@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Shared\Cache\RedisCacheStore;
 use App\Shared\Cache\RedisConnection;
 use App\Shared\Cache\StampedeProtectedCache;
-use Symfony\Component\Clock\NativeClock;
+use App\Shared\Clock\SystemClock;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
@@ -16,7 +16,7 @@ const COMPUTATION_MICROSECONDS = 300000;
 
 $key = $argv[1] ?? exit(1);
 $redis = RedisConnection::createFromEnvironment();
-$cache = new StampedeProtectedCache(new RedisCacheStore($redis), new NativeClock());
+$cache = new StampedeProtectedCache(new RedisCacheStore($redis), new SystemClock());
 
 echo $cache->remember($key, TTL_SECONDS, static function () use ($redis, $key): string {
     $redis->incr($key . COUNTER_SUFFIX);

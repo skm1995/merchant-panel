@@ -21,10 +21,10 @@ use App\Shared\Http\Request;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Support\HttpHarness;
-use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Support\ImmediateTransactionRunner;
+use Tests\Unit\Support\FrozenClock;
 
 final class OrderApiControllerTest extends TestCase
 {
@@ -65,7 +65,7 @@ final class OrderApiControllerTest extends TestCase
         $readOrders = $this->createStub(OrderReadRepositoryInterface::class);
         $readOrders->method('find')->willReturn(OrderFixtures::view());
         $transactions = new ImmediateTransactionRunner();
-        $stock = new StockReservation($products, $this->createStub(OutboxInterface::class), new MockClock());
+        $stock = new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock());
 
         return HttpHarness::json($request, new OrderApiController(
             new PlaceOrderHandler(
@@ -74,7 +74,7 @@ final class OrderApiControllerTest extends TestCase
                 $stock,
                 $this->createStub(OutboxInterface::class),
                 $transactions,
-                new MockClock(),
+                new FrozenClock(),
                 self::RESERVATION_SECONDS,
             ),
             new GetOrderHandler($readOrders),
