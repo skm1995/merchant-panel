@@ -3,7 +3,7 @@ FROM php:${PHP_VERSION}-apache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends $PHPIZE_DEPS libzip-dev libzip5 unzip librabbitmq-dev librabbitmq4 \
-    && docker-php-ext-install pdo_mysql zip \
+    && docker-php-ext-install bcmath pdo_mysql zip \
     && pecl install amqp \
     && pecl install xdebug \
     && docker-php-ext-enable amqp xdebug \
