@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Messaging;
 
+use App\Shared\DependencyInjection\ServiceFactory;
 use App\Shared\Config\Environment;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Bridge\Amqp\Transport\AmqpTransportFactory;
@@ -11,6 +12,7 @@ use Symfony\Component\Messenger\EventListener\SendFailedMessageForRetryListener;
 use Symfony\Component\Messenger\EventListener\SendFailedMessageToFailureTransportListener;
 use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\MessageBus;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Middleware\HandleMessageMiddleware;
 use Symfony\Component\Messenger\Middleware\SendMessageMiddleware;
 use Symfony\Component\Messenger\Retry\MultiplierRetryStrategy;
@@ -44,6 +46,7 @@ final class MessengerRuntime
     ) {
     }
 
+    #[ServiceFactory]
     public static function fromDiscovery(MessagingDiscovery $discovery): self
     {
         return new self($discovery->transportDsnKeys(), $discovery->routes(), $discovery->outboxMessages());
@@ -52,7 +55,8 @@ final class MessengerRuntime
     /**
      * @param array<class-string, list<callable>> $handlers handlers for messages consumed in this runtime
      */
-    public function bus(array $handlers = []): MessageBus
+    #[ServiceFactory]
+    public function bus(array $handlers = []): MessageBusInterface
     {
         return new MessageBus([
             new SendMessageMiddleware(new RoutingSendersLocator($this->routes, $this->transportContainer())),
@@ -87,6 +91,7 @@ final class MessengerRuntime
         return new Worker($receivers, $this->bus($handlers), $events);
     }
 
+    #[ServiceFactory]
     public function outboxMessageTypes(): OutboxMessageTypes
     {
         return new OutboxMessageTypes($this->outboxMessages);

@@ -8,11 +8,13 @@ use App\Catalog\Entity\Product;
 use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Shared\DependencyInjection\Autowire;
+use App\Shared\DependencyInjection\DefaultImplementation;
 
 /**
  * Decorator that reads single products through the Redis cache. Pages, row locks, and
  * stock changes always go to the database, because they must see committed data.
  */
+#[DefaultImplementation]
 final class CachedProductRepository implements ProductRepositoryInterface
 {
     public function __construct(

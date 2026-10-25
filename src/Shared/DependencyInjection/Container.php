@@ -29,6 +29,7 @@ final class Container implements ContainerInterface
     private const string UNRESOLVABLE_FORMAT = 'Parameter $%s of %s needs a class type, #[Env], or a default value.';
     private const string UNSUPPORTED_ENV_FORMAT = 'Parameter $%s of %s reads #[Env] but only string and int are supported.';
     private const string CHAIN_SEPARATOR = ' -> ';
+    private const string FACTORY_RESULT_FORMAT = '#[ServiceFactory] %s::%s() did not return an object.';
     private const string STRING_TYPE = 'string';
     private const string INT_TYPE = 'int';
 
@@ -71,6 +72,24 @@ final class Container implements ContainerInterface
         } finally {
             unset($this->resolving[$id]);
         }
+    }
+
+    /**
+     * Calls a factory method with autowired arguments; instance factories are called on the
+     * service of their class.
+     *
+     * @param class-string $class
+     */
+    public function callFactory(string $class, string $method, bool $static): object
+    {
+        $reflection = new ReflectionClass($class)->getMethod($method);
+        $arguments = array_map(
+            fn (ReflectionParameter $parameter): mixed => $this->argument($parameter, $class),
+            $reflection->getParameters(),
+        );
+        $service = $reflection->invokeArgs($static ? null : $this->get($class), $arguments);
+
+        return is_object($service) ? $service : throw new ContainerException(sprintf(self::FACTORY_RESULT_FORMAT, $class, $method));
     }
 
     public function has(string $id): bool

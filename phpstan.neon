@@ -8,7 +8,6 @@ parameters:
         - database/migrations
         - phinx.php
         - tools
-        - config
         - bin
     tmpDir: .phpstan-cache
 

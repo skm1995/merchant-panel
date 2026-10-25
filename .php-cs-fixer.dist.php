@@ -11,7 +11,6 @@ $phpTestsDirectory = '/tests';
 $phpViewDirectory = '/views';
 $phpMigrationDirectory = '/database/migrations';
 $phpToolsDirectory = '/tools';
-$phpConfigDirectory = '/config';
 $phpBinDirectory = '/bin';
 $phpMigrationConfiguration = '/phinx.php';
 $phpCodingStandard = '@PSR12';
@@ -24,7 +23,6 @@ $finder = Finder::create()
         __DIR__ . $phpViewDirectory,
         __DIR__ . $phpMigrationDirectory,
         __DIR__ . $phpToolsDirectory,
-        __DIR__ . $phpConfigDirectory,
         __DIR__ . $phpBinDirectory,
     ]);
 

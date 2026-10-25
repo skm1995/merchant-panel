@@ -106,6 +106,26 @@ wait in RabbitMQ. Several relays can run side by side, and a message whose relay
 crashed is published again after its 30-second lease, so delivery is at least
 once and consumers are idempotent.
 
+## Services
+
+There is no service configuration file. `ContainerFactory` autowires classes from
+their constructor types and discovers the rest in `src/`:
+
+- an application interface with a single implementation is bound to it;
+- `#[DefaultImplementation]` chooses among several implementations;
+- a `#[ServiceFactory]` method builds the service its return type names, which is
+  how vendor services such as `PDO`, the mailer, and the clock are provided;
+- `#[Env('NAME')]` injects an environment variable into a constructor parameter.
+
+Controllers are found by their `#[Route]` methods, messages by
+`#[Message(transport: ...)]`, and handlers by `#[AsMessageHandler]`. The discovery
+result is cached in the system temporary directory and rebuilt when any file in
+`src/` changes. To see every binding and where it comes from, run:
+
+```sh
+docker compose exec php php bin/container-debug.php
+```
+
 ## Failed messages
 
 After the worker exhausts its configured retries, messages are stored in the

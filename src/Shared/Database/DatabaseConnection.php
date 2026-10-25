@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Shared\Database;
 
+use App\Shared\DependencyInjection\ServiceFactory;
 use PDO;
 
 final class DatabaseConnection
 {
+    #[ServiceFactory]
     public static function createFromEnvironment(): PDO
     {
         $settings = DatabaseSettings::fromEnvironment();

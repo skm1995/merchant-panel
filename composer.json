@@ -10,6 +10,7 @@
         "ext-hash": "*",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
+        "ext-posix": "*",
         "ext-redis": "*",
         "ext-session": "*",
         "moneyphp/money": "^4.9",

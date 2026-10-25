@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Messaging;
 
 use App\Shared\DependencyInjection\ClassFinder;
+use App\Shared\DependencyInjection\ServiceFactory;
 use App\Shared\Messaging\Outbox\OutboxMessageInterface;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
@@ -25,6 +26,7 @@ final class MessagingDiscovery
     {
     }
 
+    #[ServiceFactory]
     public static function fromSource(): self
     {
         return new self(ClassFinder::find(sprintf(self::SOURCE_DIRECTORY, dirname(__DIR__, 3)), self::ROOT_NAMESPACE));
