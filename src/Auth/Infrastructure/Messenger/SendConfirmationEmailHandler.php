@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Auth\Infrastructure\Messenger;
 
 use App\Auth\Message\ConfirmationEmailMessage;
+use App\Shared\DependencyInjection\Env;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -17,8 +18,8 @@ final class SendConfirmationEmailHandler
 
     public function __construct(
         private readonly MailerInterface $mailer,
-        private readonly string $baseUrl,
-        private readonly string $senderEmail,
+        #[Env('APP_BASE_URL')] private readonly string $baseUrl,
+        #[Env('MAILER_FROM')] private readonly string $senderEmail,
     ) {
     }
 

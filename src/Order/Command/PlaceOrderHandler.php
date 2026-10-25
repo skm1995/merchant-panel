@@ -14,6 +14,7 @@ use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
+use App\Shared\DependencyInjection\Env;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use Psr\Clock\ClockInterface;
 
@@ -36,7 +37,7 @@ final class PlaceOrderHandler
         private readonly OutboxInterface $outbox,
         private readonly TransactionRunnerInterface $transactions,
         private readonly ClockInterface $clock,
-        private readonly int $reservationSeconds,
+        #[Env('ORDER_RESERVATION_SECONDS')] private readonly int $reservationSeconds,
     ) {
     }
 

@@ -106,7 +106,8 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *test-app-environment, *payment-environment, *test-redis-environment, *reports-environment]
+      <<: [*test-database-environment, *test-messenger-environment, *mailer-environment, *test-app-environment, *payment-environment, *test-redis-environment, *reports-environment]
+      ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
     depends_on:

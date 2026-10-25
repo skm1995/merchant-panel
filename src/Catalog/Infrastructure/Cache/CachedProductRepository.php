@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Catalog\Infrastructure\Cache;
 
 use App\Catalog\Entity\Product;
+use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Repository\ProductRepositoryInterface;
+use App\Shared\DependencyInjection\Autowire;
 
 /**
  * Decorator that reads single products through the Redis cache. Pages, row locks, and
@@ -14,7 +16,7 @@ use App\Catalog\Repository\ProductRepositoryInterface;
 final class CachedProductRepository implements ProductRepositoryInterface
 {
     public function __construct(
-        private readonly ProductRepositoryInterface $products,
+        #[Autowire(PdoProductRepository::class)] private readonly ProductRepositoryInterface $products,
         private readonly ProductCache $cache,
     ) {
     }
