@@ -14,12 +14,15 @@ use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Catalog\Service\ProductCatalog;
 use App\Catalog\Service\StockReservation;
 use App\Order\Command\PlaceOrderCommand;
+use App\Order\Command\ExpireOrderReservationCommand;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Entity\Order;
 use App\Order\Entity\OrderPlacement;
 use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
+use App\Shared\Messaging\Outbox\OutboxInterface;
+use App\Shared\Messaging\Outbox\OutboxMessageInterface;
 use DateTimeImmutable;
 use Money\Money;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -36,6 +39,7 @@ final class PlaceOrderHandlerTest extends TestCase
     private const string OTHER_CART_ID = '7c6b5a49-3827-4165-9054-3a2b1c0d9e8f';
     private const int PRODUCT_ID = 5;
     private const int QUANTITY = 2;
+    private const int RESERVATION_SECONDS = 900;
 
     private ImmediateTransactionRunner $transactions;
 
@@ -58,15 +62,24 @@ final class PlaceOrderHandlerTest extends TestCase
             $placed = $order;
         });
 
-        $orderId = $this->handler($carts, $products, $orders)->handle(self::command());
+        $scheduled = [];
+        $outbox = $this->createMock(OutboxInterface::class);
+        $outbox->expects(self::once())->method('add')->willReturnCallback(
+            static function (OutboxMessageInterface $message, DateTimeImmutable $deliverAt) use (&$scheduled): void {
+                $scheduled = [$message, $deliverAt];
+            },
+        );
 
+        $orderId = $this->handler($carts, $products, $orders, $outbox)->handle(self::command());
+
+        $expiresAt = new DateTimeImmutable(self::NOW)->modify(sprintf('+%d seconds', self::RESERVATION_SECONDS));
         self::assertInstanceOf(Order::class, $placed);
         self::assertSame($orderId->value, $placed->id->value);
         self::assertTrue(Money::PLN(2 * 1999)->equals($placed->total()));
-        self::assertEquals(
-            new DateTimeImmutable(self::NOW)->modify(sprintf('+%d seconds', PlaceOrderHandler::RESERVATION_SECONDS)),
-            $placed->reservationExpiresAt,
-        );
+        self::assertEquals($expiresAt, $placed->reservationExpiresAt);
+        self::assertInstanceOf(ExpireOrderReservationCommand::class, $scheduled[0]);
+        self::assertSame($orderId->value, $scheduled[0]->orderId->value);
+        self::assertEquals($expiresAt, $scheduled[1]);
         self::assertSame(IsolationLevelEnum::READ_COMMITTED, $this->transactions->lastIsolationLevel);
     }
 
@@ -152,13 +165,16 @@ final class PlaceOrderHandlerTest extends TestCase
         CartRepositoryInterface $carts,
         ProductRepositoryInterface $products,
         OrderRepositoryInterface $orders,
+        ?OutboxInterface $outbox = null,
     ): PlaceOrderHandler {
         return new PlaceOrderHandler(
             $orders,
             new CartService($carts, new ProductCatalog($products), $this->transactions),
             new StockReservation($products),
+            $outbox ?? $this->createStub(OutboxInterface::class),
             $this->transactions,
             new MockClock(self::NOW),
+            self::RESERVATION_SECONDS,
         );
     }
 }

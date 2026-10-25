@@ -22,6 +22,7 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 use Tests\Unit\Cart\CartFixtures;
@@ -73,8 +74,10 @@ final class OrderApiControllerTest extends TestCase
                 $this->createStub(OrderRepositoryInterface::class),
                 new CartService($carts, new ProductCatalog($products), $transactions),
                 new StockReservation($products),
+                $this->createStub(OutboxInterface::class),
                 $transactions,
                 new MockClock(),
+                900,
             ),
             new GetOrderHandler($readOrders),
             new CancelOrderHandler(

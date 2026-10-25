@@ -41,10 +41,14 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
+use App\Shared\Config\Environment;
 use App\Shared\Messaging\MessengerRuntime;
+use App\Shared\Messaging\Outbox\PdoOutbox;
 use Symfony\Component\Clock\NativeClock;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+
+const ORDER_RESERVATION_SECONDS = 'ORDER_RESERVATION_SECONDS';
 
 $session = new Session();
 $session->start();
@@ -82,7 +86,15 @@ $getOrder = new GetOrderHandler(new PdoOrderReadRepository($pdo));
 $paymentRepository = new PdoPaymentRepository($pdo);
 $paymentGateways = new PaymentGatewayFactory($clock);
 $router->registerController(new OrderApiController(
-    new PlaceOrderHandler($orderRepository, $cartService, $stockReservation, $transactions, $clock),
+    new PlaceOrderHandler(
+        $orderRepository,
+        $cartService,
+        $stockReservation,
+        new PdoOutbox($pdo),
+        $transactions,
+        $clock,
+        Environment::positiveInteger(ORDER_RESERVATION_SECONDS),
+    ),
     $getOrder,
     new CancelOrderHandler($orderRepository, $stockReservation, $transactions),
     $responder,

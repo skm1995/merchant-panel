@@ -60,6 +60,11 @@ sold stock. A payment for an order that was cancelled meanwhile becomes
 `refund_required`. Webhook secrets and checkout URLs come from the
 `FAKEPAY_*` and `QUICKPAY_*` environment variables.
 
+Unpaid orders expire after `ORDER_RESERVATION_SECONDS` (15 minutes locally):
+checkout schedules an expiry message through the outbox, RabbitMQ holds it
+until the reservation ends, and the worker marks the order `expired` and
+releases its stock unless it was paid or cancelled first.
+
 ## Outbox
 
 Features store messages in the `outbox_messages` table in the same transaction

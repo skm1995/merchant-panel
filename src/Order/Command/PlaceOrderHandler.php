@@ -14,10 +14,12 @@ use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use Psr\Clock\ClockInterface;
 
 /**
- * Checks out a cart: reserves stock and places an order with prices frozen at checkout.
+ * Checks out a cart: reserves stock, places an order with prices frozen at checkout, and
+ * schedules the reservation expiry through the outbox in the same transaction.
  *
  * Runs in one READ COMMITTED transaction. The cart row is locked first, which serializes
  * concurrent checkouts of the same cart, so a repeated request with the same
@@ -25,15 +27,16 @@ use Psr\Clock\ClockInterface;
  */
 final class PlaceOrderHandler
 {
-    public const int RESERVATION_SECONDS = 900;
     private const string RESERVATION_MODIFIER_FORMAT = '+%d seconds';
 
     public function __construct(
         private readonly OrderRepositoryInterface $orders,
         private readonly CartService $carts,
         private readonly StockReservation $stock,
+        private readonly OutboxInterface $outbox,
         private readonly TransactionRunnerInterface $transactions,
         private readonly ClockInterface $clock,
+        private readonly int $reservationSeconds,
     ) {
     }
 
@@ -73,10 +76,11 @@ final class PlaceOrderHandler
             $cart->id,
             $command->idempotencyKey,
             $lines,
-            $this->clock->now()->modify(sprintf(self::RESERVATION_MODIFIER_FORMAT, self::RESERVATION_SECONDS)),
+            $this->clock->now()->modify(sprintf(self::RESERVATION_MODIFIER_FORMAT, $this->reservationSeconds)),
         );
         $this->orders->add($order);
         $this->carts->markCheckedOut($cart->id);
+        $this->outbox->add(new ExpireOrderReservationCommand($order->id), $order->reservationExpiresAt);
 
         return $order->id;
     }

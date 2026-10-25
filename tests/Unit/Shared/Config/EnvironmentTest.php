@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Shared\Config;
 
 use App\Shared\Config\Environment;
+use App\Shared\Config\Exception\InvalidEnvironmentVariableException;
 use App\Shared\Config\Exception\MissingEnvironmentVariableException;
 use PHPUnit\Framework\TestCase;
 
@@ -41,5 +42,26 @@ final class EnvironmentTest extends TestCase
         $this->expectExceptionMessage(self::KEY);
 
         Environment::get(self::KEY);
+    }
+
+    public function testReadsPositiveIntegers(): void
+    {
+        putenv(sprintf(self::ASSIGNMENT_FORMAT, self::KEY, '900'));
+
+        self::assertSame(900, Environment::positiveInteger(self::KEY));
+    }
+
+    public function testRejectsValuesThatAreNotPositiveIntegers(): void
+    {
+        foreach (['0', '-5', '15m', '1.5'] as $value) {
+            putenv(sprintf(self::ASSIGNMENT_FORMAT, self::KEY, $value));
+
+            try {
+                Environment::positiveInteger(self::KEY);
+                self::fail('Expected the value to be rejected.');
+            } catch (InvalidEnvironmentVariableException) {
+                self::addToAssertionCount(1);
+            }
+        }
     }
 }
