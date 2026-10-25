@@ -19,11 +19,38 @@ services:
       DB_DATABASE: ${MYSQL_DATABASE:-app}
       DB_USERNAME: ${MYSQL_USER:-app}
       DB_PASSWORD: ${MYSQL_PASSWORD:-app}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails}
+      MESSENGER_FAILURE_TRANSPORT_DSN: ${MESSENGER_FAILURE_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails_failed}
+      MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     depends_on:
       mysql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: "8.5"
+    working_dir: /var/www/html
+    command: php bin/worker.php
+    volumes:
+      - .:/var/www/html
+    environment:
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails}
+      MESSENGER_FAILURE_TRANSPORT_DSN: ${MESSENGER_FAILURE_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails_failed}
+      MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
 
   php-test:
     build:
@@ -34,6 +61,8 @@ services:
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     profiles:
       - test
     environment:
@@ -43,9 +72,46 @@ services:
       DB_DATABASE: app_test
       DB_USERNAME: ${MYSQL_USER:-app}
       DB_PASSWORD: ${MYSQL_PASSWORD:-app}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails}
+      MESSENGER_FAILURE_TRANSPORT_DSN: ${MESSENGER_FAILURE_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails_failed}
+      MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
+      APP_BASE_URL: ${APP_BASE_URL:-http://host.docker.internal:8081}
+      MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
     depends_on:
       mysql:
         condition: service_healthy
+
+  php-test-web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: "8.5"
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8081:80"
+    profiles:
+      - test
+    environment:
+      XDEBUG_MODE: "off"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: app_test
+      DB_USERNAME: ${MYSQL_USER:-app}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-app}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails}
+      MESSENGER_FAILURE_TRANSPORT_DSN: ${MESSENGER_FAILURE_TRANSPORT_DSN:-amqp://app:app@rabbitmq:5672/%2f/emails_failed}
+      MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
 
   mysql:
     image: mysql:8.4
@@ -84,6 +150,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   mysql_data:

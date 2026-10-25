@@ -6,6 +6,9 @@ namespace Tests\Unit\Controller;
 
 use App\Controller\AuthController;
 use App\Repository\UserRepositoryInterface;
+use App\Repository\EmailVerificationTokenRepositoryInterface;
+use App\Service\Auth\ConfirmationEmailQueueInterface;
+use App\Service\Auth\ConfirmEmailService;
 use App\Service\Auth\AuthService as AuthApplicationService;
 use App\Service\Auth\LoginUserService;
 use App\Service\Auth\LogoutUserService;
@@ -55,14 +58,17 @@ final class AuthControllerTest extends TestCase
         self::assertStringContainsString('action="/login"', $output);
     }
 
-    private static function controller(UserRepositoryInterface $users): AuthController
+    private function controller(UserRepositoryInterface $users): AuthController
     {
         $authService = new UserAuthService($users);
+        $tokens = $this->createStub(EmailVerificationTokenRepositoryInterface::class);
+        $queue = $this->createStub(ConfirmationEmailQueueInterface::class);
 
         return new AuthController(new AuthApplicationService(
-            new RegisterUserService($authService),
+            new RegisterUserService($authService, $tokens, $queue),
             new LoginUserService($authService),
             new LogoutUserService(),
+            new ConfirmEmailService($tokens),
         ));
     }
 }

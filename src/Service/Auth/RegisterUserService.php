@@ -10,12 +10,16 @@ final class RegisterUserService
 {
     private const string EMAIL_INPUT_KEY = 'email';
     private const string PASSWORD_INPUT_KEY = 'password';
-    private const string USER_EMAIL_SESSION_KEY = 'user_email';
-    private const string HOME_ROUTE_PATH = '/';
+    private const string CONFIRMATION_SENT_ROUTE_PATH = '/confirmation-sent';
     private const string MISSING_INPUT = "\0";
+    private const string TOKEN_HASH_ALGORITHM = 'sha256';
+    private const string TOKEN_EXPIRY = '+24 hours';
 
-    public function __construct(private readonly UserAuthService $authService)
-    {
+    public function __construct(
+        private readonly UserAuthService $authService,
+        private readonly \App\Repository\EmailVerificationTokenRepositoryInterface $tokens,
+        private readonly ConfirmationEmailQueueInterface $emailQueue,
+    ) {
     }
 
     /** @param array<string, mixed> $input */
@@ -28,10 +32,15 @@ final class RegisterUserService
                 $email,
                 self::stringInput($input, self::PASSWORD_INPUT_KEY),
             );
-            session_regenerate_id(true);
-            $_SESSION[self::USER_EMAIL_SESSION_KEY] = $user->email;
+            $token = random_bytes(32) |> bin2hex(...);
+            $this->tokens->store(
+                $user->email,
+                hash(self::TOKEN_HASH_ALGORITHM, $token),
+                new \DateTimeImmutable(self::TOKEN_EXPIRY),
+            );
+            $this->emailQueue->dispatch(new ConfirmationEmailMessage($user->email, $token));
 
-            return AuthActionResult::redirect(self::HOME_ROUTE_PATH);
+            return AuthActionResult::redirect(self::CONFIRMATION_SENT_ROUTE_PATH);
         } catch (DomainException $exception) {
             return AuthActionResult::failure($exception->getMessage(), $email);
         }

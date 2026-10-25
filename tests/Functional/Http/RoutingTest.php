@@ -12,19 +12,37 @@ final class RoutingTest extends TestCase
     private const string DEFAULT_BASE_URL = 'http://localhost';
     private const string REGISTER_PATH = '/register';
     private const string LOGIN_PATH = '/login';
+    private const string CONFIRMATION_SENT_PATH = '/confirmation-sent';
+    private const string EMAIL_CONFIRMED_PATH = '/email-confirmed';
     private const string REGISTER_HEADING = '<h1>Create account</h1>';
     private const string LOGIN_HEADING = '<h1>Log in</h1>';
+    private const string CONFIRMATION_SENT_HEADING = '<h1>Check your email</h1>';
+    private const string EMAIL_CONFIRMED_HEADING = '<h1>Email confirmed</h1>';
     private const string HTTP_OPTIONS_KEY = 'http';
     private const string IGNORE_ERRORS_KEY = 'ignore_errors';
 
     public function testApacheRoutesRegistrationPageToFrontController(): void
     {
-        self::assertStringContainsString(self::REGISTER_HEADING, self::get(self::REGISTER_PATH));
+        $body = self::REGISTER_PATH |> self::get(...);
+        self::assertStringContainsString(self::REGISTER_HEADING, $body);
     }
 
     public function testApacheRoutesLoginPageToFrontController(): void
     {
-        self::assertStringContainsString(self::LOGIN_HEADING, self::get(self::LOGIN_PATH));
+        $body = self::LOGIN_PATH |> self::get(...);
+        self::assertStringContainsString(self::LOGIN_HEADING, $body);
+    }
+
+    public function testApacheRoutesConfirmationSentPageToFrontController(): void
+    {
+        $body = self::CONFIRMATION_SENT_PATH |> self::get(...);
+        self::assertStringContainsString(self::CONFIRMATION_SENT_HEADING, $body);
+    }
+
+    public function testApacheRoutesEmailConfirmedPageToFrontController(): void
+    {
+        $body = self::EMAIL_CONFIRMED_PATH |> self::get(...);
+        self::assertStringContainsString(self::EMAIL_CONFIRMED_HEADING, $body);
     }
 
     private static function get(string $path): string

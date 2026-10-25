@@ -12,6 +12,7 @@ final readonly class User
         public string $email,
         public string $password,
         public DateTimeImmutable $createdAt,
+        public ?DateTimeImmutable $emailVerifiedAt = null,
     ) {
     }
 }

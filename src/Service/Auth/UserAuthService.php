@@ -15,6 +15,7 @@ final class UserAuthService
     private const string INVALID_PASSWORD_MESSAGE = 'Password must contain at least 8 characters.';
     private const string INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
     private const string DUPLICATE_EMAIL_MESSAGE = 'An account with this email already exists.';
+    private const string UNVERIFIED_EMAIL_MESSAGE = 'Confirm your email address before logging in.';
 
     public function __construct(private readonly UserRepositoryInterface $users)
     {
@@ -22,7 +23,9 @@ final class UserAuthService
 
     public function register(string $email, string $password): User
     {
-        $normalizedEmail = strtolower(trim($email));
+        $normalizedEmail = $email
+            |> trim(...)
+            |> strtolower(...);
 
         if (filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL) === false) {
             throw new DomainException(self::INVALID_EMAIL_MESSAGE);
@@ -43,11 +46,17 @@ final class UserAuthService
 
     public function authenticate(string $email, string $password): User
     {
-        $normalizedEmail = strtolower(trim($email));
+        $normalizedEmail = $email
+            |> trim(...)
+            |> strtolower(...);
         $user = $this->users->findByEmail($normalizedEmail);
 
         if ($user === null || !password_verify($password, $user->password)) {
             throw new DomainException(self::INVALID_CREDENTIALS_MESSAGE);
+        }
+
+        if ($user->emailVerifiedAt === null) {
+            throw new DomainException(self::UNVERIFIED_EMAIL_MESSAGE);
         }
 
         return $user;

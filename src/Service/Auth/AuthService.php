@@ -12,6 +12,11 @@ final class AuthService
 {
     private const string REGISTER_TEMPLATE = 'auth/register';
     private const string LOGIN_TEMPLATE = 'auth/login';
+    private const string CONFIRMATION_SENT_TEMPLATE = 'auth/confirmation-sent';
+    private const string EMAIL_CONFIRMED_TEMPLATE = 'auth/email-confirmed';
+    private const string CONFIRMATION_ERROR_TEMPLATE = 'auth/confirmation-error';
+    private const string TOKEN_QUERY_KEY = 'token';
+    private const string INVALID_TOKEN_INPUT = "\0";
     private const string VIEW_PATH_FORMAT = '%s/views/%s.php';
     private const string ERROR_DATA_KEY = 'error';
     private const string EMAIL_DATA_KEY = 'email';
@@ -20,6 +25,7 @@ final class AuthService
         private readonly RegisterUserService $registerUser,
         private readonly LoginUserService $loginUser,
         private readonly LogoutUserService $logoutUser,
+        private readonly ConfirmEmailService $confirmEmail,
     ) {
     }
 
@@ -48,6 +54,24 @@ final class AuthService
         $this->respond($this->logoutUser->execute(), self::LOGIN_TEMPLATE);
     }
 
+    public function showConfirmationSent(): void
+    {
+        $this->render(self::CONFIRMATION_SENT_TEMPLATE);
+    }
+
+    public function confirm(): void
+    {
+        $token = $_GET[self::TOKEN_QUERY_KEY] ?? null;
+        $confirmationToken = is_string($token) ? $token : self::INVALID_TOKEN_INPUT;
+        $result = $this->confirmEmail->execute($confirmationToken);
+        $this->respond($result, self::CONFIRMATION_ERROR_TEMPLATE);
+    }
+
+    public function showEmailConfirmed(): void
+    {
+        $this->render(self::EMAIL_CONFIRMED_TEMPLATE);
+    }
+
     private function respond(AuthActionResult $result, string $template): void
     {
         if ($result->redirectPath !== null) {
@@ -70,6 +94,10 @@ final class AuthService
     {
         header(HeaderNameEnum::CONTENT_TYPE->value . ': ' . ContentTypeEnum::HTML->value);
         extract($data, EXTR_SKIP);
-        require sprintf(self::VIEW_PATH_FORMAT, dirname(__DIR__, 3), $template);
+        $viewPath = dirname(__DIR__, 3) |> (
+            static fn (string $projectRoot): string =>
+            sprintf(self::VIEW_PATH_FORMAT, $projectRoot, $template)
+        );
+        require $viewPath;
     }
 }

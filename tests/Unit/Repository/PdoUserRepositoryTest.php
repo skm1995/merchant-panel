@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 final class PdoUserRepositoryTest extends TestCase
 {
-    private const string SELECT_QUERY = 'SELECT email, password, created_at FROM users WHERE email = :email';
+    private const string SELECT_QUERY = 'SELECT email, password, created_at, email_verified_at FROM users WHERE email = :email';
     private const string INSERT_QUERY = 'INSERT INTO users (email, password, created_at) VALUES (:email, :password, CURRENT_TIMESTAMP)';
     private const string EMAIL = 'person@example.com';
     private const string HASH = 'password-hash';
@@ -27,11 +27,12 @@ final class PdoUserRepositoryTest extends TestCase
             'email' => self::EMAIL,
             'password' => self::HASH,
             'created_at' => self::CREATED_AT,
+            'email_verified_at' => null,
         ]);
         $pdo = $this->createMock(PDO::class);
         $pdo->expects(self::once())->method('prepare')->with(self::SELECT_QUERY)->willReturn($statement);
 
-        $user = (new PdoUserRepository($pdo))->findByEmail(self::EMAIL);
+        $user = new PdoUserRepository($pdo)->findByEmail(self::EMAIL);
 
         self::assertInstanceOf(User::class, $user);
         self::assertSame(self::EMAIL, $user->email);
@@ -46,7 +47,7 @@ final class PdoUserRepositoryTest extends TestCase
         $pdo = $this->createStub(PDO::class);
         $pdo->method('prepare')->willReturn($statement);
 
-        self::assertNull((new PdoUserRepository($pdo))->findByEmail(self::EMAIL));
+        self::assertNull(new PdoUserRepository($pdo)->findByEmail(self::EMAIL));
     }
 
     public function testCreateInsertsUserAndReturnsEntity(): void
@@ -59,7 +60,7 @@ final class PdoUserRepositoryTest extends TestCase
         $pdo = $this->createMock(PDO::class);
         $pdo->expects(self::once())->method('prepare')->with(self::INSERT_QUERY)->willReturn($statement);
 
-        $user = (new PdoUserRepository($pdo))->create(self::EMAIL, self::HASH);
+        $user = new PdoUserRepository($pdo)->create(self::EMAIL, self::HASH);
 
         self::assertSame(self::EMAIL, $user->email);
         self::assertSame(self::HASH, $user->password);

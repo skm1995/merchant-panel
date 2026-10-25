@@ -21,7 +21,7 @@ $finder = PhpCsFixer\Finder::create()
 
 $finder->append([__DIR__ . $phpMigrationConfiguration]);
 
-return (new PhpCsFixer\Config())
+return new PhpCsFixer\Config()
     ->setRules([
         $phpCodingStandard => true,
     ])

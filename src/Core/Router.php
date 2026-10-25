@@ -43,6 +43,8 @@ final class Router
 
     public function message(): string
     {
-        return sprintf('%d %s', ResponseStatusEnum::NOT_FOUND->value, ResponseStatusEnum::NOT_FOUND->message());
+        $statusMessage = ResponseStatusEnum::NOT_FOUND->message();
+
+        return sprintf('%d %s', ResponseStatusEnum::NOT_FOUND->value, $statusMessage);
     }
 }

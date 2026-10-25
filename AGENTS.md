@@ -9,10 +9,13 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Keep unit and functional tests in separate suites. Run both suites before considering a change complete.
 - Functional tests must use a dedicated test database, apply migrations first, and clean up their data. Never run them against the development database.
 - Test HTTP routing through the configured web server in the functional suite; do not rely only on directly including the front controller.
+- Test asynchronous behavior at two levels: unit-test dispatch decisions and message handlers with PHPUnit mocks, then cover the end-to-end effect in a functional test using the real local broker and service (such as RabbitMQ and MailHog). Poll for the expected result with a bounded timeout, use unique test data, and clean up test-owned data. Keep the broker-backed test separate from fast unit tests.
 
 ## Code and architecture
 
 - Keep PHP compatible with the version declared by the project and format it according to PSR-12.
+- Prefer PHP 8.5's pipe operator (`|>`) for readable, left-to-right value transformations instead of nesting function calls. Use first-class callables for single-argument steps and a short closure or named method when a step needs additional arguments; do not force a pipe when it obscures the logic.
+- Omit redundant parentheses around `new` expressions when immediately accessing a member or calling a method.
 - Keep controllers thin. Delegate application actions and response handling to services; keep business logic, validation, persistence, and session management out of controllers.
 - Group related feature classes together, use matching namespaces, and use singular names for source directories.
 - Declare explicit types for class constants. Prefer backed enums for public finite sets of values.
@@ -31,4 +34,5 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 
 - Keep PHPStan at level 8 and PHP CS Fixer configured for PSR-12.
 - CI must run both test suites, apply database migrations, and run PHPStan and PHP CS Fixer.
+- Before pushing, run the full CI verification locally: migrations, unit tests, functional tests with required services, PHPStan, and PHP CS Fixer. Push only after every check passes.
 - Write commit messages in scoped Conventional Commits format: `<type>(<scope>): <description>`. Every commit must have a lowercase scope.

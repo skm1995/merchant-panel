@@ -18,7 +18,7 @@ final readonly class AuthActionResult
         return new self($path, null, null);
     }
 
-    public static function failure(string $message, string $email): self
+    public static function failure(string $message, ?string $email): self
     {
         return new self(null, $message, $email);
     }

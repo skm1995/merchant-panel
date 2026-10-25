@@ -12,6 +12,10 @@ abstract class Controller
     protected function render(string $view, array $data = []): void
     {
         extract($data, EXTR_SKIP);
-        require sprintf(self::VIEW_PATH_FORMAT, dirname(__DIR__, 2), $view);
+        $viewPath = dirname(__DIR__, 2) |> (
+            static fn (string $projectRoot): string =>
+            sprintf(self::VIEW_PATH_FORMAT, $projectRoot, $view)
+        );
+        require $viewPath;
     }
 }

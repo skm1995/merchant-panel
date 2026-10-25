@@ -22,6 +22,7 @@ final class UserAuthServiceTest extends TestCase
     private const string PASSWORD_ERROR = 'Password must contain at least 8 characters.';
     private const string CREDENTIALS_ERROR = 'Invalid email or password.';
     private const string DUPLICATE_ERROR = 'An account with this email already exists.';
+    private const string UNVERIFIED_EMAIL_ERROR = 'Confirm your email address before logging in.';
 
     public function testRegistersUserWithHashedPasswordAndNormalizedEmail(): void
     {
@@ -32,7 +33,7 @@ final class UserAuthServiceTest extends TestCase
             self::callback(static fn (string $hash): bool => password_verify(self::PASSWORD, $hash)),
         )->willReturn(new User(self::EMAIL, 'hashed-password', new DateTimeImmutable()));
 
-        $user = (new UserAuthService($repository))->register(' Person@Example.com ', self::PASSWORD);
+        $user = new UserAuthService($repository)->register(' Person@Example.com ', self::PASSWORD);
 
         self::assertSame(self::EMAIL, $user->email);
     }
@@ -44,7 +45,7 @@ final class UserAuthServiceTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(self::EMAIL_ERROR);
-        (new UserAuthService($repository))->register(self::INVALID_EMAIL, self::PASSWORD);
+        new UserAuthService($repository)->register(self::INVALID_EMAIL, self::PASSWORD);
     }
 
     public function testRejectsShortPassword(): void
@@ -54,7 +55,7 @@ final class UserAuthServiceTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(self::PASSWORD_ERROR);
-        (new UserAuthService($repository))->register(self::EMAIL, self::SHORT_PASSWORD);
+        new UserAuthService($repository)->register(self::EMAIL, self::SHORT_PASSWORD);
     }
 
     public function testRejectsDuplicateEmail(): void
@@ -67,17 +68,17 @@ final class UserAuthServiceTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(self::DUPLICATE_ERROR);
-        (new UserAuthService($repository))->register(self::EMAIL, self::PASSWORD);
+        new UserAuthService($repository)->register(self::EMAIL, self::PASSWORD);
     }
 
     public function testAuthenticatesValidCredentials(): void
     {
         $hash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
-        $user = new User(self::EMAIL, $hash, new DateTimeImmutable());
+        $user = new User(self::EMAIL, $hash, new DateTimeImmutable(), new DateTimeImmutable());
         $repository = $this->createMock(UserRepositoryInterface::class);
         $repository->expects(self::once())->method('findByEmail')->with(self::EMAIL)->willReturn($user);
 
-        self::assertSame($user, (new UserAuthService($repository))->authenticate(self::EMAIL, self::PASSWORD));
+        self::assertSame($user, new UserAuthService($repository)->authenticate(self::EMAIL, self::PASSWORD));
     }
 
     public function testRejectsInvalidCredentials(): void
@@ -87,6 +88,18 @@ final class UserAuthServiceTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(self::CREDENTIALS_ERROR);
-        (new UserAuthService($repository))->authenticate(self::EMAIL, self::WRONG_PASSWORD);
+        new UserAuthService($repository)->authenticate(self::EMAIL, self::WRONG_PASSWORD);
+    }
+
+    public function testRejectsLoginBeforeEmailVerification(): void
+    {
+        $passwordHash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
+        $user = new User(self::EMAIL, $passwordHash, new DateTimeImmutable(), null);
+        $repository = $this->createStub(UserRepositoryInterface::class);
+        $repository->method('findByEmail')->willReturn($user);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage(self::UNVERIFIED_EMAIL_ERROR);
+        new UserAuthService($repository)->authenticate(self::EMAIL, self::PASSWORD);
     }
 }

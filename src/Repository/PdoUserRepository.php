@@ -10,11 +10,12 @@ use PDO;
 
 final class PdoUserRepository implements UserRepositoryInterface
 {
-    private const string FIND_QUERY = 'SELECT email, password, created_at FROM users WHERE email = :email';
+    private const string FIND_QUERY = 'SELECT email, password, created_at, email_verified_at FROM users WHERE email = :email';
     private const string INSERT_QUERY = 'INSERT INTO users (email, password, created_at) VALUES (:email, :password, CURRENT_TIMESTAMP)';
     private const string EMAIL_PARAMETER = 'email';
     private const string PASSWORD_PARAMETER = 'password';
     private const string CREATED_AT_COLUMN = 'created_at';
+    private const string EMAIL_VERIFIED_AT_COLUMN = 'email_verified_at';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -30,10 +31,13 @@ final class PdoUserRepository implements UserRepositoryInterface
             return null;
         }
 
+        $emailVerifiedAt = $row[self::EMAIL_VERIFIED_AT_COLUMN] ?? null;
+
         return new User(
             (string) $row[self::EMAIL_PARAMETER],
             (string) $row[self::PASSWORD_PARAMETER],
             new DateTimeImmutable((string) $row[self::CREATED_AT_COLUMN]),
+            is_string($emailVerifiedAt) ? new DateTimeImmutable($emailVerifiedAt) : null,
         );
     }
 

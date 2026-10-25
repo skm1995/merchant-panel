@@ -22,6 +22,23 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+      rabbitmq:
+        image: rabbitmq:4-management
+        env:
+          RABBITMQ_DEFAULT_USER: app
+          RABBITMQ_DEFAULT_PASS: app
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd="rabbitmq-diagnostics -q ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+      mailhog:
+        image: mailhog/mailhog:v1.0.1
+        ports:
+          - 1025:1025
+          - 8025:8025
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -29,7 +46,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: pdo_mysql
+          extensions: pdo_mysql, amqp
           coverage: none
           tools: composer:v2
       - name: Install dependencies
@@ -57,7 +74,22 @@ jobs:
           --env DB_DATABASE=app_test
           --env DB_USERNAME=app
           --env DB_PASSWORD=app
+          --env MESSENGER_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails
+          --env MESSENGER_FAILURE_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails_failed
+          --env MAILER_DSN=smtp://host.docker.internal:1025
+          --env APP_BASE_URL=http://127.0.0.1:8080
           vanilla-php-ci
+      - name: Start asynchronous email worker
+        run: >-
+          docker run --detach --name vanilla-php-worker
+          --add-host host.docker.internal:host-gateway
+          --volume "$GITHUB_WORKSPACE:/var/www/html"
+          --workdir /var/www/html
+          --env MESSENGER_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails
+          --env MESSENGER_FAILURE_TRANSPORT_DSN=amqp://app:app@host.docker.internal:5672/%2f/emails_failed
+          --env MAILER_DSN=smtp://host.docker.internal:1025
+          --env APP_BASE_URL=http://127.0.0.1:8080
+          vanilla-php-ci php bin/worker.php
       - name: Wait for Apache routes
         run: |
           for attempt in $(seq 1 30); do
@@ -76,6 +108,7 @@ jobs:
           DB_USERNAME: app
           DB_PASSWORD: app
           APP_BASE_URL: http://127.0.0.1:8080
+          MAILHOG_API_BASE_URL: http://127.0.0.1:8025
         run: composer test-functional
       - name: Run PHPStan
         run: composer analyse
@@ -83,4 +116,4 @@ jobs:
         run: composer cs-check
       - name: Stop Apache application
         if: always()
-        run: docker rm --force vanilla-php-ci
+        run: docker rm --force vanilla-php-ci vanilla-php-worker
