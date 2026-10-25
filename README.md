@@ -60,18 +60,18 @@ sold stock. A payment for an order that was cancelled meanwhile becomes
 `refund_required`. Webhook secrets and checkout URLs come from the
 `FAKEPAY_*` and `QUICKPAY_*` environment variables.
 
-## Failed confirmation emails
+## Failed messages
 
 After the worker exhausts its configured retries, messages are stored in the
-`emails_failed` RabbitMQ queue. Inspect that queue and the worker logs before
-retrying. To requeue all available failed email messages, run:
+`failed_messages` RabbitMQ queue. Inspect that queue and the worker logs before
+retrying. To requeue all available failed messages to the queues they are routed to, run:
 
 ```sh
-docker compose exec php php bin/retry-failed-emails.php
+docker compose exec php php bin/retry-failed-messages.php
 ```
 
 The command acknowledges a failed message only after it has been dispatched to
-the normal email queue. If dispatch fails, that message remains in the failed
+their normal queue. If dispatch fails, that message remains in the failed
 queue. The command retries every message currently available in that queue.
 Messages that can no longer be decoded, for example after a message class was
 renamed, are left in the failure queue and reported so they can be inspected

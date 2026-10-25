@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Auth\Infrastructure\Messenger;
+namespace Tests\Unit\Shared\Messaging;
 
 use App\Auth\Message\ConfirmationEmailMessage;
-use App\Auth\Infrastructure\Messenger\FailedMessageRetrier;
+use App\Shared\Messaging\FailedMessageRetrier;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;

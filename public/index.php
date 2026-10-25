@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Auth\Controller\AuthController;
-use App\Auth\Infrastructure\Messenger\AuthMessengerRuntime;
+use App\Auth\Infrastructure\Messenger\SymfonyMessengerEmailQueue;
 use App\Auth\Repository\PdoEmailVerificationTokenRepository;
 use App\Auth\Repository\PdoUserRepository;
 use App\Auth\Service\ConfirmEmailService;
@@ -41,6 +41,7 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
+use App\Shared\Messaging\MessengerRuntime;
 use Symfony\Component\Clock\NativeClock;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -62,7 +63,7 @@ $router->registerController(new AuthController(
     new RegisterUserService(
         $userAuthService,
         $tokenRepository,
-        AuthMessengerRuntime::createQueueFromEnvironment(),
+        new SymfonyMessengerEmailQueue(MessengerRuntime::fromConfiguration()->bus()),
     ),
     new LoginUserService($userAuthService, $currentUser),
     new ConfirmEmailService($tokenRepository),

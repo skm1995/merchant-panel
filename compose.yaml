@@ -5,12 +5,12 @@ x-php-build: &php-build
     PHP_VERSION: "8.5"
 
 x-messenger-environment: &messenger-environment
-  MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails}
-  MESSENGER_FAILURE_TRANSPORT_DSN: ${MESSENGER_FAILURE_TRANSPORT_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_failed}
+  MESSENGER_EMAILS_DSN: ${MESSENGER_EMAILS_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails}
+  MESSENGER_FAILED_DSN: ${MESSENGER_FAILED_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/failed_messages}
 
 x-test-messenger-environment: &test-messenger-environment
-  MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_test
-  MESSENGER_FAILURE_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_test_failed
+  MESSENGER_EMAILS_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_test
+  MESSENGER_FAILED_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/failed_messages_test
 
 x-test-app-environment: &test-app-environment
   APP_BASE_URL: ${TEST_APP_BASE_URL:-http://host.docker.internal:8081}

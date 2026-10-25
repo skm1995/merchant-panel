@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Auth\Infrastructure\Messenger;
+namespace App\Shared\Messaging;
 
 use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
