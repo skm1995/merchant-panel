@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Shared\Database;
 
 use App\Shared\Database\Enum\IsolationLevelEnum;
-use App\Shared\Database\TransactionRunner;
+use App\Shared\Database\PdoTransactionRunner;
 use PDO;
 use PDOException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-final class TransactionRunnerTest extends TestCase
+final class PdoTransactionRunnerTest extends TestCase
 {
     private const string RESULT = 'committed';
     private const string FAILURE = 'Business rule violated.';
@@ -81,15 +81,15 @@ final class TransactionRunnerTest extends TestCase
     {
         $pdo = $this->createMock(PDO::class);
         $pdo->method('inTransaction')->willReturn(true);
-        $pdo->expects(self::exactly(TransactionRunner::MAXIMUM_ATTEMPTS))->method('beginTransaction');
+        $pdo->expects(self::exactly(PdoTransactionRunner::MAXIMUM_ATTEMPTS))->method('beginTransaction');
 
         $this->expectException(PDOException::class);
         self::runner($pdo)->run(static fn (): never => throw self::driverException(self::DEADLOCK_ERROR));
     }
 
-    private static function runner(PDO $pdo): TransactionRunner
+    private static function runner(PDO $pdo): PdoTransactionRunner
     {
-        return new TransactionRunner($pdo, self::NO_DELAY);
+        return new PdoTransactionRunner($pdo, self::NO_DELAY);
     }
 
     private static function driverException(int $driverCode): PDOException

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Auth\Repository;
 
 use App\Shared\Database\RecordFetcher;
-use App\Shared\Database\TransactionRunner;
+use App\Shared\Database\TransactionRunnerInterface;
 use DateTimeImmutable;
 use PDO;
 
@@ -29,7 +29,7 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
 
     public function __construct(
         private readonly PDO $pdo,
-        private readonly TransactionRunner $transactions,
+        private readonly TransactionRunnerInterface $transactions,
     ) {
     }
 

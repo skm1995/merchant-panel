@@ -17,7 +17,7 @@ use Throwable;
  * retried a bounded number of times with a growing delay. Operations must therefore be
  * free of side effects outside the database.
  */
-final class TransactionRunner
+final class PdoTransactionRunner implements TransactionRunnerInterface
 {
     public const int MAXIMUM_ATTEMPTS = 3;
     private const int DEFAULT_RETRY_DELAY_MICROSECONDS = 20000;
@@ -32,11 +32,6 @@ final class TransactionRunner
     ) {
     }
 
-    /**
-     * @template T
-     * @param callable(): T $operation
-     * @return T
-     */
     public function run(
         callable $operation,
         IsolationLevelEnum $isolationLevel = IsolationLevelEnum::REPEATABLE_READ,
