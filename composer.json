@@ -52,7 +52,7 @@
         "test": "phpunit",
         "test-unit": "phpunit --testsuite Unit",
         "test-functional": "phpunit --testsuite Functional",
-        "analyse": "phpstan analyse --configuration=phpstan.neon --no-progress",
+        "analyse": "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M",
         "cs-check": "php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php",
         "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
         "migrate": "phinx migrate -c phinx.php"
