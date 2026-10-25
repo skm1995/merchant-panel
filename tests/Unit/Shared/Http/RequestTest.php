@@ -75,6 +75,13 @@ final class RequestTest extends TestCase
         self::assertNull($request->routeParameter(self::FIELD));
     }
 
+    public function testRecognizesApiPaths(): void
+    {
+        self::assertTrue(new Request(HttpMethodEnum::GET->value, '/api/v1/products')->isApi());
+        self::assertFalse(new Request(HttpMethodEnum::GET->value, '/apiary')->isApi());
+        self::assertFalse(new Request(HttpMethodEnum::GET->value, self::PATH)->isApi());
+    }
+
     public function testReturnsNullForMissingOrNonStringInput(): void
     {
         $request = new Request(HttpMethodEnum::POST->value, self::PATH, [], [self::FIELD => [self::VALUE]]);

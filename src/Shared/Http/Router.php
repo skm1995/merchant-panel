@@ -21,6 +21,8 @@ final class Router
     private const string PARAMETER_GROUP_FORMAT = '(?P<%s>%s)';
     private const string DEFAULT_PARAMETER_PATTERN = '[^/]+';
     private const int NOT_CAPTURED_OFFSET = -1;
+    private const string NOT_FOUND_DETAIL = 'No route matches this method and path.';
+    private const string INVALID_CSRF_DETAIL = 'The CSRF token is missing or invalid.';
     private const string ROUTE_PATTERN_FORMAT = '#^%s$#';
     private const string PATTERN_DELIMITER = '#';
     private const string PATH_PARAMETER_MARKER = '{';
@@ -65,7 +67,7 @@ final class Router
         [$action, $parameters] = $this->match($request) ?? [null, []];
 
         if ($action === null) {
-            $this->responder->status(ResponseStatusEnum::NOT_FOUND);
+            $this->reject($request, ResponseStatusEnum::NOT_FOUND, self::NOT_FOUND_DETAIL);
 
             return;
         }
@@ -74,12 +76,23 @@ final class Router
             $request->method === HttpMethodEnum::POST->value
             && !$this->csrfToken->isValid($request->post(CsrfToken::FIELD_NAME))
         ) {
-            $this->responder->status(ResponseStatusEnum::FORBIDDEN);
+            $this->reject($request, ResponseStatusEnum::FORBIDDEN, self::INVALID_CSRF_DETAIL);
 
             return;
         }
 
         $action($request->withRouteParameters($parameters));
+    }
+
+    private function reject(Request $request, ResponseStatusEnum $status, string $detail): void
+    {
+        if ($request->isApi()) {
+            $this->responder->problem($status, $detail);
+
+            return;
+        }
+
+        $this->responder->status($status);
     }
 
     /** @return callable(Request): void */

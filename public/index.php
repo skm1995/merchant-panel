@@ -11,6 +11,9 @@ use App\Auth\Service\CurrentUser;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
+use App\Catalog\Controller\ProductApiController;
+use App\Catalog\Repository\PdoProductRepository;
+use App\Catalog\Service\ProductCatalog;
 use App\Home\Controller\HomeController;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Http\CsrfToken;
@@ -42,6 +45,10 @@ $router->registerController(new AuthController(
     new LoginUserService($userAuthService, $currentUser),
     new ConfirmEmailService($tokenRepository),
     $currentUser,
+    $responder,
+));
+$router->registerController(new ProductApiController(
+    new ProductCatalog(new PdoProductRepository($pdo)),
     $responder,
 ));
 $router->dispatch(Request::fromGlobals());

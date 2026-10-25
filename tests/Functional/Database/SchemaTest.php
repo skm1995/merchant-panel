@@ -17,6 +17,7 @@ final class SchemaTest extends TestCase
         ORDER BY table_name, column_name
         SQL;
     private const array INTENTIONALLY_NULLABLE_COLUMNS = [
+        'products.updated_at',
         'users.email_verified_at',
     ];
 

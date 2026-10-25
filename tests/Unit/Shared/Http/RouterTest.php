@@ -32,6 +32,7 @@ final class RouterTest extends TestCase
     private const string NON_NUMERIC_PRODUCT_PATH = '/products/abc';
     public const string MAPPED_FAILURE = 'The product does not exist.';
     public const string INVALID_INPUT = 'The limit must be a positive integer.';
+    private const string MISSING_API_PATH = '/api/v1/missing';
     private const string POST_VALUE = 'post route dispatched';
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
@@ -90,6 +91,22 @@ final class RouterTest extends TestCase
 
         self::assertSame(404, http_response_code());
         self::assertSame(self::NOT_FOUND_MESSAGE, $output);
+    }
+
+    public function testUnknownApiRouteIsNotFoundProblem(): void
+    {
+        $router = $this->router();
+        ob_start();
+
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::MISSING_API_PATH));
+        $output = ob_get_clean();
+
+        self::assertIsString($output);
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
+        self::assertSame(
+            ResponseStatusEnum::NOT_FOUND->value,
+            json_decode($output, true, flags: JSON_THROW_ON_ERROR)['status'],
+        );
     }
 
     public function testDispatchesAttributedPostRoute(): void

@@ -20,6 +20,20 @@ The application runs at `http://localhost:8080`. MailHog is available at
 `http://localhost:8025`, and RabbitMQ management is available at
 `http://localhost:15672`.
 
+## Product API
+
+The JSON API is documented in [`openapi.yaml`](openapi.yaml). Prices are
+returned in minor currency units as strings, and errors use RFC 9457 problem
+details:
+
+```sh
+curl 'http://localhost:8080/api/v1/products?limit=20'
+curl 'http://localhost:8080/api/v1/products/1'
+```
+
+Pages are ordered by id; pass the returned `next_cursor` as `cursor` to fetch
+the next page.
+
 ## Failed confirmation emails
 
 After the worker exhausts its configured retries, messages are stored in the

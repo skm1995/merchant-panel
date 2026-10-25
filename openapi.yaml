@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: Vanilla PHP Playground API
+  version: 1.0.0
+  description: >-
+    Product catalog API. Monetary amounts are strings in minor currency units
+    (for example grosze) with an ISO 4217 currency code. Errors use RFC 9457
+    problem details.
+paths:
+  /api/v1/products:
+    get:
+      operationId: listProducts
+      summary: List products using keyset pagination
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          required: false
+          description: The next_cursor value returned by the previous page.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: A page of products ordered by id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+  /api/v1/products/{id}:
+    get:
+      operationId: getProduct
+      summary: Get one product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: The product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/Problem'
+components:
+  responses:
+    Problem:
+      description: An RFC 9457 problem details response.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Money:
+      type: object
+      additionalProperties: false
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          pattern: '^-?\d+$'
+          description: Amount in minor currency units.
+          example: '1999'
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: PLN
+    Product:
+      type: object
+      additionalProperties: false
+      required: [id, sku, name, price, available_quantity]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        sku:
+          type: string
+          maxLength: 64
+        name:
+          type: string
+          maxLength: 255
+        price:
+          $ref: '#/components/schemas/Money'
+        available_quantity:
+          type: integer
+          minimum: 0
+    ProductPage:
+      type: object
+      additionalProperties: false
+      required: [data, next_cursor]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        next_cursor:
+          type: integer
+          minimum: 1
+          nullable: true
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string

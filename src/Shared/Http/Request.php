@@ -10,6 +10,7 @@ use App\Shared\Http\Enum\ServerParameterEnum;
 final readonly class Request
 {
     public const string ROOT_PATH = '/';
+    private const string API_PATH_PREFIX = '/api/';
 
     /**
      * @param array<mixed> $query
@@ -37,6 +38,11 @@ final readonly class Request
             $_GET,
             $_POST,
         );
+    }
+
+    public function isApi(): bool
+    {
+        return str_starts_with($this->path, self::API_PATH_PREFIX);
     }
 
     public function query(string $key): ?string

@@ -13,6 +13,8 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Exercise HTTP behavior in the functional suite through the configured web server with an HTTP client (Symfony `HttpBrowser` for browser flows, which keeps cookies and submits forms with their CSRF fields). Never include the front controller or overwrite PHP superglobals in functional tests.
 - Functional tests use dedicated test infrastructure: their own database, broker queues, and worker, so development services never process test data.
 - Test asynchronous behavior at two levels: unit-test dispatch decisions and message handlers with PHPUnit mocks, then cover the end-to-end effect in a functional test using the real local broker and service (such as RabbitMQ and MailHog). Poll for the expected result with a bounded timeout, use unique test data, and clean up test-owned data. Keep the broker-backed test separate from fast unit tests.
+- Document every JSON API operation in `openapi.yaml` and validate real responses, including problem details, against it in the functional suite.
+- Test repositories against the real test database in the functional suite rather than mocking PDO.
 - Test security-sensitive HTTP behavior explicitly: state-changing GET requests must have no side effects, and invalid or missing CSRF tokens must prevent the action and return an appropriate error status.
 - Test recovery paths for infrastructure failures. In particular, retrying registration for an existing unverified user with valid credentials must allow confirmation email delivery to be retried without creating another account.
 - Rate-limit confirmation email resends with a durable database counter, a typed integer maximum, and the rate window expressed in seconds as a typed integer constant. Test the limit and the reset after the window expires.
@@ -45,6 +47,9 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Put cross-cutting HTTP behavior, such as session setup, CSRF validation, request parsing, response writing, and route dispatch, in shared HTTP components injected into controllers, so every controller receives the same policy. Prefer composition over controller base classes. Keep feature-specific business decisions inside that feature.
 - Views only produce markup: they never send headers or build response metadata, and they escape output through the shared renderer's escaping helper.
 - Keep service factories focused on their runtime: web requests must not initialize worker-only mail handlers or event listeners.
+- Represent monetary amounts with `Money\Money` (moneyphp/money) everywhere in the domain; never use floats or bare integers. Store them as an unsigned `BIGINT` in minor units plus a `CHAR(3)` ISO 4217 currency code, and expose them in APIs as `{"amount": "<minor units as string>", "currency": "<code>"}`.
+- Hydrate query results into readonly record DTOs marked `#[HydratedRecord]` through `RecordFetcher`, selecting columns with aliases that match the record's properties; records convert themselves into entities. Never pass associative row arrays between methods, and return report or listing results as DTOs.
+- DTOs that need an array form, such as API response bodies, implement `App\Shared\Contract\Arrayable`.
 - Declare explicit types for class constants. Prefer backed enums for public finite sets of values.
 - Empty string literals are forbidden. Define string values as constants instead of inline literals, except in enum methods where a literal directly expresses enum behavior.
 - Prefer readable path strings using `/` over assembling path segments when practical.
@@ -53,7 +58,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 
 - Use Composer for PHP dependencies and commit the application lockfile. Declare every PHP extension the code uses directly as an `ext-*` requirement, with test-only extensions in `require-dev`.
 - Keep Docker and local service configuration grouped by service. Share repeated Compose configuration through YAML anchors, and give each service only the environment variables its runtime uses.
-- Use the configured PHP migration tool for schema changes. Give migrations descriptive names, make them reversible where practical, and never edit a migration after it has been applied.
+- Use the configured PHP migration tool for schema changes. Give migrations descriptive names, make them reversible where practical, and never edit a migration after it has been applied. Declare every column `'null' => false` unless `NULL` carries meaning, enforce invariants with database constraints, and date new migrations after the latest committed one.
 - Keep application and functional-test databases separate.
 - Do not commit local environment files or secrets.
 - Ignore `.env` and other local environment files in Git while keeping `.env.example` tracked. Do not rely on `.dockerignore` as Git protection.
