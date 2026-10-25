@@ -5,7 +5,9 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 ## Development workflow
 
 - Follow TDD: first write a failing test for the expected behavior, then make the smallest change that passes it, and refactor while keeping tests green.
-- Cover application behavior with PHPUnit, including relevant failure paths.
+- Cover application behavior with PHPUnit, including relevant failure paths. Test behavior, not declarations: do not add tests that only restate constant or enum values.
+- Give each production class its own `<ClassName>Test` in the mirrored test namespace; do not group several classes in one test class.
+- Make mocks of third-party APIs follow their real contract (for example, an AMQP receiver's `get()` returns at most one message per call), and verify recovery commands such as failed-message retries against the real local broker.
 - Keep unit and functional tests in separate suites. Run both suites before considering a change complete.
 - Functional tests must use a dedicated test database, apply migrations first, and clean up their data. Never run them against the development database.
 - Test HTTP routing through the configured web server in the functional suite; do not rely only on directly including the front controller.
@@ -17,15 +19,20 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 ## Code and architecture
 
 - Keep PHP compatible with the version declared by the project and format it according to PSR-12.
-- Prefer PHP 8.5's pipe operator (`|>`) for readable, left-to-right value transformations instead of nesting function calls. Use first-class callables for single-argument steps and a short closure or named method when a step needs additional arguments; do not force a pipe when it obscures the logic.
+- Prefer PHP 8.5's pipe operator (`|>`) for readable, left-to-right value transformations instead of nesting function calls. Use first-class callables for single-argument steps and a short closure or named method when a step needs additional arguments; do not force a pipe when it obscures the logic. Never wrap a single expression in a closure only to pipe one value into it.
 - Omit redundant parentheses around `new` expressions when immediately accessing a member or calling a method.
-- Keep controllers thin. Delegate application actions and response handling to services; keep business logic, validation, persistence, and session management out of controllers.
+- Keep controllers thin. Delegate application actions to services; keep business logic, validation, persistence, and session management out of controllers. Controllers own the HTTP response: they map service results and domain exceptions to redirects, rendered views, and status codes.
+- Application services accept typed arguments, never raw request arrays, and know nothing about URLs, routes, or templates. Report expected failures with specific domain exceptions rather than result objects carrying HTTP details, and catch only the exception types a flow is meant to handle.
+- Treat a missing required request field as a bad request (HTTP 400) at the controller boundary; represent missing values with `null`, never with sentinel strings.
 - Keep GET requests safe and free of state changes. Complete email confirmation and other mutations with POST requests protected by a session-bound CSRF token.
 - Add CSRF tokens to every state-changing browser form and validate them before invoking application services. Reject invalid tokens with HTTP 403.
-- Start browser sessions with strict session ID handling and cookies configured as HttpOnly and SameSite=Lax; set Secure whenever the request uses HTTPS. Regenerate the session ID after successful authentication.
-- Make asynchronous operations recoverable. Provide a documented and tested retry path for messages that could not be dispatched, and ensure the worker restarts after process failure. Keep failed messages inspectable and document how to retry them.
-- Keep sender addresses and public application URLs configurable through environment variables. Use local-only defaults for development and set deployment values explicitly.
+- Start browser sessions with strict session ID handling and cookies configured as HttpOnly and SameSite=Lax; set Secure whenever the request uses HTTPS. Regenerate the session ID after successful authentication and after logout.
+- Make asynchronous operations recoverable. Provide a documented and tested retry path for messages that could not be dispatched, and ensure the worker restarts after process failure. Keep failed messages inspectable and document how to retry them; a retry must skip, not crash on, messages it cannot decode.
+- Treat queued message class names as a persisted contract. Before renaming or moving a message class, drain its queues or keep the old class loadable.
+- Read configuration such as DSNs, hosts, ports, credentials, public URLs, and sender addresses only from environment variables. Do not define fallback values for them in PHP code; keep local defaults in `compose.yaml` and `.env.example`, and fail fast when a required variable is missing.
 - Keep DRY and KISS in balance: share behavior when there is a clear single responsibility, but avoid generic frameworks, indirection, and abstractions that make a simple flow harder to follow.
+- Give each piece of knowledge, such as a session key, route path, token hashing algorithm, or date format, a single owning class; other code uses that owner instead of repeating the value. A feature that needs another feature's state uses its public service, not its internal keys.
+- Put domain rules on entities and value objects, for example whether a user is verified or whether a password matches. Avoid boolean flag parameters that switch behavior; use separately named methods.
 - Group related feature classes together, use matching namespaces, and use singular names for source directories.
 - Organize `src/` by feature first. Keep feature-specific controllers, entities, repositories, services, messages, and infrastructure under that feature; put code in `Shared/` only when multiple features use it. Mirror this structure in `tests/Unit/`.
 - Keep feature names such as `Auth/` and `Home/` at the top of `src/`. Do not add top-level type-only folders such as `src/Controller/` or `src/Service/`.
@@ -33,7 +40,8 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Declare HTTP routes as method attributes on controllers and register controller instances with the router. Reject duplicate routes and route methods that are not public or require parameters.
 - Keep HTTP request parsing and response rendering at the controller boundary. Application services own use cases, and repositories own persistence. Avoid duplicate view-rendering or response helpers.
 - Give each layer a clear responsibility: controllers translate HTTP input into application calls and responses; application services implement use cases; entities hold domain state and rules; repositories load and persist data; infrastructure adapters integrate external systems. Do not move HTTP globals, headers, or view rendering into application services.
-- Put cross-cutting HTTP behavior, such as session setup, CSRF validation, and route dispatch, in shared HTTP components so every controller receives the same policy. Keep feature-specific business decisions inside that feature.
+- Put cross-cutting HTTP behavior, such as session setup, CSRF validation, request parsing, response writing, and route dispatch, in shared HTTP components injected into controllers, so every controller receives the same policy. Prefer composition over controller base classes. Keep feature-specific business decisions inside that feature.
+- Views only produce markup: they never send headers or build response metadata, and they escape output through the shared renderer's escaping helper.
 - Keep service factories focused on their runtime: web requests must not initialize worker-only mail handlers or event listeners.
 - Declare explicit types for class constants. Prefer backed enums for public finite sets of values.
 - Empty string literals are forbidden. Define string values as constants instead of inline literals, except in enum methods where a literal directly expresses enum behavior.
@@ -41,8 +49,8 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 
 ## Dependencies, data, and infrastructure
 
-- Use Composer for PHP dependencies and commit the application lockfile.
-- Keep Docker and local service configuration grouped by service.
+- Use Composer for PHP dependencies and commit the application lockfile. Declare every PHP extension the code uses directly as an `ext-*` requirement, with test-only extensions in `require-dev`.
+- Keep Docker and local service configuration grouped by service. Share repeated Compose configuration through YAML anchors, and give each service only the environment variables its runtime uses.
 - Use the configured PHP migration tool for schema changes. Give migrations descriptive names, make them reversible where practical, and never edit a migration after it has been applied.
 - Keep application and functional-test databases separate.
 - Do not commit local environment files or secrets.
