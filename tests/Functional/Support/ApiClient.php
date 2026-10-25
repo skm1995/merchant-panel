@@ -40,6 +40,15 @@ final class ApiClient
         return self::request($method, $path, array_filter(['json' => $json, 'headers' => $headers]));
     }
 
+    /**
+     * @param array<string, string> $query
+     * @param array<string, string> $headers
+     */
+    public static function sendWithQuery(string $path, array $query, array $headers): ResponseInterface
+    {
+        return self::request(HttpMethodEnum::GET, $path, ['query' => $query, 'headers' => $headers]);
+    }
+
     /** @param array<string, string> $headers */
     public static function sendRaw(HttpMethodEnum $method, string $path, string $body, array $headers): ResponseInterface
     {

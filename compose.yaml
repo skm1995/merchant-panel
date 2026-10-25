@@ -25,6 +25,9 @@ x-payment-environment: &payment-environment
   QUICKPAY_CHECKOUT_URL: ${QUICKPAY_CHECKOUT_URL:-http://localhost:8080/quickpay}
   QUICKPAY_WEBHOOK_SECRET: ${QUICKPAY_WEBHOOK_SECRET:-local-quickpay-webhook-secret}
 
+x-reports-environment: &reports-environment
+  REPORTS_API_KEY: ${REPORTS_API_KEY:-local-reports-api-key}
+
 x-redis-environment: &redis-environment
   REDIS_HOST: redis
   REDIS_PORT: 6379
@@ -61,7 +64,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      <<: [*database-environment, *messenger-environment, *payment-environment, *redis-environment]
+      <<: [*database-environment, *messenger-environment, *payment-environment, *redis-environment, *reports-environment]
       ORDER_RESERVATION_SECONDS: ${ORDER_RESERVATION_SECONDS:-900}
       XDEBUG_MODE: ${XDEBUG_MODE:-debug,develop}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
@@ -103,7 +106,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *test-app-environment, *payment-environment, *test-redis-environment]
+      <<: [*test-database-environment, *test-app-environment, *payment-environment, *test-redis-environment, *reports-environment]
       XDEBUG_MODE: "off"
       MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
     depends_on:
@@ -122,7 +125,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *payment-environment, *test-redis-environment]
+      <<: [*test-database-environment, *payment-environment, *test-redis-environment, *reports-environment]
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       SESSION_COOKIE_SECURE: "false"

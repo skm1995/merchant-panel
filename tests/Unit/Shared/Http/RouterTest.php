@@ -11,6 +11,7 @@ use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\MapException;
+use App\Shared\Http\RequireApiKey;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -34,6 +35,8 @@ final class RouterTest extends TestCase
     public const string MAPPED_FAILURE = 'The product does not exist.';
     public const string INVALID_INPUT = 'The limit must be a positive integer.';
     private const string MISSING_API_PATH = '/api/v1/missing';
+    public const string API_KEY_VARIABLE = 'ROUTER_TEST_API_KEY';
+    private const string API_KEY = 'router-test-key';
     private const string POST_VALUE = 'post route dispatched';
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
@@ -128,6 +131,39 @@ final class RouterTest extends TestCase
         $router->dispatch(new Request(HttpMethodEnum::POST->value, $controller::PATH));
 
         self::assertTrue($controller->called);
+    }
+
+    public function testRouteRequiringAnApiKeyRejectsMissingOrWrongKeys(): void
+    {
+        putenv(sprintf('%s=%s', self::API_KEY_VARIABLE, self::API_KEY));
+        $controller = new class () {
+            public const string PATH = '/api/v1/reports/daily-revenue';
+            public int $calls = 0;
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            #[RequireApiKey(RouterTest::API_KEY_VARIABLE)]
+            public function report(): void
+            {
+                $this->calls++;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        try {
+            foreach ([[], ['x-api-key' => 'wrong-key']] as $headers) {
+                ob_start();
+                $router->dispatch(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: $headers));
+                ob_end_clean();
+                self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
+            }
+
+            $router->dispatch(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: ['x-api-key' => self::API_KEY]));
+        } finally {
+            putenv(self::API_KEY_VARIABLE);
+        }
+
+        self::assertSame(1, $controller->calls);
     }
 
     public function testDispatchesAttributedPostRoute(): void

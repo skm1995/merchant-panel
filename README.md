@@ -65,6 +65,22 @@ checkout schedules an expiry message through the outbox, RabbitMQ holds it
 until the reservation ends, and the worker marks the order `expired` and
 releases its stock unless it was paid or cancelled first.
 
+## Reports
+
+The reporting API requires the `X-Api-Key` header to match `REPORTS_API_KEY`:
+
+```sh
+curl -H 'X-Api-Key: local-reports-api-key' \
+  'http://localhost:8080/api/v1/reports/daily-revenue?from=2026-10-01&to=2026-10-31'
+curl -H 'X-Api-Key: local-reports-api-key' \
+  'http://localhost:8080/api/v1/reports/top-products?from=2026-10-01&to=2026-10-31&limit=5'
+```
+
+Both are hand-written SQL over paid orders: the daily report uses a CTE with a
+running total (`SUM ... OVER`), and the product report ranks revenue with
+`DENSE_RANK`. A functional test checks with `EXPLAIN FORMAT=JSON` that they
+range-scan the `orders_status_created_at` index.
+
 ## Product cache
 
 `GET /api/v1/products/{id}` reads products through Redis. Only one process

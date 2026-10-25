@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Http;
 
+use App\Shared\Config\Environment;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
@@ -24,6 +25,8 @@ final class Router
     private const int NOT_CAPTURED_OFFSET = -1;
     private const string NOT_FOUND_DETAIL = 'No route matches this method and path.';
     private const string INVALID_CSRF_DETAIL = 'The CSRF token is missing or invalid.';
+    private const string INVALID_API_KEY_DETAIL = 'A valid X-Api-Key header is required.';
+    private const string API_KEY_HEADER = 'X-Api-Key';
     private const string ROUTE_PATTERN_FORMAT = '#^%s$#';
     private const string PATTERN_DELIMITER = '#';
     private const string PATH_PARAMETER_MARKER = '{';
@@ -104,8 +107,15 @@ final class Router
             static fn ($attribute): MapException => $attribute->newInstance(),
             $method->getAttributes(MapException::class),
         );
+        $apiKey = ($method->getAttributes(RequireApiKey::class)[0] ?? null)?->newInstance();
 
-        return function (Request $request) use ($controller, $method, $mappings): void {
+        return function (Request $request) use ($controller, $method, $mappings, $apiKey): void {
+            if ($apiKey !== null && !self::hasValidApiKey($request, $apiKey)) {
+                $this->reject($request, ResponseStatusEnum::UNAUTHORIZED, self::INVALID_API_KEY_DETAIL);
+
+                return;
+            }
+
             try {
                 $method->invoke($controller, $request);
             } catch (InvalidRequestException $exception) {
@@ -124,6 +134,13 @@ final class Router
                 throw $exception;
             }
         };
+    }
+
+    private static function hasValidApiKey(Request $request, RequireApiKey $requirement): bool
+    {
+        $provided = $request->header(self::API_KEY_HEADER);
+
+        return $provided !== null && hash_equals(Environment::get($requirement->environmentKey), $provided);
     }
 
     /** @return array{callable(Request): void, array<string, string>}|null */
