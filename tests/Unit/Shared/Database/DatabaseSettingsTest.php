@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Shared\Database;
 
-use App\Shared\Config\MissingEnvironmentVariableException;
-use App\Shared\Database\DatabaseEnvironmentEnum;
+use App\Shared\Config\Exception\MissingEnvironmentVariableException;
+use App\Shared\Database\Enum\DatabaseEnvironmentEnum;
 use App\Shared\Database\DatabaseSettings;
 use PHPUnit\Framework\TestCase;
 

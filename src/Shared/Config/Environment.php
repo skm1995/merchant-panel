@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Config;
 
+use App\Shared\Config\Exception\MissingEnvironmentVariableException;
+
 final class Environment
 {
     public static function find(string $key): ?string

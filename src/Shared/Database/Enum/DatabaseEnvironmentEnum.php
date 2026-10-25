@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Database;
+namespace App\Shared\Database\Enum;
 
 enum DatabaseEnvironmentEnum: string
 {

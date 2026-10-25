@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Shared\Config;
 
 use App\Shared\Config\Environment;
-use App\Shared\Config\MissingEnvironmentVariableException;
+use App\Shared\Config\Exception\MissingEnvironmentVariableException;
 use PHPUnit\Framework\TestCase;
 
 final class EnvironmentTest extends TestCase

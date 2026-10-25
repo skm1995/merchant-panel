@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Database;
 
 use App\Shared\Config\Environment;
+use App\Shared\Database\Enum\DatabaseEnvironmentEnum;
 
 final readonly class DatabaseSettings
 {
