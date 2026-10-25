@@ -31,6 +31,14 @@ final class CartIdTest extends TestCase
         self::assertSame(CartFixtures::CART_ID, CartId::fromBinary($id->toBinary())->value);
     }
 
+    public function testEqualsOnlySameValue(): void
+    {
+        $id = CartId::fromString(CartFixtures::CART_ID);
+
+        self::assertTrue($id->equals(CartId::fromString(CartFixtures::CART_ID)));
+        self::assertFalse($id->equals(CartId::generate()));
+    }
+
     /** @return iterable<string, array{string}> */
     public static function invalidIds(): iterable
     {
