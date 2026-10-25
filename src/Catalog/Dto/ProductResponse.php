@@ -6,6 +6,7 @@ namespace App\Catalog\Dto;
 
 use App\Catalog\Entity\Product;
 use App\Shared\Contract\Arrayable;
+use App\Shared\Dto\MoneyResponse;
 
 final readonly class ProductResponse implements Arrayable
 {
@@ -13,16 +14,13 @@ final readonly class ProductResponse implements Arrayable
     private const string SKU_KEY = 'sku';
     private const string NAME_KEY = 'name';
     private const string PRICE_KEY = 'price';
-    private const string AMOUNT_KEY = 'amount';
-    private const string CURRENCY_KEY = 'currency';
     private const string AVAILABLE_QUANTITY_KEY = 'available_quantity';
 
     public function __construct(
         public int $id,
         public string $sku,
         public string $name,
-        public string $priceAmount,
-        public string $priceCurrency,
+        public MoneyResponse $price,
         public int $availableQuantity,
     ) {
     }
@@ -33,8 +31,7 @@ final readonly class ProductResponse implements Arrayable
             $product->id,
             $product->sku,
             $product->name,
-            $product->price->getAmount(),
-            $product->price->getCurrency()->getCode(),
+            MoneyResponse::fromMoney($product->price),
             $product->availableQuantity(),
         );
     }
@@ -45,10 +42,7 @@ final readonly class ProductResponse implements Arrayable
             self::ID_KEY => $this->id,
             self::SKU_KEY => $this->sku,
             self::NAME_KEY => $this->name,
-            self::PRICE_KEY => [
-                self::AMOUNT_KEY => $this->priceAmount,
-                self::CURRENCY_KEY => $this->priceCurrency,
-            ],
+            self::PRICE_KEY => $this->price->toArray(),
             self::AVAILABLE_QUANTITY_KEY => $this->availableQuantity,
         ];
     }
