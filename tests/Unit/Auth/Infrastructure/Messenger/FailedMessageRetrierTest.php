@@ -16,6 +16,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 final class FailedMessageRetrierTest extends TestCase
 {
     private const string EMAIL = 'person@example.com';
+    private const string SECOND_EMAIL = 'second@example.com';
     private const string TOKEN = 'email-confirmation-token';
 
     public function testDispatchesFailedMessagesAgainAndAcknowledgesThem(): void
@@ -25,7 +26,7 @@ final class FailedMessageRetrierTest extends TestCase
             new SentToFailureTransportStamp('emails'),
         ]);
         $failedTransport = $this->createMock(TransportInterface::class);
-        $failedTransport->expects(self::once())->method('get')->willReturn([$envelope]);
+        $failedTransport->expects(self::exactly(2))->method('get')->willReturnOnConsecutiveCalls([$envelope], []);
         $failedTransport->expects(self::once())->method('ack')->with($envelope);
         $bus = $this->createMock(MessageBusInterface::class);
         $bus->expects(self::once())->method('dispatch')->with(
@@ -40,6 +41,25 @@ final class FailedMessageRetrierTest extends TestCase
         $count = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
 
         self::assertSame(1, $count);
+    }
+
+    public function testRetriesEveryMessageWhenTransportReturnsOneMessagePerFetch(): void
+    {
+        $first = new Envelope(new ConfirmationEmailMessage(self::EMAIL, self::TOKEN));
+        $second = new Envelope(new ConfirmationEmailMessage(self::SECOND_EMAIL, self::TOKEN));
+        $failedTransport = $this->createMock(TransportInterface::class);
+        $failedTransport->expects(self::exactly(3))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls([$first], [$second], []);
+        $failedTransport->expects(self::exactly(2))->method('ack');
+        $bus = $this->createMock(MessageBusInterface::class);
+        $bus->expects(self::exactly(2))
+            ->method('dispatch')
+            ->willReturnCallback(static fn (object $message): Envelope => new Envelope($message));
+
+        $count = new FailedMessageRetrier($failedTransport, $bus)->retryAvailable();
+
+        self::assertSame(2, $count);
     }
 
     public function testKeepsFailedMessageWhenRedispatchFails(): void

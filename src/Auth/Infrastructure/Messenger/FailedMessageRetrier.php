@@ -20,10 +20,16 @@ final class FailedMessageRetrier
     {
         $retried = 0;
 
-        foreach ($this->failedTransport->get() as $envelope) {
-            $this->retry($envelope);
-            $retried++;
-        }
+        do {
+            $fetched = 0;
+
+            foreach ($this->failedTransport->get() as $envelope) {
+                $this->retry($envelope);
+                $fetched++;
+            }
+
+            $retried += $fetched;
+        } while ($fetched > 0);
 
         return $retried;
     }
