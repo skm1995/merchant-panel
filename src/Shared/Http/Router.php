@@ -74,6 +74,7 @@ final class Router
 
         if (
             $request->method === HttpMethodEnum::POST->value
+            && !$request->isApi()
             && !$this->csrfToken->isValid($request->post(CsrfToken::FIELD_NAME))
         ) {
             $this->reject($request, ResponseStatusEnum::FORBIDDEN, self::INVALID_CSRF_DETAIL);

@@ -6,15 +6,23 @@ namespace App\Shared\Http;
 
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ServerParameterEnum;
+use App\Shared\Http\Exception\InvalidRequestException;
+use JsonException;
 
 final readonly class Request
 {
     public const string ROOT_PATH = '/';
     private const string API_PATH_PREFIX = '/api/';
+    private const string HEADER_SERVER_KEY_PREFIX = 'HTTP_';
+    private const string HEADER_WORD_SEPARATOR = '-';
+    private const string SERVER_KEY_WORD_SEPARATOR = '_';
+    private const string BODY_STREAM = 'php://input';
+    private const string INVALID_JSON_MESSAGE = 'The request body must be a JSON object.';
 
     /**
      * @param array<mixed> $query
      * @param array<mixed> $post
+     * @param array<string, string> $headers header values keyed by lowercase name
      * @param array<string, string> $routeParameters
      */
     public function __construct(
@@ -22,6 +30,8 @@ final readonly class Request
         public string $path,
         private array $query = [],
         private array $post = [],
+        private array $headers = [],
+        private ?string $body = null,
         private array $routeParameters = [],
     ) {
     }
@@ -37,6 +47,8 @@ final readonly class Request
             is_string($path) ? $path : self::ROOT_PATH,
             $_GET,
             $_POST,
+            self::headersFromServer(),
+            file_get_contents(self::BODY_STREAM) ?: null,
         );
     }
 
@@ -58,12 +70,66 @@ final readonly class Request
     /** @param array<string, string> $parameters */
     public function withRouteParameters(array $parameters): self
     {
-        return new self($this->method, $this->path, $this->query, $this->post, $parameters);
+        return new self(
+            $this->method,
+            $this->path,
+            $this->query,
+            $this->post,
+            $this->headers,
+            $this->body,
+            $parameters,
+        );
     }
 
     public function routeParameter(string $name): ?string
     {
         return $this->routeParameters[$name] ?? null;
+    }
+
+    public function header(string $name): ?string
+    {
+        return $this->headers[strtolower($name)] ?? null;
+    }
+
+    /**
+     * Decodes a JSON object body.
+     *
+     * @return array<string, mixed>
+     */
+    public function json(): array
+    {
+        if ($this->body === null) {
+            throw new InvalidRequestException(self::INVALID_JSON_MESSAGE);
+        }
+
+        try {
+            $data = json_decode($this->body, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new InvalidRequestException(self::INVALID_JSON_MESSAGE, previous: $exception);
+        }
+
+        if (!is_array($data) || array_is_list($data)) {
+            throw new InvalidRequestException(self::INVALID_JSON_MESSAGE);
+        }
+
+        return $data;
+    }
+
+    /** @return array<string, string> */
+    private static function headersFromServer(): array
+    {
+        $headers = [];
+
+        foreach ($_SERVER as $key => $value) {
+            if (is_string($key) && is_string($value) && str_starts_with($key, self::HEADER_SERVER_KEY_PREFIX)) {
+                $name = substr($key, strlen(self::HEADER_SERVER_KEY_PREFIX))
+                    |> strtolower(...)
+                    |> (static fn (string $name): string => str_replace(self::SERVER_KEY_WORD_SEPARATOR, self::HEADER_WORD_SEPARATOR, $name));
+                $headers[$name] = $value;
+            }
+        }
+
+        return $headers;
     }
 
     /** @param array<mixed> $input */

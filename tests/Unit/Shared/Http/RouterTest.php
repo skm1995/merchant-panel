@@ -109,6 +109,26 @@ final class RouterTest extends TestCase
         );
     }
 
+    public function testApiPostDoesNotRequireCsrfTokenBecauseApiIsSessionless(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/api/v1/carts';
+            public bool $called = false;
+
+            #[Route(HttpMethodEnum::POST, self::PATH)]
+            public function create(): void
+            {
+                $this->called = true;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        $router->dispatch(new Request(HttpMethodEnum::POST->value, $controller::PATH));
+
+        self::assertTrue($controller->called);
+    }
+
     public function testDispatchesAttributedPostRoute(): void
     {
         $controller = new class () {

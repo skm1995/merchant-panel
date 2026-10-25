@@ -30,6 +30,7 @@ Use these rules when changing this project. Prefer its existing patterns and dep
 - Treat a missing required request field as a bad request (HTTP 400) at the controller boundary; represent missing values with `null`, never with sentinel strings.
 - Keep GET requests safe and free of state changes. Complete email confirmation and other mutations with POST requests protected by a session-bound CSRF token.
 - Add CSRF tokens to every state-changing browser form and validate them before invoking application services. Reject invalid tokens with HTTP 403.
+- Keep the JSON API under `/api/` sessionless: API actions never read the session or cookies and identify resources with unguessable identifiers or explicit credentials, which is why the router skips CSRF validation for `/api/` routes.
 - Start browser sessions with strict session ID handling and cookies configured as HttpOnly and SameSite=Lax; set Secure whenever the request uses HTTPS. Regenerate the session ID after successful authentication and after logout.
 - Run multi-statement database work through `TransactionRunner` with an explicit isolation level. Keep transactional operations free of side effects outside the database, because deadlocks and lock wait timeouts retry the whole operation.
 - Make asynchronous operations recoverable. Provide a documented and tested retry path for messages that could not be dispatched, and ensure the worker restarts after process failure. Keep failed messages inspectable and document how to retry them; a retry must skip, not crash on, messages it cannot decode.
