@@ -8,6 +8,13 @@ x-messenger-environment: &messenger-environment
   MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails}
   MESSENGER_FAILURE_TRANSPORT_DSN: ${MESSENGER_FAILURE_TRANSPORT_DSN:-amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_failed}
 
+x-test-messenger-environment: &test-messenger-environment
+  MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_test
+  MESSENGER_FAILURE_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-app}:${RABBITMQ_PASSWORD:-app}@rabbitmq:5672/%2f/emails_test_failed
+
+x-test-app-environment: &test-app-environment
+  APP_BASE_URL: ${TEST_APP_BASE_URL:-http://host.docker.internal:8081}
+
 x-mailer-environment: &mailer-environment
   MAILER_DSN: ${MAILER_DSN:-smtp://mailhog:1025}
   MAILER_FROM: ${MAILER_FROM:-no-reply@example.com}
@@ -69,9 +76,8 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *messenger-environment]
+      <<: [*test-database-environment, *test-messenger-environment, *test-app-environment]
       XDEBUG_MODE: "off"
-      APP_BASE_URL: ${TEST_APP_BASE_URL:-http://host.docker.internal:8081}
       MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
     depends_on:
       mysql:
@@ -87,7 +93,7 @@ services:
     profiles:
       - test
     environment:
-      <<: [*test-database-environment, *messenger-environment]
+      <<: [*test-database-environment, *test-messenger-environment]
       XDEBUG_MODE: "off"
       SESSION_COOKIE_SECURE: "false"
     depends_on:
@@ -95,6 +101,23 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  worker-test:
+    build: *php-build
+    working_dir: /var/www/html
+    command: php bin/worker.php
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    profiles:
+      - test
+    environment:
+      <<: [*test-messenger-environment, *mailer-environment, *test-app-environment]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
 
   mysql:
     image: mysql:8.4

@@ -5,81 +5,76 @@ declare(strict_types=1);
 namespace Tests\Functional\Http;
 
 use App\Auth\Repository\PdoUserRepository;
-use App\Shared\Config\Environment;
 use App\Shared\Database\DatabaseConnection;
+use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Enum\ResponseStatusEnum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\BrowserKit\HttpBrowser;
+use Tests\Functional\Support\Browser;
 use Tests\Functional\Support\TestUserData;
 
 final class RoutingTest extends TestCase
 {
-    private const string BASE_URL_ENVIRONMENT_KEY = 'APP_BASE_URL';
+    private const string HOME_PATH = '/';
     private const string REGISTER_PATH = '/register';
     private const string LOGIN_PATH = '/login';
-    private const string CONFIRMATION_SENT_PATH = '/confirmation-sent';
-    private const string EMAIL_CONFIRMED_PATH = '/email-confirmed';
-    private const string REGISTER_HEADING = '<h1>Create account</h1>';
-    private const string LOGIN_HEADING = '<h1>Log in</h1>';
-    private const string CONFIRMATION_SENT_HEADING = '<h1>Check your email</h1>';
-    private const string EMAIL_CONFIRMED_HEADING = '<h1>Email confirmed</h1>';
-    private const string HTTP_OPTIONS_KEY = 'http';
-    private const string IGNORE_ERRORS_KEY = 'ignore_errors';
-    private const string SESSION_COOKIE_HEADER = 'Set-Cookie: PHPSESSID=';
     private const string CONFIRM_PATH = '/confirm';
+    private const string MISSING_PATH = '/missing-page';
+    private const string HEADING_SELECTOR = 'h1';
+    private const string SESSION_COOKIE = 'PHPSESSID';
+    private const string LAX_SAME_SITE = 'lax';
     private const string CSRF_EMAIL_PREFIX = 'csrf-';
     private const string PASSWORD = 'functional-password-123';
-    private const string METHOD_KEY = 'method';
-    private const string HEADER_KEY = 'header';
-    private const string CONTENT_KEY = 'content';
-    private const string POST_METHOD = 'POST';
-    private const string FORM_CONTENT_TYPE = 'Content-Type: application/x-www-form-urlencoded';
-    private const string STATUS_LINE_FORMAT = ' %d ';
-    private const int BAD_REQUEST = 400;
-    private const int FORBIDDEN = 403;
 
-    public function testApacheRoutesRegistrationPageToFrontController(): void
+    private HttpBrowser $browser;
+
+    protected function setUp(): void
     {
-        $body = self::REGISTER_PATH |> self::get(...);
-        self::assertStringContainsString(self::REGISTER_HEADING, $body);
+        $this->browser = Browser::create();
     }
 
-    public function testApacheRoutesLoginPageToFrontController(): void
+    /** @return iterable<string, array{string, string}> */
+    public static function pages(): iterable
     {
-        $body = self::LOGIN_PATH |> self::get(...);
-        self::assertStringContainsString(self::LOGIN_HEADING, $body);
+        yield 'home' => [self::HOME_PATH, 'PHP MVC Playground'];
+        yield 'register' => [self::REGISTER_PATH, 'Create account'];
+        yield 'login' => [self::LOGIN_PATH, 'Log in'];
+        yield 'confirmation sent' => ['/confirmation-sent', 'Check your email'];
+        yield 'email confirmed' => ['/email-confirmed', 'Email confirmed'];
     }
 
-    public function testApacheRoutesConfirmationSentPageToFrontController(): void
+    #[DataProvider('pages')]
+    public function testWebServerRoutesPageToFrontController(string $path, string $heading): void
     {
-        $body = self::CONFIRMATION_SENT_PATH |> self::get(...);
-        self::assertStringContainsString(self::CONFIRMATION_SENT_HEADING, $body);
+        $page = $this->browser->request(HttpMethodEnum::GET->value, Browser::url($path));
+
+        self::assertSame(ResponseStatusEnum::OK->value, $this->browser->getInternalResponse()->getStatusCode());
+        self::assertSame($heading, $page->filter(self::HEADING_SELECTOR)->text());
     }
 
-    public function testApacheRoutesEmailConfirmedPageToFrontController(): void
+    public function testUnknownPathIsNotFound(): void
     {
-        $body = self::EMAIL_CONFIRMED_PATH |> self::get(...);
-        self::assertStringContainsString(self::EMAIL_CONFIRMED_HEADING, $body);
+        $this->browser->request(HttpMethodEnum::GET->value, Browser::url(self::MISSING_PATH));
+
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $this->browser->getInternalResponse()->getStatusCode());
     }
 
     public function testSessionCookieIsHttpOnlyAndSameSite(): void
     {
-        self::get(self::LOGIN_PATH);
-        $headers = http_get_last_response_headers();
-        self::assertIsArray($headers);
-        $sessionCookieHeaders = array_filter(
-            $headers,
-            static fn (string $header): bool => str_starts_with($header, self::SESSION_COOKIE_HEADER),
-        );
-        $sessionCookieHeader = implode('; ', $sessionCookieHeaders);
+        $this->browser->request(HttpMethodEnum::GET->value, Browser::url(self::LOGIN_PATH));
+        $cookie = $this->browser->getCookieJar()->get(self::SESSION_COOKIE);
 
-        self::assertStringContainsString('HttpOnly', $sessionCookieHeader);
-        self::assertStringContainsString('SameSite=Lax', $sessionCookieHeader);
+        self::assertNotNull($cookie);
+        self::assertTrue($cookie->isHttpOnly());
+        self::assertSame(self::LAX_SAME_SITE, strtolower((string) $cookie->getSameSite()));
     }
 
     public function testConfirmationPageWithoutTokenIsBadRequest(): void
     {
-        self::get(self::CONFIRM_PATH);
+        $this->browser->request(HttpMethodEnum::GET->value, Browser::url(self::CONFIRM_PATH));
 
-        self::assertResponseStatus(self::BAD_REQUEST);
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $this->browser->getInternalResponse()->getStatusCode());
     }
 
     public function testPostWithoutCsrfTokenIsForbiddenAndCreatesNoAccount(): void
@@ -88,43 +83,15 @@ final class RoutingTest extends TestCase
         $pdo = DatabaseConnection::createFromEnvironment();
 
         try {
-            self::request(self::REGISTER_PATH, [
-                self::HTTP_OPTIONS_KEY => [
-                    self::IGNORE_ERRORS_KEY => true,
-                    self::METHOD_KEY => self::POST_METHOD,
-                    self::HEADER_KEY => self::FORM_CONTENT_TYPE,
-                    self::CONTENT_KEY => http_build_query(['email' => $email, 'password' => self::PASSWORD]),
-                ],
+            $this->browser->request(HttpMethodEnum::POST->value, Browser::url(self::REGISTER_PATH), [
+                'email' => $email,
+                'password' => self::PASSWORD,
             ]);
 
-            self::assertResponseStatus(self::FORBIDDEN);
+            self::assertSame(ResponseStatusEnum::FORBIDDEN->value, $this->browser->getInternalResponse()->getStatusCode());
             self::assertNull(new PdoUserRepository($pdo)->findByEmail($email));
         } finally {
             TestUserData::delete($pdo, $email);
         }
-    }
-
-    private static function get(string $path): string
-    {
-        return self::request($path, [self::HTTP_OPTIONS_KEY => [self::IGNORE_ERRORS_KEY => true]]);
-    }
-
-    /** @param array<string, array<string, mixed>> $options */
-    private static function request(string $path, array $options): string
-    {
-        $url = Environment::get(self::BASE_URL_ENVIRONMENT_KEY) . $path;
-        $body = file_get_contents($url, false, stream_context_create($options));
-
-        self::assertIsString($body);
-
-        return $body;
-    }
-
-    private static function assertResponseStatus(int $status): void
-    {
-        $statusLine = http_get_last_response_headers()[0] ?? null;
-
-        self::assertIsString($statusLine);
-        self::assertStringContainsString(sprintf(self::STATUS_LINE_FORMAT, $status), $statusLine);
     }
 }
