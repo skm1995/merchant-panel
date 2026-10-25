@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Auth;
 
-use App\Shared\Database\DatabaseConnection;
 use App\Auth\Repository\PdoUserRepository;
+use App\Shared\Database\DatabaseConnection;
+use App\Shared\Http\CsrfToken;
 use PDO;
 use PHPUnit\Framework\TestCase;
+use Tests\Functional\Support\TestUserData;
 
 final class AsyncConfirmationFlowTest extends TestCase
 {
     private const string EMAIL_PREFIX = 'async-confirmation-';
-    private const string EMAIL_DOMAIN = '@example.com';
     private const string PASSWORD = 'functional-password-123';
     private const string REGISTER_PATH = '/register';
-    private const string CONFIRM_PATH = '/confirm?token=%s';
+    private const string CONFIRM_PATH = '/confirm';
+    private const string CONFIRM_LINK_PATH = '/confirm?token=%s';
+    private const string CSRF_FIELD_PATTERN = '/name="%s" value="([a-f0-9]+)"/';
     private const string INVALID_CONFIRMATION_MESSAGE = 'This confirmation link is invalid or has expired.';
     private const string CONFIRMATION_LINK_PATTERN = '/confirm\?token=([a-f0-9]{64})/';
-    private const string TOKEN_DELETE_QUERY = 'DELETE FROM email_verification_tokens WHERE email = :email';
-    private const string USER_DELETE_QUERY = 'DELETE FROM users WHERE email = :email';
     private const string MAILHOG_API_BASE_URL_ENVIRONMENT_KEY = 'MAILHOG_API_BASE_URL';
     private const string MAILHOG_MESSAGE_PATH = '/api/v1/messages/%s';
     private const string HTTP_OPTIONS_KEY = 'http';
@@ -36,16 +37,12 @@ final class AsyncConfirmationFlowTest extends TestCase
     protected function setUp(): void
     {
         $this->pdo = DatabaseConnection::createFromEnvironment();
-        $randomSuffix = random_bytes(8) |> bin2hex(...);
-        $this->email = self::EMAIL_PREFIX . $randomSuffix . self::EMAIL_DOMAIN;
+        $this->email = TestUserData::uniqueEmail(self::EMAIL_PREFIX);
     }
 
     protected function tearDown(): void
     {
-        foreach ([self::TOKEN_DELETE_QUERY, self::USER_DELETE_QUERY] as $query) {
-            $statement = $this->pdo->prepare($query);
-            $statement->execute(['email' => $this->email]);
-        }
+        TestUserData::delete($this->pdo, $this->email);
 
         if ($this->mailhogMessageId !== null) {
             $mailhogUrl = getenv(self::MAILHOG_API_BASE_URL_ENVIRONMENT_KEY);
@@ -63,14 +60,11 @@ final class AsyncConfirmationFlowTest extends TestCase
 
     public function testRegistrationEmailIsSentAsynchronouslyAndConfirmsPersistedUser(): void
     {
-        $registrationPage = $this->request('/register');
-        preg_match('/name="_csrf_token" value="([a-f0-9]+)"/', $registrationPage, $csrfMatches);
-        $csrfToken = $csrfMatches[1] ?? null;
-        self::assertIsString($csrfToken);
+        $csrfToken = $this->request(self::REGISTER_PATH) |> self::csrfToken(...);
         $this->request(self::REGISTER_PATH, [
             'email' => $this->email,
             'password' => self::PASSWORD,
-            '_csrf_token' => $csrfToken,
+            CsrfToken::FIELD_NAME => $csrfToken,
         ]);
 
         $messageBody = $this->waitForMail() |> quoted_printable_decode(...);
@@ -80,26 +74,30 @@ final class AsyncConfirmationFlowTest extends TestCase
         self::assertIsString($token);
 
         $encodedToken = $token |> rawurlencode(...);
-        $confirmationPath = sprintf(self::CONFIRM_PATH, $encodedToken);
-        $confirmationPage = $this->request($confirmationPath);
+        $confirmationCsrfToken = sprintf(self::CONFIRM_LINK_PATH, $encodedToken)
+            |> $this->request(...)
+            |> self::csrfToken(...);
         $users = new PdoUserRepository($this->pdo);
-        self::assertNull($users->findByEmail($this->email)?->emailVerifiedAt);
-        preg_match('/name="_csrf_token" value="([a-f0-9]+)"/', $confirmationPage, $csrfMatches);
-        $confirmationCsrfToken = $csrfMatches[1] ?? null;
-        self::assertIsString($confirmationCsrfToken);
-        $this->request('/confirm', [
-            'token' => $token,
-            '_csrf_token' => $confirmationCsrfToken,
-        ]);
-        $replayResponse = $this->request('/confirm', [
-            'token' => $token,
-            '_csrf_token' => $confirmationCsrfToken,
-        ]);
+        $unconfirmedUser = $users->findByEmail($this->email);
+        self::assertNotNull($unconfirmedUser);
+        self::assertFalse($unconfirmedUser->isVerified());
+        $confirmationForm = ['token' => $token, CsrfToken::FIELD_NAME => $confirmationCsrfToken];
+        $this->request(self::CONFIRM_PATH, $confirmationForm);
+        $replayResponse = $this->request(self::CONFIRM_PATH, $confirmationForm);
 
-        $user = $users->findByEmail($this->email);
-        self::assertNotNull($user);
-        self::assertNotNull($user->emailVerifiedAt);
+        $confirmedUser = $users->findByEmail($this->email);
+        self::assertNotNull($confirmedUser);
+        self::assertTrue($confirmedUser->isVerified());
         self::assertStringContainsString(self::INVALID_CONFIRMATION_MESSAGE, $replayResponse);
+    }
+
+    private static function csrfToken(string $page): string
+    {
+        preg_match(sprintf(self::CSRF_FIELD_PATTERN, CsrfToken::FIELD_NAME), $page, $matches);
+        $token = $matches[1] ?? null;
+        self::assertIsString($token);
+
+        return $token;
     }
 
     /** @param array<string, string>|null $form */

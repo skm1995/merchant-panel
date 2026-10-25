@@ -49,4 +49,10 @@ final class CsrfTokenTest extends TestCase
         self::assertFalse($this->csrfToken->isValid('incorrect-token'));
         self::assertFalse($this->csrfToken->isValid(null));
     }
+
+    public function testRejectsTokenWithoutGeneratingOneWhenSessionHasNone(): void
+    {
+        self::assertFalse($this->csrfToken->isValid(self::TOKEN));
+        self::assertArrayNotHasKey(self::SESSION_KEY, $_SESSION);
+    }
 }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Bootstrap;
 
-use App\Home\Controller\HomeController;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ServerParameterEnum;
+use App\Shared\Http\Request;
 use PHPUnit\Framework\TestCase;
 
 final class FrontControllerTest extends TestCase
@@ -18,7 +18,7 @@ final class FrontControllerTest extends TestCase
     {
         $originalServer = $_SERVER;
         $_SERVER[ServerParameterEnum::REQUEST_METHOD->value] = HttpMethodEnum::GET->value;
-        $_SERVER[ServerParameterEnum::REQUEST_URI->value] = HomeController::ROUTE_PATH;
+        $_SERVER[ServerParameterEnum::REQUEST_URI->value] = Request::ROOT_PATH;
         ob_start();
 
         require dirname(__DIR__, 3) . self::FRONT_CONTROLLER_PATH;

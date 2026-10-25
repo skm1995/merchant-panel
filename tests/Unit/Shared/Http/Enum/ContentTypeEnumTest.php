@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 final class ContentTypeEnumTest extends TestCase
 {
     private const string HTML_CONTENT_TYPE = 'text/html; charset=UTF-8';
-    private const string PLAIN_CONTENT_TYPE = 'text/plain; charset=utf-8';
+    private const string PLAIN_CONTENT_TYPE = 'text/plain; charset=UTF-8';
 
     public function testHtmlContentTypeHasItsExpectedValue(): void
     {

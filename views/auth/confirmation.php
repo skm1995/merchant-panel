@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Shared\Http\Enum\CharacterEncodingEnum;
-use App\Shared\Http\Enum\ContentTypeEnum;
-use App\Shared\Http\Enum\HeaderNameEnum;
-
-header(HeaderNameEnum::CONTENT_TYPE->value . ': ' . ContentTypeEnum::HTML->value);
-/** @var string $token */
+/** @var Closure(string): string $e */
+/** @var string $csrfField */
 /** @var string $csrfToken */
+/** @var string $token */
 ?>
 <!doctype html>
 <html lang="en">
@@ -18,8 +15,8 @@ header(HeaderNameEnum::CONTENT_TYPE->value . ': ' . ContentTypeEnum::HTML->value
     <h1>Confirm email</h1>
     <p>Submit this form to confirm your email address.</p>
     <form method="post" action="/confirm">
-        <input type="hidden" name="token" value="<?= htmlspecialchars($token, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?>">
-        <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?>">
+        <input type="hidden" name="token" value="<?= $e($token) ?>">
+        <input type="hidden" name="<?= $e($csrfField) ?>" value="<?= $e($csrfToken) ?>">
         <button type="submit">Confirm email</button>
     </form>
 </main>

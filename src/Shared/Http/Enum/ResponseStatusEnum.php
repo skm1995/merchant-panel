@@ -8,6 +8,7 @@ enum ResponseStatusEnum: int
 {
     case OK = 200;
     case SEE_OTHER = 303;
+    case BAD_REQUEST = 400;
     case FORBIDDEN = 403;
     case NOT_FOUND = 404;
 
@@ -16,6 +17,7 @@ enum ResponseStatusEnum: int
         return match ($this) {
             self::OK => 'OK',
             self::SEE_OTHER => 'See Other',
+            self::BAD_REQUEST => 'Bad Request',
             self::FORBIDDEN => 'Forbidden',
             self::NOT_FOUND => 'Not Found',
         };

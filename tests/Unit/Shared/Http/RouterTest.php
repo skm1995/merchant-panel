@@ -6,6 +6,8 @@ namespace Tests\Unit\Shared\Http;
 
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\CsrfToken;
+use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
@@ -20,12 +22,9 @@ final class RouterTest extends TestCase
     private const string NOT_FOUND_MESSAGE = '404 Not Found';
     private const string FORBIDDEN_MESSAGE = '403 Forbidden';
     private const string POST_VALUE = 'post route dispatched';
-    private const string CSRF_FIELD = CsrfToken::SESSION_KEY;
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
     private array $originalSession;
-    /** @var array<string, mixed> */
-    private array $originalPost;
 
     protected function setUp(): void
     {
@@ -34,16 +33,13 @@ final class RouterTest extends TestCase
         }
 
         $this->originalSession = $_SESSION;
-        $this->originalPost = $_POST;
         $_SESSION = [];
-        $_POST = [];
         $this->csrfToken = new CsrfToken(new Session());
     }
 
     protected function tearDown(): void
     {
         $_SESSION = $this->originalSession;
-        $_POST = $this->originalPost;
     }
 
     public function testDispatchesAttributedGetRoute(): void
@@ -64,7 +60,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch(HttpMethodEnum::GET->value, self::ROUTE_PATH);
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertTrue($controller->called);
@@ -77,7 +73,7 @@ final class RouterTest extends TestCase
         http_response_code(200);
         ob_start();
 
-        $router->dispatch(HttpMethodEnum::GET->value, self::MISSING_ROUTE_PATH);
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::MISSING_ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertSame(404, http_response_code());
@@ -96,12 +92,17 @@ final class RouterTest extends TestCase
                 echo self::MESSAGE;
             }
         };
-        $_POST[self::CSRF_FIELD] = $this->csrfToken->get();
+        $request = new Request(
+            HttpMethodEnum::POST->value,
+            self::ROUTE_PATH,
+            [],
+            [CsrfToken::FIELD_NAME => $this->csrfToken->get()],
+        );
         $router = $this->router();
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch(HttpMethodEnum::POST->value, self::ROUTE_PATH);
+        $router->dispatch($request);
         $output = ob_get_clean();
 
         self::assertSame(self::POST_VALUE, $output);
@@ -144,7 +145,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
 
         ob_start();
-        $router->dispatch(HttpMethodEnum::POST->value, self::ROUTE_PATH);
+        $router->dispatch(new Request(HttpMethodEnum::POST->value, self::ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertFalse($controller->called);
@@ -154,6 +155,6 @@ final class RouterTest extends TestCase
 
     private function router(): Router
     {
-        return new Router($this->csrfToken);
+        return new Router($this->csrfToken, new Responder($this->csrfToken));
     }
 }

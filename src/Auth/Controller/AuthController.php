@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace App\Auth\Controller;
 
-use App\Auth\Service\AuthActionResult;
 use App\Auth\Service\ConfirmEmailService;
+use App\Auth\Service\CurrentUser;
 use App\Auth\Service\LoginUserService;
-use App\Auth\Service\LogoutUserService;
 use App\Auth\Service\RegisterUserService;
-use App\Shared\Http\Controller;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
-use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
+use DomainException;
 
-final class AuthController extends Controller
+final class AuthController
 {
     private const string REGISTER_ROUTE_PATH = '/register';
     private const string LOGIN_ROUTE_PATH = '/login';
@@ -30,94 +29,131 @@ final class AuthController extends Controller
     private const string EMAIL_CONFIRMED_TEMPLATE = 'auth/email-confirmed';
     private const string CONFIRMATION_TEMPLATE = 'auth/confirmation';
     private const string CONFIRMATION_ERROR_TEMPLATE = 'auth/confirmation-error';
-    private const string TOKEN_KEY = 'token';
-    private const string INVALID_TOKEN_INPUT = "\0";
+    private const string EMAIL_FIELD = 'email';
+    private const string PASSWORD_FIELD = 'password';
+    private const string TOKEN_FIELD = 'token';
     private const string ERROR_DATA_KEY = 'error';
     private const string EMAIL_DATA_KEY = 'email';
+    private const string TOKEN_DATA_KEY = 'token';
 
     public function __construct(
         private readonly RegisterUserService $registerUser,
         private readonly LoginUserService $loginUser,
-        private readonly LogoutUserService $logoutUser,
         private readonly ConfirmEmailService $confirmEmail,
-        CsrfToken $csrfToken,
+        private readonly CurrentUser $currentUser,
+        private readonly Request $request,
+        private readonly Responder $responder,
     ) {
-        parent::__construct($csrfToken);
     }
 
     #[Route(HttpMethodEnum::GET, self::REGISTER_ROUTE_PATH)]
     public function showRegister(): void
     {
-        $this->render(self::REGISTER_TEMPLATE);
+        $this->responder->render(self::REGISTER_TEMPLATE);
     }
 
     #[Route(HttpMethodEnum::POST, self::REGISTER_ROUTE_PATH)]
     public function register(): void
     {
-        $this->respond($this->registerUser->execute($_POST), self::REGISTER_TEMPLATE);
+        $this->submitCredentials(
+            $this->registerUser->execute(...),
+            self::REGISTER_TEMPLATE,
+            self::CONFIRMATION_SENT_ROUTE_PATH,
+        );
     }
 
     #[Route(HttpMethodEnum::GET, self::LOGIN_ROUTE_PATH)]
     public function showLogin(): void
     {
-        $this->render(self::LOGIN_TEMPLATE);
+        $this->responder->render(self::LOGIN_TEMPLATE);
     }
 
     #[Route(HttpMethodEnum::POST, self::LOGIN_ROUTE_PATH)]
     public function login(): void
     {
-        $this->respond($this->loginUser->execute($_POST), self::LOGIN_TEMPLATE);
+        $this->submitCredentials($this->loginUser->execute(...), self::LOGIN_TEMPLATE, Request::ROOT_PATH);
     }
 
     #[Route(HttpMethodEnum::POST, self::LOGOUT_ROUTE_PATH)]
     public function logout(): void
     {
-        $this->respond($this->logoutUser->execute(), self::LOGIN_TEMPLATE);
+        $this->currentUser->signOut();
+        $this->responder->redirect(Request::ROOT_PATH);
     }
 
     #[Route(HttpMethodEnum::GET, self::CONFIRMATION_SENT_ROUTE_PATH)]
     public function showConfirmationSent(): void
     {
-        $this->render(self::CONFIRMATION_SENT_TEMPLATE);
+        $this->responder->render(self::CONFIRMATION_SENT_TEMPLATE);
     }
 
     #[Route(HttpMethodEnum::GET, self::CONFIRM_ROUTE_PATH)]
     public function confirm(): void
     {
-        $token = $_GET[self::TOKEN_KEY] ?? null;
-        $this->render(self::CONFIRMATION_TEMPLATE, [
-            self::TOKEN_KEY => is_string($token) ? $token : self::INVALID_TOKEN_INPUT,
-        ]);
+        $token = $this->request->query(self::TOKEN_FIELD);
+
+        if ($token === null) {
+            $this->responder->status(ResponseStatusEnum::BAD_REQUEST);
+
+            return;
+        }
+
+        $this->responder->render(self::CONFIRMATION_TEMPLATE, [self::TOKEN_DATA_KEY => $token]);
     }
 
     #[Route(HttpMethodEnum::POST, self::CONFIRM_ROUTE_PATH)]
     public function confirmPost(): void
     {
-        $token = $_POST[self::TOKEN_KEY] ?? null;
-        $confirmationToken = is_string($token) ? $token : self::INVALID_TOKEN_INPUT;
-        $this->respond($this->confirmEmail->execute($confirmationToken), self::CONFIRMATION_ERROR_TEMPLATE);
+        $token = $this->request->post(self::TOKEN_FIELD);
+
+        if ($token === null) {
+            $this->responder->status(ResponseStatusEnum::BAD_REQUEST);
+
+            return;
+        }
+
+        try {
+            $this->confirmEmail->execute($token);
+        } catch (DomainException $exception) {
+            $this->responder->render(self::CONFIRMATION_ERROR_TEMPLATE, [
+                self::ERROR_DATA_KEY => $exception->getMessage(),
+            ]);
+
+            return;
+        }
+
+        $this->responder->redirect(self::EMAIL_CONFIRMED_ROUTE_PATH);
     }
 
     #[Route(HttpMethodEnum::GET, self::EMAIL_CONFIRMED_ROUTE_PATH)]
     public function showEmailConfirmed(): void
     {
-        $this->render(self::EMAIL_CONFIRMED_TEMPLATE);
+        $this->responder->render(self::EMAIL_CONFIRMED_TEMPLATE);
     }
 
-    private function respond(AuthActionResult $result, string $template): void
+    /** @param callable(string, string): void $action */
+    private function submitCredentials(callable $action, string $template, string $successPath): void
     {
-        if ($result->redirectPath !== null) {
-            header(
-                HeaderNameEnum::LOCATION->value . ': ' . $result->redirectPath,
-                true,
-                ResponseStatusEnum::SEE_OTHER->value,
-            );
+        $email = $this->request->post(self::EMAIL_FIELD);
+        $password = $this->request->post(self::PASSWORD_FIELD);
+
+        if ($email === null || $password === null) {
+            $this->responder->status(ResponseStatusEnum::BAD_REQUEST);
+
             return;
         }
 
-        $this->render($template, [
-            self::ERROR_DATA_KEY => $result->errorMessage,
-            self::EMAIL_DATA_KEY => $result->email,
-        ]);
+        try {
+            $action($email, $password);
+        } catch (DomainException $exception) {
+            $this->responder->render($template, [
+                self::ERROR_DATA_KEY => $exception->getMessage(),
+                self::EMAIL_DATA_KEY => $email,
+            ]);
+
+            return;
+        }
+
+        $this->responder->redirect($successPath);
     }
 }

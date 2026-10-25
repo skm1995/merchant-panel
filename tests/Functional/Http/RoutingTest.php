@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Http;
 
+use App\Auth\Repository\PdoUserRepository;
+use App\Shared\Database\DatabaseConnection;
 use PHPUnit\Framework\TestCase;
+use Tests\Functional\Support\TestUserData;
 
 final class RoutingTest extends TestCase
 {
@@ -21,6 +24,17 @@ final class RoutingTest extends TestCase
     private const string HTTP_OPTIONS_KEY = 'http';
     private const string IGNORE_ERRORS_KEY = 'ignore_errors';
     private const string SESSION_COOKIE_HEADER = 'Set-Cookie: PHPSESSID=';
+    private const string CONFIRM_PATH = '/confirm';
+    private const string CSRF_EMAIL_PREFIX = 'csrf-';
+    private const string PASSWORD = 'functional-password-123';
+    private const string METHOD_KEY = 'method';
+    private const string HEADER_KEY = 'header';
+    private const string CONTENT_KEY = 'content';
+    private const string POST_METHOD = 'POST';
+    private const string FORM_CONTENT_TYPE = 'Content-Type: application/x-www-form-urlencoded';
+    private const string STATUS_LINE_FORMAT = ' %d ';
+    private const int BAD_REQUEST = 400;
+    private const int FORBIDDEN = 403;
 
     public function testApacheRoutesRegistrationPageToFrontController(): void
     {
@@ -61,17 +75,57 @@ final class RoutingTest extends TestCase
         self::assertStringContainsString('SameSite=Lax', $sessionCookieHeader);
     }
 
+    public function testConfirmationPageWithoutTokenIsBadRequest(): void
+    {
+        self::get(self::CONFIRM_PATH);
+
+        self::assertResponseStatus(self::BAD_REQUEST);
+    }
+
+    public function testPostWithoutCsrfTokenIsForbiddenAndCreatesNoAccount(): void
+    {
+        $email = TestUserData::uniqueEmail(self::CSRF_EMAIL_PREFIX);
+        $pdo = DatabaseConnection::createFromEnvironment();
+
+        try {
+            self::request(self::REGISTER_PATH, [
+                self::HTTP_OPTIONS_KEY => [
+                    self::IGNORE_ERRORS_KEY => true,
+                    self::METHOD_KEY => self::POST_METHOD,
+                    self::HEADER_KEY => self::FORM_CONTENT_TYPE,
+                    self::CONTENT_KEY => http_build_query(['email' => $email, 'password' => self::PASSWORD]),
+                ],
+            ]);
+
+            self::assertResponseStatus(self::FORBIDDEN);
+            self::assertNull(new PdoUserRepository($pdo)->findByEmail($email));
+        } finally {
+            TestUserData::delete($pdo, $email);
+        }
+    }
+
     private static function get(string $path): string
+    {
+        return self::request($path, [self::HTTP_OPTIONS_KEY => [self::IGNORE_ERRORS_KEY => true]]);
+    }
+
+    /** @param array<string, array<string, mixed>> $options */
+    private static function request(string $path, array $options): string
     {
         $baseUrl = getenv(self::BASE_URL_ENVIRONMENT_KEY);
         $url = (is_string($baseUrl) && strlen($baseUrl) > 0 ? $baseUrl : self::DEFAULT_BASE_URL) . $path;
-        $context = stream_context_create([
-            self::HTTP_OPTIONS_KEY => [self::IGNORE_ERRORS_KEY => true],
-        ]);
-        $body = file_get_contents($url, false, $context);
+        $body = file_get_contents($url, false, stream_context_create($options));
 
         self::assertIsString($body);
 
         return $body;
+    }
+
+    private static function assertResponseStatus(int $status): void
+    {
+        $statusLine = http_get_last_response_headers()[0] ?? null;
+
+        self::assertIsString($statusLine);
+        self::assertStringContainsString(sprintf(self::STATUS_LINE_FORMAT, $status), $statusLine);
     }
 }

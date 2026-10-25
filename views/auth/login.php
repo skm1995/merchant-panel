@@ -2,14 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Shared\Http\Enum\CharacterEncodingEnum;
-use App\Shared\Http\Enum\ContentTypeEnum;
-use App\Shared\Http\Enum\HeaderNameEnum;
-
-header(HeaderNameEnum::CONTENT_TYPE->value . ': ' . ContentTypeEnum::HTML->value);
-$emailValue = isset($email) && is_string($email)
-    ? htmlspecialchars($email, ENT_QUOTES, CharacterEncodingEnum::UTF8->value)
-    : null;
+/** @var Closure(string): string $e */
+/** @var string $csrfField */
 /** @var string $csrfToken */
 ?>
 <!doctype html>
@@ -23,11 +17,11 @@ $emailValue = isset($email) && is_string($email)
 <main>
     <h1>Log in</h1>
     <?php if (isset($error) && is_string($error)): ?>
-        <p role="alert"><?= htmlspecialchars($error, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?></p>
+        <p role="alert"><?= $e($error) ?></p>
     <?php endif; ?>
     <form method="post" action="/login">
-        <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, CharacterEncodingEnum::UTF8->value) ?>">
-        <label>Email <input type="email" name="email"<?php if ($emailValue !== null): ?> value="<?= $emailValue ?>"<?php endif; ?> required></label>
+        <input type="hidden" name="<?= $e($csrfField) ?>" value="<?= $e($csrfToken) ?>">
+        <label>Email <input type="email" name="email"<?php if (isset($email) && is_string($email)): ?> value="<?= $e($email) ?>"<?php endif; ?> required></label>
         <label>Password <input type="password" name="password" required></label>
         <button type="submit">Log in</button>
     </form>

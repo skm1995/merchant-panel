@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Auth\Repository;
 
 use App\Auth\Entity\User;
+use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Repository\PdoUserRepository;
 use DateTimeImmutable;
 use PDO;
+use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
 
@@ -18,6 +20,9 @@ final class PdoUserRepositoryTest extends TestCase
     private const string EMAIL = 'person@example.com';
     private const string HASH = 'password-hash';
     private const string CREATED_AT = '2026-10-25 10:00:00';
+    private const string INTEGRITY_CONSTRAINT_VIOLATION = '23000';
+    private const int MYSQL_DUPLICATE_KEY_ERROR = 1062;
+    private const string DUPLICATE_KEY_MESSAGE = 'Duplicate entry';
 
     public function testFindByEmailReturnsUserWhenFound(): void
     {
@@ -36,7 +41,7 @@ final class PdoUserRepositoryTest extends TestCase
 
         self::assertInstanceOf(User::class, $user);
         self::assertSame(self::EMAIL, $user->email);
-        self::assertSame(self::HASH, $user->password);
+        self::assertSame(self::HASH, $user->passwordHash);
         self::assertSame(self::CREATED_AT, $user->createdAt->format('Y-m-d H:i:s'));
     }
 
@@ -63,7 +68,20 @@ final class PdoUserRepositoryTest extends TestCase
         $user = new PdoUserRepository($pdo)->create(self::EMAIL, self::HASH);
 
         self::assertSame(self::EMAIL, $user->email);
-        self::assertSame(self::HASH, $user->password);
+        self::assertSame(self::HASH, $user->passwordHash);
         self::assertInstanceOf(DateTimeImmutable::class, $user->createdAt);
+    }
+
+    public function testCreateTranslatesUniqueEmailViolationToDuplicateEmail(): void
+    {
+        $exception = new PDOException(self::DUPLICATE_KEY_MESSAGE);
+        $exception->errorInfo = [self::INTEGRITY_CONSTRAINT_VIOLATION, self::MYSQL_DUPLICATE_KEY_ERROR];
+        $statement = $this->createStub(PDOStatement::class);
+        $statement->method('execute')->willThrowException($exception);
+        $pdo = $this->createStub(PDO::class);
+        $pdo->method('prepare')->willReturn($statement);
+
+        $this->expectException(DuplicateEmailException::class);
+        new PdoUserRepository($pdo)->create(self::EMAIL, self::HASH);
     }
 }

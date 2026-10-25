@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Auth\Service;
 
 use App\Auth\Entity\User;
+use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\UserAuthService;
 use DateTimeImmutable;
@@ -66,7 +67,7 @@ final class UserAuthServiceTest extends TestCase
         );
         $repository->expects(self::never())->method('create');
 
-        $this->expectException(DomainException::class);
+        $this->expectException(DuplicateEmailException::class);
         $this->expectExceptionMessage(self::DUPLICATE_ERROR);
         new UserAuthService($repository)->register(self::EMAIL, self::PASSWORD);
     }
@@ -89,6 +90,20 @@ final class UserAuthServiceTest extends TestCase
         $this->expectException(DomainException::class);
         $this->expectExceptionMessage(self::CREDENTIALS_ERROR);
         new UserAuthService($repository)->authenticate(self::EMAIL, self::WRONG_PASSWORD);
+    }
+
+    public function testFindsOnlyUnverifiedUserWithMatchingPasswordForResend(): void
+    {
+        $passwordHash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
+        $unverified = new User(self::EMAIL, $passwordHash, new DateTimeImmutable());
+        $verified = new User(self::EMAIL, $passwordHash, new DateTimeImmutable(), new DateTimeImmutable());
+        $repository = $this->createStub(UserRepositoryInterface::class);
+        $repository->method('findByEmail')->willReturnOnConsecutiveCalls($unverified, $unverified, $verified);
+        $service = new UserAuthService($repository);
+
+        self::assertSame($unverified, $service->findUnverifiedForResend(' Person@Example.com ', self::PASSWORD));
+        self::assertNull($service->findUnverifiedForResend(self::EMAIL, self::WRONG_PASSWORD));
+        self::assertNull($service->findUnverifiedForResend(self::EMAIL, self::PASSWORD));
     }
 
     public function testRejectsLoginBeforeEmailVerification(): void

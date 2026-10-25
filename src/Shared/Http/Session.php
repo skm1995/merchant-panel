@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Shared\Http;
 
+use App\Shared\Http\Enum\ServerParameterEnum;
+
 final class Session
 {
     private const int COOKIE_LIFETIME = 0;
     private const string COOKIE_PATH = '/';
     private const string SAME_SITE_POLICY = 'Lax';
     private const string SECURE_COOKIE_ENVIRONMENT_KEY = 'SESSION_COOKIE_SECURE';
+    private const string STRICT_MODE_SETTING = 'session.use_strict_mode';
+    private const string ENABLED_SETTING = '1';
+    private const string HTTPS_DISABLED = 'off';
 
     public function start(): void
     {
@@ -17,7 +22,7 @@ final class Session
             return;
         }
 
-        ini_set('session.use_strict_mode', '1');
+        ini_set(self::STRICT_MODE_SETTING, self::ENABLED_SETTING);
         session_set_cookie_params([
             'lifetime' => self::COOKIE_LIFETIME,
             'path' => self::COOKIE_PATH,
@@ -57,8 +62,10 @@ final class Session
     {
         $configured = getenv(self::SECURE_COOKIE_ENVIRONMENT_KEY);
 
+        $https = $_SERVER[ServerParameterEnum::HTTPS->value] ?? null;
+
         return is_string($configured)
             ? filter_var($configured, FILTER_VALIDATE_BOOL)
-            : isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+            : is_string($https) && $https !== self::HTTPS_DISABLED;
     }
 }

@@ -10,7 +10,10 @@ interface EmailVerificationTokenRepositoryInterface
 {
     public function store(string $email, string $tokenHash, DateTimeImmutable $expiresAt): void;
 
-    public function resend(
+    /**
+     * Atomically replaces the token unless the resend limit for the current window is reached.
+     */
+    public function storeWithinResendLimit(
         string $email,
         string $tokenHash,
         DateTimeImmutable $expiresAt,
@@ -19,5 +22,8 @@ interface EmailVerificationTokenRepositoryInterface
         int $maximumAttempts,
     ): bool;
 
-    public function verify(string $tokenHash, DateTimeImmutable $verifiedAt): bool;
+    /**
+     * Consumes a valid token and marks its user's email as verified.
+     */
+    public function confirmEmail(string $tokenHash, DateTimeImmutable $confirmedAt): bool;
 }

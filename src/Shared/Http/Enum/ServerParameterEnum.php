@@ -8,4 +8,5 @@ enum ServerParameterEnum: string
 {
     case REQUEST_METHOD = 'REQUEST_METHOD';
     case REQUEST_URI = 'REQUEST_URI';
+    case HTTPS = 'HTTPS';
 }

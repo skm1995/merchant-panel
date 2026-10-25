@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Auth\Service;
 
 use App\Auth\Entity\User;
+use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Repository\UserRepositoryInterface;
 use DomainException;
 
@@ -14,7 +15,6 @@ final class UserAuthService
     private const string INVALID_EMAIL_MESSAGE = 'Enter a valid email address.';
     private const string INVALID_PASSWORD_MESSAGE = 'Password must contain at least 8 characters.';
     private const string INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
-    private const string DUPLICATE_EMAIL_MESSAGE = 'An account with this email already exists.';
     private const string UNVERIFIED_EMAIL_MESSAGE = 'Confirm your email address before logging in.';
 
     public function __construct(private readonly UserRepositoryInterface $users)
@@ -23,9 +23,7 @@ final class UserAuthService
 
     public function register(string $email, string $password): User
     {
-        $normalizedEmail = $email
-            |> trim(...)
-            |> strtolower(...);
+        $normalizedEmail = self::normalizeEmail($email);
 
         if (filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL) === false) {
             throw new DomainException(self::INVALID_EMAIL_MESSAGE);
@@ -36,26 +34,18 @@ final class UserAuthService
         }
 
         if ($this->users->findByEmail($normalizedEmail) !== null) {
-            throw new DomainException(self::DUPLICATE_EMAIL_MESSAGE);
+            throw new DuplicateEmailException();
         }
 
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-        return $this->users->create($normalizedEmail, $passwordHash);
+        return $this->users->create($normalizedEmail, password_hash($password, PASSWORD_DEFAULT));
     }
 
     public function authenticate(string $email, string $password): User
     {
-        $normalizedEmail = $email
-            |> trim(...)
-            |> strtolower(...);
-        $user = $this->users->findByEmail($normalizedEmail);
+        $user = $this->findWithPassword($email, $password)
+            ?? throw new DomainException(self::INVALID_CREDENTIALS_MESSAGE);
 
-        if ($user === null || !password_verify($password, $user->password)) {
-            throw new DomainException(self::INVALID_CREDENTIALS_MESSAGE);
-        }
-
-        if ($user->emailVerifiedAt === null) {
+        if (!$user->isVerified()) {
             throw new DomainException(self::UNVERIFIED_EMAIL_MESSAGE);
         }
 
@@ -64,19 +54,22 @@ final class UserAuthService
 
     public function findUnverifiedForResend(string $email, string $password): ?User
     {
-        $normalizedEmail = $email
+        $user = $this->findWithPassword($email, $password);
+
+        return $user?->isVerified() === false ? $user : null;
+    }
+
+    private function findWithPassword(string $email, string $password): ?User
+    {
+        $user = self::normalizeEmail($email) |> $this->users->findByEmail(...);
+
+        return $user?->hasPassword($password) === true ? $user : null;
+    }
+
+    private static function normalizeEmail(string $email): string
+    {
+        return $email
             |> trim(...)
             |> strtolower(...);
-        $user = $this->users->findByEmail($normalizedEmail);
-
-        if (
-            $user === null
-            || $user->emailVerifiedAt !== null
-            || !password_verify($password, $user->password)
-        ) {
-            return null;
-        }
-
-        return $user;
     }
 }

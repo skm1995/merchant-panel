@@ -12,7 +12,8 @@ final class SendConfirmationEmailHandler
 {
     private const string SUBJECT = 'Confirm your email address';
     private const string BODY = 'Confirm your email address by opening this link: %s';
-    private const string CONFIRMATION_PATH = '/confirm?token=%s';
+    private const string CONFIRMATION_URL_FORMAT = '%s/confirm?token=%s';
+    private const string URL_PATH_SEPARATOR = '/';
 
     public function __construct(
         private readonly MailerInterface $mailer,
@@ -23,11 +24,10 @@ final class SendConfirmationEmailHandler
 
     public function __invoke(ConfirmationEmailMessage $message): void
     {
-        $encodedToken = $message->token |> rawurlencode(...);
-        $confirmationPath = sprintf(self::CONFIRMATION_PATH, $encodedToken);
-        $confirmationUrl = $this->baseUrl |> (
-            static fn (string $baseUrl): string =>
-            rtrim($baseUrl, '/') . $confirmationPath
+        $confirmationUrl = sprintf(
+            self::CONFIRMATION_URL_FORMAT,
+            rtrim($this->baseUrl, self::URL_PATH_SEPARATOR),
+            rawurlencode($message->token),
         );
         $email = new Email()
             ->from($this->senderEmail)
