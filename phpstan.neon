@@ -10,9 +10,6 @@ parameters:
         - tools
         - config
         - bin
-    excludePaths:
-        # Legacy code imported as found; it is characterized by tests and then replaced.
-        - public/legacy
     tmpDir: .phpstan-cache
 
 services:

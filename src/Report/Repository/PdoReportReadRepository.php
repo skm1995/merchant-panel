@@ -7,8 +7,10 @@ namespace App\Report\Repository;
 use App\Order\Enum\OrderStatusEnum;
 use App\Report\Query\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
+use App\Report\ReadModel\ReportedOrder;
 use App\Report\ReadModel\TopProduct;
 use App\Shared\Database\RecordFetcher;
+use DateTimeImmutable;
 use PDO;
 
 /**
@@ -58,6 +60,20 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
         WHERE revenue_rank <= :limit
         ORDER BY revenue_rank, product_id
         SQL;
+    private const string ORDERS_BY_STATUS_QUERY = <<<'SQL'
+        SELECT orders.id AS orderNumber,
+            GROUP_CONCAT(order_items.name ORDER BY order_items.name SEPARATOR ', ') AS products,
+            orders.total_amount AS totalAmount,
+            orders.total_currency AS totalCurrency,
+            orders.created_at AS placedAt
+        FROM orders
+        LEFT JOIN order_items ON order_items.order_id = orders.id
+        WHERE orders.status = :status AND orders.created_at >= :since
+        GROUP BY orders.id
+        ORDER BY orders.created_at DESC, orders.id DESC
+        LIMIT :limit
+        SQL;
+    private const string SINCE_PARAMETER = 'since';
     private const string STATUS_PARAMETER = 'status';
     private const string STARTS_AT_PARAMETER = 'starts_at';
     private const string ENDS_BEFORE_PARAMETER = 'ends_before';
@@ -95,6 +111,20 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
         return array_map(
             static fn (TopProductRecord $record): TopProduct => $record->toEntity(),
             RecordFetcher::all($statement, TopProductRecord::class),
+        );
+    }
+
+    public function ordersByStatus(OrderStatusEnum $status, DateTimeImmutable $since, int $limit): array
+    {
+        $statement = $this->pdo->prepare(self::ORDERS_BY_STATUS_QUERY);
+        $statement->bindValue(self::STATUS_PARAMETER, $status->value);
+        $statement->bindValue(self::SINCE_PARAMETER, $since->format(self::DATETIME_FORMAT));
+        $statement->bindValue(self::LIMIT_PARAMETER, $limit, PDO::PARAM_INT);
+        $statement->execute();
+
+        return array_map(
+            static fn (ReportedOrderRecord $record): ReportedOrder => $record->toEntity(),
+            RecordFetcher::all($statement, ReportedOrderRecord::class),
         );
     }
 

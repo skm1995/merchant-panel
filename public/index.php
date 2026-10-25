@@ -42,8 +42,10 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
+use App\Report\Controller\OrderReportController;
 use App\Report\Controller\ReportApiController;
 use App\Report\Query\DailyRevenueHandler;
+use App\Report\Query\OrderReportHandler;
 use App\Report\Query\TopProductsHandler;
 use App\Report\Repository\PdoReportReadRepository;
 use App\Shared\Cache\RedisCacheStore;
@@ -131,4 +133,5 @@ $router->registerController(new ReportApiController(
     new TopProductsHandler($reports),
     $responder,
 ));
+$router->registerController(new OrderReportController(new OrderReportHandler($reports), $responder));
 $router->dispatch(Request::fromGlobals());
