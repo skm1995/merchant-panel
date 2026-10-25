@@ -17,7 +17,13 @@ use App\Cart\Service\CartService;
 use App\Catalog\Controller\ProductApiController;
 use App\Catalog\Repository\PdoProductRepository;
 use App\Catalog\Service\ProductCatalog;
+use App\Catalog\Service\StockReservation;
 use App\Home\Controller\HomeController;
+use App\Order\Command\PlaceOrderHandler;
+use App\Order\Controller\OrderApiController;
+use App\Order\Query\GetOrderHandler;
+use App\Order\Repository\PdoOrderReadRepository;
+use App\Order\Repository\PdoOrderRepository;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Database\PdoTransactionRunner;
 use App\Shared\Http\CsrfToken;
@@ -25,6 +31,7 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
+use Symfony\Component\Clock\NativeClock;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -52,10 +59,20 @@ $router->registerController(new AuthController(
     $currentUser,
     $responder,
 ));
-$productCatalog = new ProductCatalog(new PdoProductRepository($pdo));
+$productRepository = new PdoProductRepository($pdo);
+$productCatalog = new ProductCatalog($productRepository);
+$cartService = new CartService(new PdoCartRepository($pdo), $productCatalog, $transactions);
 $router->registerController(new ProductApiController($productCatalog, $responder));
-$router->registerController(new CartApiController(
-    new CartService(new PdoCartRepository($pdo), $productCatalog, $transactions),
+$router->registerController(new CartApiController($cartService, $responder));
+$router->registerController(new OrderApiController(
+    new PlaceOrderHandler(
+        new PdoOrderRepository($pdo),
+        $cartService,
+        new StockReservation($productRepository),
+        $transactions,
+        new NativeClock(),
+    ),
+    new GetOrderHandler(new PdoOrderReadRepository($pdo)),
     $responder,
 ));
 $router->dispatch(Request::fromGlobals());

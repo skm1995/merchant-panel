@@ -18,6 +18,7 @@ final class SchemaTest extends TestCase
         SQL;
     private const array INTENTIONALLY_NULLABLE_COLUMNS = [
         'carts.updated_at',
+        'orders.updated_at',
         'products.updated_at',
         'users.email_verified_at',
     ];

@@ -13,6 +13,7 @@
         "ext-session": "*",
         "moneyphp/money": "^4.9",
         "symfony/amqp-messenger": "^8.1",
+        "symfony/clock": "^8.1",
         "symfony/event-dispatcher": "^8.1",
         "symfony/mailer": "^8.1",
         "symfony/messenger": "^8.1",

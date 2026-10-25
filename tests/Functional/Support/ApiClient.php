@@ -40,6 +40,32 @@ final class ApiClient
         return self::request($method, $path, array_filter(['json' => $json, 'headers' => $headers]));
     }
 
+    /**
+     * Starts every request before reading any response, so the web server handles them in parallel.
+     *
+     * @param list<array{HttpMethodEnum, string, array<string, string>}> $requests method, path, and headers
+     * @return list<ResponseInterface>
+     */
+    public static function sendConcurrently(array $requests): array
+    {
+        $client = HttpClient::create();
+        $pending = array_map(
+            static fn (array $request) => $client->request($request[0]->value, Browser::url($request[1]), [
+                'headers' => $request[2],
+            ]),
+            $requests,
+        );
+
+        return array_map(
+            static fn ($response): ResponseInterface => new Response(
+                $response->getStatusCode(),
+                $response->getHeaders(false),
+                $response->getContent(false),
+            ),
+            $pending,
+        );
+    }
+
     /** @param array<string, mixed> $options */
     private static function request(HttpMethodEnum $method, string $path, array $options): ResponseInterface
     {

@@ -34,6 +34,17 @@ curl 'http://localhost:8080/api/v1/products/1'
 Pages are ordered by id; pass the returned `next_cursor` as `cursor` to fetch
 the next page.
 
+The API is sessionless: carts and orders are addressed by unguessable UUIDs.
+A checkout reserves stock for 15 minutes and requires an `Idempotency-Key`
+header, so a retried request returns the same order instead of placing a second
+one:
+
+```sh
+cart=$(curl -s -X POST http://localhost:8080/api/v1/carts | sed -E 's/.*"id":"([^"]+)".*/\1/')
+curl -s -X PUT "http://localhost:8080/api/v1/carts/$cart/items/1" -d '{"quantity": 2}'
+curl -s -X POST "http://localhost:8080/api/v1/carts/$cart/checkout" -H "Idempotency-Key: $(uuidgen)"
+```
+
 ## Failed confirmation emails
 
 After the worker exhausts its configured retries, messages are stored in the
