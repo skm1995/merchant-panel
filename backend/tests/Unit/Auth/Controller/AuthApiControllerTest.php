@@ -73,14 +73,19 @@ final class AuthApiControllerTest extends TestCase
         self::assertNull(new CurrentUser($this->session)->email());
     }
 
-    public function testSignsInAVerifiedUser(): void
+    public function testSignsInAVerifiedUserWithANewCsrfToken(): void
     {
-        $body = HttpHarness::json($this->unsafe(HttpMethodEnum::POST, self::SESSION_PATH, self::CREDENTIALS), $this->controller(self::verifiedUser()));
+        $request = $this->unsafe(HttpMethodEnum::POST, self::SESSION_PATH, self::CREDENTIALS);
+        $anonymousToken = $this->csrfToken->get();
+
+        $body = HttpHarness::json($request, $this->controller(self::verifiedUser()));
 
         self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
         self::assertTrue($body['authenticated']);
         self::assertSame(self::EMAIL, $body['email']);
         self::assertSame(self::EMAIL, new CurrentUser($this->session)->email());
+        self::assertNotSame($anonymousToken, $body['csrf_token']);
+        self::assertSame($this->csrfToken->get(), $body['csrf_token']);
     }
 
     public function testRejectsWrongCredentialsAndUnverifiedUsers(): void

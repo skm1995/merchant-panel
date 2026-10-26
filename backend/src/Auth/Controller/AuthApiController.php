@@ -51,7 +51,7 @@ final readonly class AuthApiController
     #[UsesSession]
     public function showSession(): void
     {
-        $this->respondWithSession();
+        $this->respondWithSession($this->csrfToken->get() ?? $this->csrfToken->create());
     }
 
     #[Route(HttpMethodEnum::POST, self::SESSION_ROUTE_PATH)]
@@ -63,7 +63,9 @@ final readonly class AuthApiController
         $credentials = CredentialsRequest::fromJson($request);
         $this->loginUser->execute($credentials->email, $credentials->password);
 
-        $this->respondWithSession();
+        // A token issued before sign-in could have been planted by someone else, so the
+        // signed-in session gets a new one.
+        $this->respondWithSession($this->csrfToken->create());
     }
 
     #[Route(HttpMethodEnum::DELETE, self::SESSION_ROUTE_PATH)]
@@ -99,10 +101,8 @@ final readonly class AuthApiController
         $this->responder->withoutBody(ResponseStatusEnum::NO_CONTENT);
     }
 
-    private function respondWithSession(): void
+    private function respondWithSession(string $csrfToken): void
     {
-        $this->responder->json(
-            new SessionResponse($this->currentUser->email(), $this->csrfToken->get() ?? $this->csrfToken->create()),
-        );
+        $this->responder->json(new SessionResponse($this->currentUser->email(), $csrfToken));
     }
 }
