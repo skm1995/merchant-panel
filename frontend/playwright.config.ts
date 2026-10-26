@@ -14,7 +14,7 @@ function baseUrl(): string {
 
 /**
  * End-to-end tests drive a real browser against the test stack behind Caddy: the built
- * React app, the PHP API, the worker, and MailHog.
+ * React app, the PHP API, the worker, and Mailpit.
  */
 export default defineConfig({
   testDir: './e2e',

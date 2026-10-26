@@ -79,7 +79,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      mailhog:
+      mailpit:
         condition: service_started
 
   php-test:
@@ -104,7 +104,7 @@ services:
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
-      MAILHOG_API_BASE_URL: ${MAILHOG_API_BASE_URL:-http://mailhog:8025}
+      MAILPIT_API_BASE_URL: ${MAILPIT_API_BASE_URL:-http://mailpit:8025}
     depends_on:
       redis:
         condition: service_healthy
@@ -209,7 +209,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      mailhog:
+      mailpit:
         condition: service_started
 
   caddy:
@@ -335,8 +335,8 @@ services:
       timeout: 3s
       retries: 20
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
+  mailpit:
+    image: axllent/mailpit:v1.27.0
     restart: unless-stopped
     ports:
       - "1025:1025"

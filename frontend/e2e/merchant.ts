@@ -1,20 +1,23 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 
-const MAILHOG_URL_VARIABLE = 'E2E_MAILHOG_URL';
+const MAILPIT_URL_VARIABLE = 'E2E_MAILPIT_URL';
 const PASSWORD = 'e2e-merchant-password';
 const TOKEN_PATTERN = /confirm\?token=([a-f0-9]{64})/;
 const MAIL_TIMEOUT_MILLISECONDS = 15000;
 
-interface MailhogMessage {
-  ID: string;
-  Content: { Body: string };
+interface MailpitSearch {
+  messages: { ID: string }[];
 }
 
-function mailhogUrl(): string {
-  const value = process.env[MAILHOG_URL_VARIABLE];
+interface MailpitMessage {
+  Text: string;
+}
+
+function mailpitUrl(): string {
+  const value = process.env[MAILPIT_URL_VARIABLE];
 
   if (value === undefined || value.length === 0) {
-    throw new Error(`Required environment variable "${MAILHOG_URL_VARIABLE}" is not set.`);
+    throw new Error(`Required environment variable "${MAILPIT_URL_VARIABLE}" is not set.`);
   }
 
   return value;
@@ -27,7 +30,7 @@ export function uniqueEmail(prefix: string): string {
 export { PASSWORD };
 
 /**
- * Waits for the confirmation email sent through the outbox, worker, and MailHog, deletes it,
+ * Waits for the confirmation email sent through the outbox, worker, and Mailpit, deletes it,
  * and returns the confirmation link path with its token.
  */
 export async function confirmationLink(request: APIRequestContext, email: string): Promise<string> {
@@ -36,19 +39,20 @@ export async function confirmationLink(request: APIRequestContext, email: string
   await expect
     .poll(
       async () => {
-        const response = await request.get(`${mailhogUrl()}/api/v2/search`, {
-          params: { kind: 'to', query: email },
+        const search = await request.get(`${mailpitUrl()}/api/v1/search`, {
+          params: { query: `to:"${email}"` },
         });
-        const { items } = (await response.json()) as { items: MailhogMessage[] };
-        const message = items[0];
+        const message = ((await search.json()) as MailpitSearch).messages[0];
 
         if (message === undefined) {
           return null;
         }
 
-        const body = message.Content.Body.replace(/=\r?\n/g, '').replace(/=3D/g, '=');
-        token = TOKEN_PATTERN.exec(body)?.[1] ?? null;
-        await request.delete(`${mailhogUrl()}/api/v1/messages/${message.ID}`);
+        const { Text } = (await (
+          await request.get(`${mailpitUrl()}/api/v1/message/${message.ID}`)
+        ).json()) as MailpitMessage;
+        token = TOKEN_PATTERN.exec(Text)?.[1] ?? null;
+        await request.delete(`${mailpitUrl()}/api/v1/messages`, { data: { IDs: [message.ID] } });
 
         return token;
       },

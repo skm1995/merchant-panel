@@ -129,7 +129,7 @@ answer a stale version with HTTP 412. Allowed status changes live on the status 
 - Queued message class names are a persisted contract: drain the queues or keep the old
   class loadable before renaming or moving one.
 - Test handlers and dispatch decisions with mocks, then the end-to-end effect against the
-  real broker and service (RabbitMQ, MailHog), polling with a bounded timeout. Mocks of
+  real broker and service (RabbitMQ, Mailpit), polling with a bounded timeout. Mocks of
   broker APIs follow the real contract: an AMQP receiver's `get()` returns at most one
   message per call.
 

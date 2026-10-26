@@ -36,7 +36,7 @@ API types after changing `openapi/` with
 `docker compose --profile tools run --rm frontend-test npm run api:types`.
 
 `bin/ci` also runs the Playwright end-to-end tests against the test stack, which serves
-the production build of the panel on port 8081. MailHog is available at
+the production build of the panel on port 8081. Mailpit is available at
 `http://localhost:8025`, and RabbitMQ management is available at
 `http://localhost:15672`.
 

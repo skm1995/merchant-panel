@@ -27,9 +27,11 @@ final class AsyncConfirmationFlowTest extends TestCase
     private const string CREDENTIALS_FORMAT = '{"email":"%s","password":"%s"}';
     private const string TOKEN_BODY_FORMAT = '{"token":"%s"}';
     private const string CONFIRM_PATH = '/confirm';
-    private const string MAILHOG_API_BASE_URL_ENVIRONMENT_KEY = 'MAILHOG_API_BASE_URL';
-    private const string MAILHOG_SEARCH_PATH = '/api/v2/search';
-    private const string MAILHOG_MESSAGE_PATH = '/api/v1/messages/%s';
+    private const string MAILPIT_API_BASE_URL_ENVIRONMENT_KEY = 'MAILPIT_API_BASE_URL';
+    private const string MAILPIT_SEARCH_PATH = '/api/v1/search';
+    private const string MAILPIT_SEARCH_QUERY_FORMAT = 'to:"%s"';
+    private const string MAILPIT_MESSAGE_PATH = '/api/v1/message/%s';
+    private const string MAILPIT_MESSAGES_PATH = '/api/v1/messages';
     private const string URL_PATH_SEPARATOR = '/';
     private const string DELETE_METHOD = 'DELETE';
     private const int MESSAGE_WAIT_TIMEOUT_SECONDS = 15;
@@ -38,16 +40,16 @@ final class AsyncConfirmationFlowTest extends TestCase
     private string $email;
     private PDO $pdo;
     private SessionApiClient $client;
-    private HttpClientInterface $mailhog;
-    private ?string $mailhogMessageId = null;
+    private HttpClientInterface $mailpit;
+    private ?string $mailpitMessageId = null;
 
     protected function setUp(): void
     {
         $this->pdo = DatabaseConnection::createFromEnvironment();
         $this->email = TestUserData::uniqueEmail(self::EMAIL_PREFIX);
         $this->client = new SessionApiClient();
-        $this->mailhog = HttpClient::createForBaseUri(rtrim(
-            Environment::get(self::MAILHOG_API_BASE_URL_ENVIRONMENT_KEY),
+        $this->mailpit = HttpClient::createForBaseUri(rtrim(
+            Environment::get(self::MAILPIT_API_BASE_URL_ENVIRONMENT_KEY),
             self::URL_PATH_SEPARATOR,
         ));
     }
@@ -56,11 +58,10 @@ final class AsyncConfirmationFlowTest extends TestCase
     {
         TestUserData::delete($this->pdo, $this->email);
 
-        if ($this->mailhogMessageId !== null) {
-            $this->mailhog->request(self::DELETE_METHOD, sprintf(
-                self::MAILHOG_MESSAGE_PATH,
-                rawurlencode($this->mailhogMessageId),
-            ))->getStatusCode();
+        if ($this->mailpitMessageId !== null) {
+            $this->mailpit->request(self::DELETE_METHOD, self::MAILPIT_MESSAGES_PATH, [
+                'json' => ['IDs' => [$this->mailpitMessageId]],
+            ])->getStatusCode();
         }
     }
 
@@ -70,7 +71,7 @@ final class AsyncConfirmationFlowTest extends TestCase
         self::assertSame(ResponseStatusEnum::ACCEPTED->value, $registration->getStatusCode());
 
         $linkPattern = sprintf(self::CONFIRMATION_LINK_PATTERN, preg_quote(Browser::url(self::CONFIRM_PATH), '#'));
-        $messageBody = $this->waitForMail() |> quoted_printable_decode(...);
+        $messageBody = $this->waitForMail();
         self::assertSame(1, preg_match($linkPattern, $messageBody, $matches));
 
         $page = HttpClient::create()->request(HttpMethodEnum::GET->value, $matches[0]);
@@ -99,22 +100,30 @@ final class AsyncConfirmationFlowTest extends TestCase
         $deadline = microtime(true) + self::MESSAGE_WAIT_TIMEOUT_SECONDS;
 
         do {
-            $data = $this->mailhog->request(HttpMethodEnum::GET->value, self::MAILHOG_SEARCH_PATH, [
-                'query' => ['kind' => 'to', 'query' => $this->email],
+            $data = $this->mailpit->request(HttpMethodEnum::GET->value, self::MAILPIT_SEARCH_PATH, [
+                'query' => ['query' => sprintf(self::MAILPIT_SEARCH_QUERY_FORMAT, $this->email)],
             ])->toArray();
-            $message = $data['items'][0] ?? null;
+            $message = $data['messages'][0] ?? null;
             $messageId = is_array($message) ? ($message['ID'] ?? null) : null;
-            $body = is_array($message) ? ($message['Content']['Body'] ?? null) : null;
 
-            if (is_string($messageId) && is_string($body)) {
-                $this->mailhogMessageId = $messageId;
+            if (is_string($messageId)) {
+                $this->mailpitMessageId = $messageId;
 
-                return $body;
+                return $this->messageText($messageId);
             }
 
             usleep(self::MESSAGE_POLL_INTERVAL_MICROSECONDS);
         } while (microtime(true) < $deadline);
 
-        self::fail('Timed out waiting for the confirmation email in MailHog.');
+        self::fail('Timed out waiting for the confirmation email in Mailpit.');
+    }
+
+    private function messageText(string $messageId): string
+    {
+        $text = $this->mailpit->request(HttpMethodEnum::GET->value, sprintf(self::MAILPIT_MESSAGE_PATH, rawurlencode($messageId)))
+            ->toArray()['Text'] ?? null;
+        self::assertIsString($text);
+
+        return $text;
     }
 }
