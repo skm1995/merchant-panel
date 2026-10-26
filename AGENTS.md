@@ -17,6 +17,7 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 
 ## Infrastructure and configuration
 
+- Optional stacks live behind Compose profiles: `test` for the test infrastructure, `tools` for one-off containers such as the frontend toolchain and Playwright, and `observability` for Elasticsearch, Kibana, and Vector.
 - Keep `services:` first in `compose.yaml`. Backend services extend `docker/php/compose.yaml`, and each service takes only the variable groups it uses from `docker/env/*.env`. Services that need the schema depend on the `migrate` (or `migrate-test`) service completing.
 - Read configuration (DSNs, hosts, credentials, URLs, sender addresses) only from environment variables, with no fallback values in code; local defaults live in `docker/env/*.env` and `.env.example`.
 - Never commit `.env` files, IDE settings, or secrets; keep `.env.example` tracked and ignore the rest in `.gitignore`.

@@ -1,0 +1,33 @@
+# Ships the logs of this project's containers to Elasticsearch. Vector reads them through
+# the Docker API, which works on Linux, Docker Desktop, and CI alike, unlike reading log
+# files from the host. Application logs are JSON lines and are decoded into the "app"
+# field, so Kibana can filter on app.extra.request_id, app.context.status, or app.level_name.
+sources:
+  containers:
+    type: docker_logs
+    include_labels:
+      - com.docker.compose.project=vanilla-php-playground
+
+transforms:
+  application:
+    type: remap
+    inputs: [containers]
+    source: |
+      .service = .label."com.docker.compose.service"
+      # Label keys such as com.docker.compose.project and com.docker.compose.project.config_files
+      # would map one field as both text and an object, so only the service is kept.
+      del(.label)
+      parsed, error = parse_json(.message)
+      if error == null && is_object(parsed) {
+        .app = parsed
+      }
+
+sinks:
+  elasticsearch:
+    type: elasticsearch
+    inputs: [application]
+    endpoints: [http://elasticsearch:9200]
+    api_version: auto
+    mode: bulk
+    bulk:
+      index: app-logs-%Y.%m.%d

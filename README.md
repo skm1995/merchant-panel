@@ -129,6 +129,27 @@ wait in RabbitMQ. Several relays can run side by side, and a message whose relay
 crashed is published again after its 30-second lease, so delivery is at least
 once and consumers are idempotent.
 
+## Logs and tracing
+
+Every process logs JSON lines to stderr. Each record carries `request_id`: HTTP responses
+return it in `X-Request-Id`, and the outbox, relay, and worker pass it on, so one id finds a
+request and the emails or expiries it caused.
+
+To search the logs in Kibana, start the observability stack:
+
+```sh
+docker compose --profile observability up -d
+```
+
+Vector reads the containers' logs through the Docker API and sends them to Elasticsearch,
+and Kibana opens at `http://localhost:5601` with an "Application logs" data view. Useful
+queries in Discover:
+
+- `app.extra.request_id : "<id from X-Request-Id>"` — everything one request caused
+- `app.context.status >= 500` — failed requests
+- `app.level_name : "ERROR"` — errors, with their stack traces in `app.context.exception`
+- `app.message : "Message handled"` — worker activity with `app.context.duration_ms`
+
 ## Services
 
 There is no service configuration file. `ContainerFactory` autowires classes from

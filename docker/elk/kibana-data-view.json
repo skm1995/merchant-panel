@@ -1,0 +1,9 @@
+{
+  "override": true,
+  "data_view": {
+    "id": "application-logs",
+    "title": "app-logs-*",
+    "name": "Application logs",
+    "timeFieldName": "timestamp"
+  }
+}
