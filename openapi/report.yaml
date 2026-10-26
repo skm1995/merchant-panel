@@ -2,6 +2,8 @@ paths:
   dailyRevenue:
     get:
       operationId: getDailyRevenueReport
+      security:
+        - apiKey: []
       summary: Revenue of paid orders per day with a running total
       description: Requires the reporting API key. Days without paid orders are omitted.
       parameters:
@@ -24,11 +26,6 @@ paths:
             type: string
             pattern: '^[A-Z]{3}$'
             default: PLN
-        - name: X-Api-Key
-          in: header
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: Daily revenue in the period.
@@ -71,6 +68,8 @@ paths:
   topProducts:
     get:
       operationId: getTopProductsReport
+      security:
+        - apiKey: []
       summary: Products ranked by revenue from paid orders
       description: >-
         Requires the reporting API key. Products with equal revenue share a rank
@@ -95,11 +94,6 @@ paths:
             type: string
             pattern: '^[A-Z]{3}$'
             default: PLN
-        - name: X-Api-Key
-          in: header
-          required: true
-          schema:
-            type: string
         - name: limit
           in: query
           required: false

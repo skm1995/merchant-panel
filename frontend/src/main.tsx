@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import './ui/tokens.css';
 
 const ROOT_ELEMENT_ID = 'root';
 

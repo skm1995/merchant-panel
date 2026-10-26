@@ -1,0 +1,15 @@
+.alert {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-3);
+}
+
+.error {
+  color: var(--color-error);
+  background: var(--color-error-surface);
+}
+
+.success {
+  color: var(--color-success);
+  background: var(--color-success-surface);
+}

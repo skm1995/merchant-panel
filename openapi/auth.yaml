@@ -16,8 +16,8 @@ paths:
     post:
       operationId: signIn
       summary: Sign in with email and password
-      parameters:
-        - $ref: '#/parameters/CsrfToken'
+      security:
+        - csrfToken: []
       requestBody:
         required: true
         content:
@@ -40,8 +40,8 @@ paths:
     delete:
       operationId: signOut
       summary: Sign out
-      parameters:
-        - $ref: '#/parameters/CsrfToken'
+      security:
+        - csrfToken: []
       responses:
         '204':
           description: Signed out.
@@ -54,8 +54,8 @@ paths:
       description: >-
         Repeating the registration of an unverified account with its password sends the
         confirmation again, within a resend limit.
-      parameters:
-        - $ref: '#/parameters/CsrfToken'
+      security:
+        - csrfToken: []
       requestBody:
         required: true
         content:
@@ -79,8 +79,8 @@ paths:
     post:
       operationId: confirmEmail
       summary: Confirm an email address with the token from the confirmation email
-      parameters:
-        - $ref: '#/parameters/CsrfToken'
+      security:
+        - csrfToken: []
       requestBody:
         required: true
         content:
@@ -96,14 +96,6 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '422':
           $ref: 'shared.yaml#/responses/Problem'
-parameters:
-  CsrfToken:
-    name: X-CSRF-Token
-    in: header
-    required: true
-    description: The csrf_token returned by GET /api/v1/session.
-    schema:
-      type: string
 schemas:
   Session:
     type: object

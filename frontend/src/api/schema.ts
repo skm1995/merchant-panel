@@ -404,8 +404,6 @@ export interface components {
         };
     };
     parameters: {
-        /** @description The csrf_token returned by GET /api/v1/session. */
-        CsrfToken: string;
         CartId: string;
     };
     requestBodies: never;
@@ -437,10 +435,7 @@ export interface operations {
     signIn: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token returned by GET /api/v1/session. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -467,10 +462,7 @@ export interface operations {
     signOut: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token returned by GET /api/v1/session. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -489,10 +481,7 @@ export interface operations {
     register: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token returned by GET /api/v1/session. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -519,10 +508,7 @@ export interface operations {
     confirmEmail: {
         parameters: {
             query?: never;
-            header: {
-                /** @description The csrf_token returned by GET /api/v1/session. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -858,9 +844,7 @@ export interface operations {
                 to: string;
                 currency?: string;
             };
-            header: {
-                "X-Api-Key": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -900,9 +884,7 @@ export interface operations {
                 currency?: string;
                 limit?: number;
             };
-            header: {
-                "X-Api-Key": string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };

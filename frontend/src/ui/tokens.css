@@ -1,0 +1,28 @@
+/* Design tokens shared by every component of the panel's design system. */
+:root {
+  --color-text: #1d2433;
+  --color-muted: #5b6475;
+  --color-surface: #ffffff;
+  --color-background: #f4f6fa;
+  --color-border: #d5dae3;
+  --color-primary: #2251cc;
+  --color-primary-text: #ffffff;
+  --color-error: #b42318;
+  --color-error-surface: #fef3f2;
+  --color-success: #067647;
+  --color-success-surface: #ecfdf3;
+  --font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 6px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: var(--color-background);
+}

@@ -1,26 +1,46 @@
-import { apiClient } from './client';
+import { http, HttpResponse } from 'msw';
+import { server } from '../test/server';
+import { apiClient, rememberCsrfToken } from './client';
+
+const TOKEN = 'remembered-token';
 
 describe('apiClient', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('calls the API on the same origin with the session cookie and typed responses', async () => {
+  it('calls the API on the same origin and returns typed responses', async () => {
     const products = { data: [], next_cursor: null };
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify(products), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
+    let requestedUrl = '';
+    server.use(
+      http.get('/api/v1/products', ({ request }) => {
+        requestedUrl = request.url;
+
+        return HttpResponse.json(products);
       }),
     );
-    vi.stubGlobal('fetch', fetchMock);
 
     const { data } = await apiClient.GET('/api/v1/products', { params: { query: { limit: 5 } } });
 
-    const request = fetchMock.mock.calls[0]?.[0];
-    expect(request).toBeInstanceOf(Request);
-    expect((request as Request).url).toBe(`${window.location.origin}/api/v1/products?limit=5`);
-    expect((request as Request).credentials).toBe('same-origin');
+    expect(requestedUrl).toBe(`${window.location.origin}/api/v1/products?limit=5`);
     expect(data).toEqual(products);
+  });
+
+  it('sends the remembered CSRF token with state changes only', async () => {
+    const headers: (string | null)[] = [];
+    server.use(
+      http.get('/api/v1/session', ({ request }) => {
+        headers.push(request.headers.get('X-CSRF-Token'));
+
+        return HttpResponse.json({ authenticated: false, email: null, csrf_token: TOKEN });
+      }),
+      http.delete('/api/v1/session', ({ request }) => {
+        headers.push(request.headers.get('X-CSRF-Token'));
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    rememberCsrfToken(TOKEN);
+
+    await apiClient.GET('/api/v1/session');
+    await apiClient.DELETE('/api/v1/session');
+
+    expect(headers).toEqual([null, TOKEN]);
   });
 });

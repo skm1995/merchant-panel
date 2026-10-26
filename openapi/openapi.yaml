@@ -42,3 +42,15 @@ paths:
     $ref: 'report.yaml#/paths/dailyRevenue'
   /api/v1/reports/top-products:
     $ref: 'report.yaml#/paths/topProducts'
+components:
+  securitySchemes:
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: The csrf_token returned by GET /api/v1/session, required by state-changing panel routes.
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: Key for integrations, such as the reporting API.
