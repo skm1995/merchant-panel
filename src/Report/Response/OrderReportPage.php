@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Report\Response;
 
 use App\Report\Query\OrderReportQuery;
+use App\Report\Query\ReportDate;
 use App\Report\ReadModel\ReportedOrder;
 use App\Shared\Contract\Arrayable;
 use Money\Currencies\ISOCurrencies;
@@ -20,7 +21,6 @@ final readonly class OrderReportPage implements Arrayable
     private const string HEADING_FORMAT = 'Orders with status %s since %s';
     private const string SUMMARY_FORMAT = 'Orders: %d, total: %s';
     private const string AMOUNT_WITH_CURRENCY_FORMAT = '%s %s';
-    private const string DATE_FORMAT = 'Y-m-d';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string DECIMAL_POINT = '.';
     private const string THOUSANDS_SEPARATOR = ',';
@@ -41,7 +41,7 @@ final readonly class OrderReportPage implements Arrayable
         $totals = array_map(static fn (ReportedOrder $order): Money => $order->total, $orders);
 
         return new self(
-            sprintf(self::HEADING_FORMAT, $query->status->value, $query->since->format(self::DATE_FORMAT)),
+            sprintf(self::HEADING_FORMAT, $query->status->value, ReportDate::format($query->since)),
             array_map(static fn (ReportedOrder $order): array => [
                 (string) $order->orderNumber,
                 $order->products,

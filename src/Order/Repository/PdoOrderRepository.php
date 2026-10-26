@@ -10,7 +10,9 @@ use App\Order\Entity\OrderPlacement;
 use App\Order\Entity\OrderState;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\Exception\IdempotencyKeyReusedException;
+use App\Shared\Database\MysqlError;
 use App\Shared\Database\RecordFetcher;
+use App\Shared\Database\SqlDateTime;
 use PDO;
 use PDOException;
 
@@ -36,7 +38,6 @@ final class PdoOrderRepository implements OrderRepositoryInterface
     private const string FROM_STATUS_PARAMETER = 'from_status';
     private const string EXPECTED_VERSION_PARAMETER = 'expected_version';
     private const string IDEMPOTENCY_KEY_INDEX = 'orders_idempotency_key_unique';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string PUBLIC_ID_PARAMETER = 'public_id';
     private const string CART_ID_PARAMETER = 'cart_id';
     private const string IDEMPOTENCY_KEY_PARAMETER = 'idempotency_key';
@@ -51,9 +52,6 @@ final class PdoOrderRepository implements OrderRepositoryInterface
     private const string QUANTITY_PARAMETER = 'quantity';
     private const string UNIT_PRICE_AMOUNT_PARAMETER = 'unit_price_amount';
     private const string UNIT_PRICE_CURRENCY_PARAMETER = 'unit_price_currency';
-    private const int DRIVER_ERROR_CODE_INDEX = 1;
-    private const int DRIVER_MESSAGE_INDEX = 2;
-    private const int DUPLICATE_KEY_ERROR_CODE = 1062;
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -71,10 +69,10 @@ final class PdoOrderRepository implements OrderRepositoryInterface
                 self::STATUS_PARAMETER => $order->status->value,
                 self::TOTAL_AMOUNT_PARAMETER => $total->getAmount(),
                 self::TOTAL_CURRENCY_PARAMETER => $total->getCurrency()->getCode(),
-                self::RESERVATION_EXPIRES_AT_PARAMETER => $order->reservationExpiresAt->format(self::DATETIME_FORMAT),
+                self::RESERVATION_EXPIRES_AT_PARAMETER => SqlDateTime::format($order->reservationExpiresAt),
             ]);
         } catch (PDOException $exception) {
-            throw self::isIdempotencyKeyConflict($exception) ? new IdempotencyKeyReusedException($exception) : $exception;
+            throw MysqlError::isDuplicateKey($exception, self::IDEMPOTENCY_KEY_INDEX) ? new IdempotencyKeyReusedException($exception) : $exception;
         }
 
         $orderId = (int) $this->pdo->lastInsertId();
@@ -138,9 +136,4 @@ final class PdoOrderRepository implements OrderRepositoryInterface
         return $statement->rowCount() === 1;
     }
 
-    private static function isIdempotencyKeyConflict(PDOException $exception): bool
-    {
-        return ($exception->errorInfo[self::DRIVER_ERROR_CODE_INDEX] ?? null) === self::DUPLICATE_KEY_ERROR_CODE
-            && str_contains((string) ($exception->errorInfo[self::DRIVER_MESSAGE_INDEX] ?? null), self::IDEMPOTENCY_KEY_INDEX);
-    }
 }

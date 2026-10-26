@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Cart\Entity;
 
+use App\Cart\Entity\Cart;
+use App\Cart\Entity\CartId;
 use App\Cart\Enum\CartStatusEnum;
 use App\Cart\Exception\CartNotOpenException;
 use App\Cart\Exception\EmptyCartException;
@@ -13,6 +15,17 @@ use Tests\Unit\Cart\CartFixtures;
 
 final class CartTest extends TestCase
 {
+    public function testANewCartIsOpenAndEmpty(): void
+    {
+        $id = CartId::generate();
+
+        $cart = Cart::open($id);
+
+        self::assertSame($id, $cart->id);
+        self::assertTrue($cart->isOpen());
+        self::assertSame([], $cart->lines);
+    }
+
     public function testTotalSumsLineTotals(): void
     {
         $cart = CartFixtures::cart([CartFixtures::line(1, 2, 1000), CartFixtures::line(2, 3, 250)]);

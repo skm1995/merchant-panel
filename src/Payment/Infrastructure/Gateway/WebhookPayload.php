@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Payment\Infrastructure\Gateway;
 
 use App\Payment\Exception\InvalidWebhookPayloadException;
-use JsonException;
+use App\Shared\Serialization\JsonDecoder;
 
 /**
  * Typed access to a decoded provider webhook body; any unexpected shape is a payload error.
@@ -21,13 +21,7 @@ final readonly class WebhookPayload
 
     public static function decode(string $payload): self
     {
-        try {
-            $data = json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new InvalidWebhookPayloadException();
-        }
-
-        return is_array($data) ? new self($data) : throw new InvalidWebhookPayloadException();
+        return new self(JsonDecoder::toArray($payload) ?? throw new InvalidWebhookPayloadException());
     }
 
     /** @return non-empty-string */

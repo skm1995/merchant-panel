@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Cache;
 
-use JsonException;
+use App\Shared\Serialization\JsonDecoder;
 
 /**
  * Cached value with what XFetch needs: how long it took to compute and when it expires.
@@ -21,14 +21,10 @@ final readonly class CacheEntry
 
     public static function decode(string $encoded): ?self
     {
-        try {
-            $data = json_decode($encoded, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            return null;
-        }
+        $data = JsonDecoder::toArray($encoded);
 
         if (
-            !is_array($data)
+            $data === null
             || !is_string($data[self::VALUE_KEY] ?? null)
             || !is_numeric($data[self::DELTA_KEY] ?? null)
             || !is_numeric($data[self::EXPIRES_AT_KEY] ?? null)

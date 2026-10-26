@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Cart\Service;
 
-use App\Cart\Entity\CartId;
+use App\Cart\Entity\Cart;
 use App\Cart\Enum\CartStatusEnum;
 use App\Cart\Exception\CartNotFoundException;
 use App\Cart\Exception\CartNotOpenException;
@@ -35,9 +35,16 @@ final class CartServiceTest extends TestCase
     public function testCreatesAndPersistsAnEmptyOpenCart(): void
     {
         $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::once())->method('create')->with(self::isInstanceOf(CartId::class));
+        $persisted = null;
+        $carts->expects(self::once())->method('create')->willReturnCallback(
+            static function (Cart $cart) use (&$persisted): void {
+                $persisted = $cart;
+            },
+        );
 
         $cart = $this->service($carts)->create();
+
+        self::assertSame($cart, $persisted);
 
         self::assertTrue($cart->isOpen());
         self::assertSame([], $cart->lines);

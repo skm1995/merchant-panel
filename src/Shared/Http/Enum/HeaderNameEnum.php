@@ -10,4 +10,6 @@ enum HeaderNameEnum: string
     case LOCATION = 'Location';
     case ETAG = 'ETag';
     case IF_MATCH = 'If-Match';
+    case API_KEY = 'X-Api-Key';
+    case IDEMPOTENCY_KEY = 'Idempotency-Key';
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report\Response;
 
+use App\Report\Query\ReportDate;
 use App\Report\Query\ReportPeriod;
 use App\Report\ReadModel\TopProduct;
 use App\Shared\Contract\Arrayable;
@@ -21,7 +22,6 @@ final readonly class TopProductsResponse implements Arrayable
     private const string NAME_KEY = 'name';
     private const string UNITS_SOLD_KEY = 'units_sold';
     private const string REVENUE_KEY = 'revenue';
-    private const string DATE_FORMAT = 'Y-m-d';
 
     /** @param list<TopProduct> $products */
     public function __construct(public ReportPeriod $period, public array $products)
@@ -37,8 +37,8 @@ final readonly class TopProductsResponse implements Arrayable
     public function toArray(): array
     {
         return [
-            self::FROM_KEY => $this->period->from->format(self::DATE_FORMAT),
-            self::TO_KEY => $this->period->to->format(self::DATE_FORMAT),
+            self::FROM_KEY => ReportDate::format($this->period->from),
+            self::TO_KEY => ReportDate::format($this->period->to),
             self::CURRENCY_KEY => $this->period->currency->getCode(),
             self::PRODUCTS_KEY => array_map(static fn (TopProduct $product): array => [
                 self::RANK_KEY => $product->rank,

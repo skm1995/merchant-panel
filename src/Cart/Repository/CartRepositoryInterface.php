@@ -10,7 +10,7 @@ use App\Cart\Enum\CartStatusEnum;
 
 interface CartRepositoryInterface
 {
-    public function create(CartId $id): void;
+    public function create(Cart $cart): void;
 
     public function find(CartId $id): ?Cart;
 

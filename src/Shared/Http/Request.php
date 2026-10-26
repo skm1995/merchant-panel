@@ -7,7 +7,7 @@ namespace App\Shared\Http;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ServerParameterEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
-use JsonException;
+use App\Shared\Serialization\JsonDecoder;
 
 final readonly class Request
 {
@@ -109,17 +109,9 @@ final readonly class Request
      */
     public function json(): array
     {
-        if ($this->body === null) {
-            throw new InvalidRequestException(self::INVALID_JSON_MESSAGE);
-        }
+        $data = $this->body === null ? null : JsonDecoder::toArray($this->body);
 
-        try {
-            $data = json_decode($this->body, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new InvalidRequestException(self::INVALID_JSON_MESSAGE, previous: $exception);
-        }
-
-        if (!is_array($data) || array_is_list($data)) {
+        if ($data === null || array_is_list($data)) {
             throw new InvalidRequestException(self::INVALID_JSON_MESSAGE);
         }
 

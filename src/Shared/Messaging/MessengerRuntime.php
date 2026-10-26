@@ -75,7 +75,7 @@ final class MessengerRuntime
         $retryStrategies = [];
         $failureSenders = [];
 
-        foreach (array_unique(array_values($this->routes)) as $name) {
+        foreach (array_unique($this->routes) as $name) {
             $receivers[$name] = $this->transport($name);
             $retryStrategies[$name] = new MultiplierRetryStrategy();
             $failureSenders[$name] = $this->transport(self::FAILED_TRANSPORT);

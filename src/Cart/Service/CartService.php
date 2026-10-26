@@ -28,10 +28,10 @@ final class CartService
 
     public function create(): Cart
     {
-        $id = CartId::generate();
-        $this->carts->create($id);
+        $cart = Cart::open(CartId::generate());
+        $this->carts->create($cart);
 
-        return new Cart($id, CartStatusEnum::OPEN, []);
+        return $cart;
     }
 
     public function get(CartId $id): Cart

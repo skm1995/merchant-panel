@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report\Controller;
 
+use App\Report\Enum\ReportEnvironmentEnum;
 use App\Report\Query\DailyRevenueHandler;
 use App\Report\Query\TopProductsHandler;
 use App\Report\Request\DailyRevenueRequest;
@@ -20,7 +21,6 @@ final class ReportApiController
 {
     private const string DAILY_REVENUE_ROUTE_PATH = '/api/v1/reports/daily-revenue';
     private const string TOP_PRODUCTS_ROUTE_PATH = '/api/v1/reports/top-products';
-    private const string API_KEY_VARIABLE = 'REPORTS_API_KEY';
 
     public function __construct(
         private readonly DailyRevenueHandler $dailyRevenue,
@@ -30,7 +30,7 @@ final class ReportApiController
     }
 
     #[Route(HttpMethodEnum::GET, self::DAILY_REVENUE_ROUTE_PATH)]
-    #[RequireApiKey(self::API_KEY_VARIABLE)]
+    #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function dailyRevenue(Request $request): void
     {
         $query = DailyRevenueRequest::fromRequest($request)->toQuery();
@@ -39,7 +39,7 @@ final class ReportApiController
     }
 
     #[Route(HttpMethodEnum::GET, self::TOP_PRODUCTS_ROUTE_PATH)]
-    #[RequireApiKey(self::API_KEY_VARIABLE)]
+    #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function topProducts(Request $request): void
     {
         $query = TopProductsRequest::fromRequest($request)->toQuery();

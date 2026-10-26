@@ -40,11 +40,11 @@ final class PdoCartRepository implements CartRepositoryInterface
     {
     }
 
-    public function create(CartId $id): void
+    public function create(Cart $cart): void
     {
         $this->pdo->prepare(self::CREATE_QUERY)->execute([
-            self::ID_PARAMETER => $id->toBinary(),
-            self::STATUS_PARAMETER => CartStatusEnum::OPEN->value,
+            self::ID_PARAMETER => $cart->id->toBinary(),
+            self::STATUS_PARAMETER => $cart->status->value,
         ]);
     }
 

@@ -13,6 +13,6 @@ final class ProviderPaymentIdGenerator
 
     public static function generate(string $prefix): string
     {
-        return $prefix . bin2hex(random_bytes(self::RANDOM_BYTES));
+        return $prefix . (random_bytes(self::RANDOM_BYTES) |> bin2hex(...));
     }
 }

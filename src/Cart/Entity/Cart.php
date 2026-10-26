@@ -19,6 +19,11 @@ final readonly class Cart
     ) {
     }
 
+    public static function open(CartId $id): self
+    {
+        return new self($id, CartStatusEnum::OPEN, []);
+    }
+
     public function isOpen(): bool
     {
         return $this->status === CartStatusEnum::OPEN;

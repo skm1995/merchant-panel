@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Report\Request;
 
 use App\Report\Exception\InvalidReportPeriodException;
+use App\Report\Query\ReportDate;
 use App\Report\Query\ReportPeriod;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
@@ -20,8 +21,6 @@ final class ReportPeriodInput
     private const string TO_PARAMETER = 'to';
     private const string CURRENCY_PARAMETER = 'currency';
     private const string DEFAULT_CURRENCY = 'PLN';
-    private const string DATE_FORMAT = '!Y-m-d';
-    private const string OUTPUT_DATE_FORMAT = 'Y-m-d';
     private const string CURRENCY_PATTERN = '/^[A-Z]{3}$/';
     private const string INVALID_DATE_FORMAT = 'The "%s" query parameter must be a date in YYYY-MM-DD format.';
     private const string INVALID_CURRENCY_MESSAGE = 'The "currency" query parameter must be an ISO 4217 code.';
@@ -48,12 +47,8 @@ final class ReportPeriodInput
     private static function date(Request $request, string $parameter): DateTimeImmutable
     {
         $value = $request->query($parameter);
-        $date = $value === null ? false : DateTimeImmutable::createFromFormat(self::DATE_FORMAT, $value);
 
-        if ($date === false || $date->format(self::OUTPUT_DATE_FORMAT) !== $value) {
-            throw new InvalidRequestException(sprintf(self::INVALID_DATE_FORMAT, $parameter));
-        }
-
-        return $date;
+        return ($value === null ? null : ReportDate::parse($value))
+            ?? throw new InvalidRequestException(sprintf(self::INVALID_DATE_FORMAT, $parameter));
     }
 }

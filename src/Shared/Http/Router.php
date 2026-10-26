@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Http;
 
 use App\Shared\Config\Environment;
+use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
@@ -26,7 +27,6 @@ final class Router
     private const string NOT_FOUND_DETAIL = 'No route matches this method and path.';
     private const string INVALID_CSRF_DETAIL = 'The CSRF token is missing or invalid.';
     private const string INVALID_API_KEY_DETAIL = 'A valid X-Api-Key header is required.';
-    private const string API_KEY_HEADER = 'X-Api-Key';
     private const string ROUTE_PATTERN_FORMAT = '#^%s$#';
     private const string PATTERN_DELIMITER = '#';
     private const string PATH_PARAMETER_MARKER = '{';
@@ -138,7 +138,7 @@ final class Router
 
     private static function hasValidApiKey(Request $request, RequireApiKey $requirement): bool
     {
-        $provided = $request->header(self::API_KEY_HEADER);
+        $provided = $request->header(HeaderNameEnum::API_KEY->value);
 
         return $provided !== null && hash_equals(Environment::get($requirement->environmentKey), $provided);
     }

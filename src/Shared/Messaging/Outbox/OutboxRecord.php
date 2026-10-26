@@ -6,8 +6,8 @@ namespace App\Shared\Messaging\Outbox;
 
 use App\Shared\Contract\EntityRecord;
 use App\Shared\Database\HydratedRecord;
+use App\Shared\Serialization\JsonDecoder;
 use DateTimeImmutable;
-use JsonException;
 use UnexpectedValueException;
 
 /** @implements EntityRecord<ClaimedOutboxMessage> */
@@ -23,15 +23,8 @@ final readonly class OutboxRecord implements EntityRecord
 
     public function toEntity(): ClaimedOutboxMessage
     {
-        try {
-            $payload = json_decode($this->payload, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new UnexpectedValueException(sprintf(self::INVALID_PAYLOAD_FORMAT, $this->id), previous: $exception);
-        }
-
-        if (!is_array($payload)) {
-            throw new UnexpectedValueException(sprintf(self::INVALID_PAYLOAD_FORMAT, $this->id));
-        }
+        $payload = JsonDecoder::toArray($this->payload)
+            ?? throw new UnexpectedValueException(sprintf(self::INVALID_PAYLOAD_FORMAT, $this->id));
 
         /** @var array<string, mixed> $payload */
         return new ClaimedOutboxMessage($this->id, $this->messageType, $payload, new DateTimeImmutable($this->deliverAt));

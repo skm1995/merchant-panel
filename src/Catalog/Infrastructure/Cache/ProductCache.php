@@ -9,8 +9,8 @@ use App\Catalog\Message\ProductStockChangedMessage;
 use App\Shared\Cache\CacheStoreInterface;
 use App\Shared\Cache\StampedeProtectedCache;
 use App\Shared\Messaging\AsMessageHandler;
+use App\Shared\Serialization\JsonDecoder;
 use InvalidArgumentException;
-use JsonException;
 use Money\Currency;
 use Money\Money;
 use UnexpectedValueException;
@@ -102,17 +102,12 @@ final class ProductCache
             return null;
         }
 
-        try {
-            $data = json_decode($encoded, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new UnexpectedValueException(self::CORRUPT_ENTRY_MESSAGE, previous: $exception);
-        }
-
+        $data = JsonDecoder::toArray($encoded);
         $currency = $data[self::PRICE_CURRENCY_KEY] ?? null;
         $integers = [self::ID_KEY, self::PRICE_AMOUNT_KEY, self::STOCK_KEY, self::RESERVED_KEY, self::VERSION_KEY];
 
         if (
-            !is_array($data)
+            $data === null
             || !is_string($data[self::SKU_KEY] ?? null)
             || !is_string($data[self::NAME_KEY] ?? null)
             || !is_string($currency)

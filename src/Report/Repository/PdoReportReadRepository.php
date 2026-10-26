@@ -10,6 +10,7 @@ use App\Report\ReadModel\DailyRevenue;
 use App\Report\ReadModel\ReportedOrder;
 use App\Report\ReadModel\TopProduct;
 use App\Shared\Database\RecordFetcher;
+use App\Shared\Database\SqlDateTime;
 use DateTimeImmutable;
 use PDO;
 
@@ -80,7 +81,6 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
     private const string CURRENCY_PARAMETER = 'currency';
     private const string RESULT_CURRENCY_PARAMETER = 'result_currency';
     private const string LIMIT_PARAMETER = 'limit';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -118,7 +118,7 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
     {
         $statement = $this->pdo->prepare(self::ORDERS_BY_STATUS_QUERY);
         $statement->bindValue(self::STATUS_PARAMETER, $status->value);
-        $statement->bindValue(self::SINCE_PARAMETER, $since->format(self::DATETIME_FORMAT));
+        $statement->bindValue(self::SINCE_PARAMETER, SqlDateTime::format($since));
         $statement->bindValue(self::LIMIT_PARAMETER, $limit, PDO::PARAM_INT);
         $statement->execute();
 
@@ -133,8 +133,8 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
     {
         return [
             self::STATUS_PARAMETER => OrderStatusEnum::PAID->value,
-            self::STARTS_AT_PARAMETER => $period->startsAt()->format(self::DATETIME_FORMAT),
-            self::ENDS_BEFORE_PARAMETER => $period->endsBefore()->format(self::DATETIME_FORMAT),
+            self::STARTS_AT_PARAMETER => SqlDateTime::format($period->startsAt()),
+            self::ENDS_BEFORE_PARAMETER => SqlDateTime::format($period->endsBefore()),
             self::CURRENCY_PARAMETER => $period->currency->getCode(),
             self::RESULT_CURRENCY_PARAMETER => $period->currency->getCode(),
         ];

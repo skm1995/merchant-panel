@@ -6,6 +6,7 @@ namespace App\Catalog\Repository;
 
 use App\Catalog\Entity\Product;
 use App\Shared\Database\RecordFetcher;
+use App\Shared\Database\SqlPlaceholders;
 use PDO;
 
 final class PdoProductRepository implements ProductRepositoryInterface
@@ -30,8 +31,6 @@ final class PdoProductRepository implements ProductRepositoryInterface
         WHERE id = :id AND reserved >= :required_quantity
         SQL;
     private const string QUANTITY_RESERVED_PARAMETER = 'quantity_reserved';
-    private const string POSITIONAL_PLACEHOLDER = '?';
-    private const string PLACEHOLDER_SEPARATOR = ', ';
     private const string QUANTITY_PARAMETER = 'quantity';
     private const string REQUIRED_QUANTITY_PARAMETER = 'required_quantity';
     private const string ID_PARAMETER = 'id';
@@ -70,8 +69,7 @@ final class PdoProductRepository implements ProductRepositoryInterface
             return [];
         }
 
-        $placeholders = implode(self::PLACEHOLDER_SEPARATOR, array_fill(0, count($ids), self::POSITIONAL_PLACEHOLDER));
-        $statement = $this->pdo->prepare(sprintf(self::LOCK_QUERY_FORMAT, $placeholders));
+        $statement = $this->pdo->prepare(sprintf(self::LOCK_QUERY_FORMAT, SqlPlaceholders::positional(count($ids))));
         $statement->execute($ids);
 
         return array_map(

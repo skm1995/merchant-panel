@@ -6,6 +6,7 @@ namespace App\Auth\Repository;
 
 use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
+use App\Shared\Database\MysqlError;
 use App\Shared\Database\RecordFetcher;
 use LogicException;
 use PDO;
@@ -17,8 +18,6 @@ final class PdoUserRepository implements UserRepositoryInterface
     private const string INSERT_QUERY = 'INSERT INTO users (email, password, created_at) VALUES (:email, :password, CURRENT_TIMESTAMP)';
     private const string EMAIL_PARAMETER = 'email';
     private const string PASSWORD_PARAMETER = 'password';
-    private const int DRIVER_ERROR_CODE_INDEX = 1;
-    private const int DUPLICATE_KEY_ERROR_CODE = 1062;
     private const string NOT_STORED_MESSAGE = 'The created user could not be read back.';
 
     public function __construct(private readonly PDO $pdo)
@@ -41,7 +40,7 @@ final class PdoUserRepository implements UserRepositoryInterface
                 self::PASSWORD_PARAMETER => $passwordHash,
             ]);
         } catch (PDOException $exception) {
-            if (($exception->errorInfo[self::DRIVER_ERROR_CODE_INDEX] ?? null) === self::DUPLICATE_KEY_ERROR_CODE) {
+            if (MysqlError::isDuplicateKey($exception)) {
                 throw new DuplicateEmailException($exception);
             }
 

@@ -11,6 +11,7 @@ use App\Payment\Entity\PaymentState;
 use App\Payment\Enum\PaymentProviderEnum;
 use App\Payment\Enum\PaymentStatusEnum;
 use App\Payment\Exception\PaymentIdempotencyKeyReusedException;
+use App\Shared\Database\MysqlError;
 use App\Shared\Database\RecordFetcher;
 use PDO;
 use PDOException;
@@ -47,9 +48,6 @@ final class PdoPaymentRepository implements PaymentRepositoryInterface
     private const string STATUS_PARAMETER = 'status';
     private const string IDEMPOTENCY_KEY_PARAMETER = 'idempotency_key';
     private const string IDEMPOTENCY_KEY_INDEX = 'payments_idempotency_key_unique';
-    private const int DRIVER_ERROR_CODE_INDEX = 1;
-    private const int DRIVER_MESSAGE_INDEX = 2;
-    private const int DUPLICATE_KEY_ERROR_CODE = 1062;
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -70,7 +68,7 @@ final class PdoPaymentRepository implements PaymentRepositoryInterface
                 self::IDEMPOTENCY_KEY_PARAMETER => $payment->idempotencyKey,
             ]);
         } catch (PDOException $exception) {
-            throw self::isIdempotencyKeyConflict($exception) ? new PaymentIdempotencyKeyReusedException() : $exception;
+            throw MysqlError::isDuplicateKey($exception, self::IDEMPOTENCY_KEY_INDEX) ? new PaymentIdempotencyKeyReusedException() : $exception;
         }
     }
 
@@ -101,9 +99,4 @@ final class PdoPaymentRepository implements PaymentRepositoryInterface
         ]);
     }
 
-    private static function isIdempotencyKeyConflict(PDOException $exception): bool
-    {
-        return ($exception->errorInfo[self::DRIVER_ERROR_CODE_INDEX] ?? null) === self::DUPLICATE_KEY_ERROR_CODE
-            && str_contains((string) ($exception->errorInfo[self::DRIVER_MESSAGE_INDEX] ?? null), self::IDEMPOTENCY_KEY_INDEX);
-    }
 }

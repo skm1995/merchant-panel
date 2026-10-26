@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report\Controller;
 
+use App\Report\Enum\ReportEnvironmentEnum;
 use App\Report\Query\OrderReportHandler;
 use App\Report\Request\OrderReportRequest;
 use App\Report\Response\OrderReportPage;
@@ -20,7 +21,6 @@ final class OrderReportController
 {
     private const string ROUTE_PATH = '/legacy/order-report.php';
     private const string TEMPLATE = 'report/order-report';
-    private const string API_KEY_VARIABLE = 'REPORTS_API_KEY';
 
     public function __construct(
         private readonly OrderReportHandler $orderReport,
@@ -29,7 +29,7 @@ final class OrderReportController
     }
 
     #[Route(HttpMethodEnum::GET, self::ROUTE_PATH)]
-    #[RequireApiKey(self::API_KEY_VARIABLE)]
+    #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function show(Request $request): void
     {
         $query = OrderReportRequest::fromRequest($request)->toQuery();

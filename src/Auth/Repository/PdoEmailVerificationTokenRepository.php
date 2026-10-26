@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Auth\Repository;
 
 use App\Shared\Database\RecordFetcher;
+use App\Shared\Database\SqlDateTime;
 use DateTimeImmutable;
 use PDO;
 
@@ -23,7 +24,6 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
     private const string CONFIRMED_AT_PARAMETER = 'confirmed_at';
     private const string RESEND_COUNT_PARAMETER = 'resend_count';
     private const string WINDOW_STARTED_AT_PARAMETER = 'window_started_at';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
     private const string WINDOW_START_MODIFIER_FORMAT = '-%d seconds';
 
     public function __construct(private readonly PDO $pdo)
@@ -35,7 +35,7 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
         $this->pdo->prepare(self::STORE_QUERY)->execute([
             self::EMAIL_PARAMETER => $email,
             self::TOKEN_HASH_PARAMETER => $tokenHash,
-            self::EXPIRES_AT_PARAMETER => $expiresAt->format(self::DATETIME_FORMAT),
+            self::EXPIRES_AT_PARAMETER => SqlDateTime::format($expiresAt),
         ]);
     }
 
@@ -55,8 +55,8 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
             $this->pdo->prepare(self::INSERT_RESEND_QUERY)->execute([
                 self::EMAIL_PARAMETER => $email,
                 self::TOKEN_HASH_PARAMETER => $tokenHash,
-                self::EXPIRES_AT_PARAMETER => $expiresAt->format(self::DATETIME_FORMAT),
-                self::WINDOW_STARTED_AT_PARAMETER => $now->format(self::DATETIME_FORMAT),
+                self::EXPIRES_AT_PARAMETER => SqlDateTime::format($expiresAt),
+                self::WINDOW_STARTED_AT_PARAMETER => SqlDateTime::format($now),
             ]);
 
             return true;
@@ -75,10 +75,9 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
         $this->pdo->prepare(self::UPDATE_RESEND_QUERY)->execute([
             self::EMAIL_PARAMETER => $email,
             self::TOKEN_HASH_PARAMETER => $tokenHash,
-            self::EXPIRES_AT_PARAMETER => $expiresAt->format(self::DATETIME_FORMAT),
+            self::EXPIRES_AT_PARAMETER => SqlDateTime::format($expiresAt),
             self::RESEND_COUNT_PARAMETER => $resendCount + 1,
-            self::WINDOW_STARTED_AT_PARAMETER => ($windowExpired ? $now : $windowStartedAt)
-                ->format(self::DATETIME_FORMAT),
+            self::WINDOW_STARTED_AT_PARAMETER => SqlDateTime::format($windowExpired ? $now : $windowStartedAt),
         ]);
 
         return true;
@@ -86,7 +85,7 @@ final class PdoEmailVerificationTokenRepository implements EmailVerificationToke
 
     public function confirmEmail(string $tokenHash, DateTimeImmutable $confirmedAt): bool
     {
-        $confirmedAtValue = $confirmedAt->format(self::DATETIME_FORMAT);
+        $confirmedAtValue = SqlDateTime::format($confirmedAt);
         $findStatement = $this->pdo->prepare(self::FIND_VALID_TOKEN_QUERY);
         $findStatement->execute([
             self::TOKEN_HASH_PARAMETER => $tokenHash,

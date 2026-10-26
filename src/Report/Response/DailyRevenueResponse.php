@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report\Response;
 
+use App\Report\Query\ReportDate;
 use App\Report\Query\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
 use App\Shared\Contract\Arrayable;
@@ -19,7 +20,6 @@ final readonly class DailyRevenueResponse implements Arrayable
     private const string ORDERS_KEY = 'orders';
     private const string REVENUE_KEY = 'revenue';
     private const string RUNNING_TOTAL_KEY = 'running_total';
-    private const string DATE_FORMAT = 'Y-m-d';
 
     /** @param list<DailyRevenue> $days */
     public function __construct(public ReportPeriod $period, public array $days)
@@ -35,11 +35,11 @@ final readonly class DailyRevenueResponse implements Arrayable
     public function toArray(): array
     {
         return [
-            self::FROM_KEY => $this->period->from->format(self::DATE_FORMAT),
-            self::TO_KEY => $this->period->to->format(self::DATE_FORMAT),
+            self::FROM_KEY => ReportDate::format($this->period->from),
+            self::TO_KEY => ReportDate::format($this->period->to),
             self::CURRENCY_KEY => $this->period->currency->getCode(),
             self::DAYS_KEY => array_map(static fn (DailyRevenue $day): array => [
-                self::DAY_KEY => $day->day->format(self::DATE_FORMAT),
+                self::DAY_KEY => ReportDate::format($day->day),
                 self::ORDERS_KEY => $day->orders,
                 self::REVENUE_KEY => MoneyResponse::fromMoney($day->revenue)->toArray(),
                 self::RUNNING_TOTAL_KEY => MoneyResponse::fromMoney($day->runningTotal)->toArray(),

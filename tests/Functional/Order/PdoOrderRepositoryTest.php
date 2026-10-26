@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Order;
 
+use App\Cart\Entity\Cart;
 use App\Cart\Entity\CartId;
 use App\Cart\Repository\PdoCartRepository;
 use App\Order\Entity\Order;
@@ -84,7 +85,7 @@ final class PdoOrderRepositoryTest extends TestCase
     {
         [$productId] = TestProductData::create($this->pdo, $this->prefix . count($this->cartIds), 1, self::PRICE_IN_GROSZE, self::STOCK);
         $cartId = CartId::generate();
-        new PdoCartRepository($this->pdo)->create($cartId);
+        new PdoCartRepository($this->pdo)->create(Cart::open($cartId));
         $this->cartIds[] = $cartId;
 
         return Order::place(

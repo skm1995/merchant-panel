@@ -22,9 +22,6 @@ final class PdoTransactionRunner implements TransactionRunnerInterface
     public const int MAXIMUM_ATTEMPTS = 3;
     private const int DEFAULT_RETRY_DELAY_MICROSECONDS = 20000;
     private const string ISOLATION_LEVEL_STATEMENT_FORMAT = 'SET TRANSACTION ISOLATION LEVEL %s';
-    private const int DRIVER_ERROR_CODE_INDEX = 1;
-    private const int DEADLOCK_ERROR_CODE = 1213;
-    private const int LOCK_WAIT_TIMEOUT_ERROR_CODE = 1205;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -40,7 +37,7 @@ final class PdoTransactionRunner implements TransactionRunnerInterface
             try {
                 return $this->attempt($operation, $isolationLevel);
             } catch (PDOException $exception) {
-                if (!self::isRetryable($exception) || $attempt >= self::MAXIMUM_ATTEMPTS) {
+                if (!MysqlError::isRetryable($exception) || $attempt >= self::MAXIMUM_ATTEMPTS) {
                     throw $exception;
                 }
 
@@ -71,14 +68,5 @@ final class PdoTransactionRunner implements TransactionRunnerInterface
 
             throw $exception;
         }
-    }
-
-    private static function isRetryable(PDOException $exception): bool
-    {
-        return in_array(
-            $exception->errorInfo[self::DRIVER_ERROR_CODE_INDEX] ?? null,
-            [self::DEADLOCK_ERROR_CODE, self::LOCK_WAIT_TIMEOUT_ERROR_CODE],
-            true,
-        );
     }
 }
