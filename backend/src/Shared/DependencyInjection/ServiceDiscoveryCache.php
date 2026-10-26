@@ -36,19 +36,43 @@ final class ServiceDiscoveryCache
             return ServiceDiscovery::fromArray($cached[self::DISCOVERY_KEY]);
         }
 
+        self::forgetCompiledSources($directory);
         $discovery = ServiceDiscovery::fromClasses(ClassFinder::find($directory, $namespace));
         $this->write([self::FINGERPRINT_KEY => $fingerprint, self::DISCOVERY_KEY => $discovery->toArray()]);
 
         return $discovery;
     }
 
+    /**
+     * OPcache may still serve the previous version of a file that just changed, so discovery
+     * would reflect stale classes and cache them under the new fingerprint. Rebuilding is rare
+     * outside development, so invalidating every scanned file is cheap.
+     */
+    private static function forgetCompiledSources(string $directory): void
+    {
+        if (!function_exists('opcache_invalidate')) {
+            return;
+        }
+
+        foreach (self::files($directory) as $file) {
+            opcache_invalidate($file->getPathname(), true);
+        }
+    }
+
+    /** @return iterable<SplFileInfo> */
+    private static function files(string $directory): iterable
+    {
+        /** @var iterable<SplFileInfo> $files */
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS));
+
+        return $files;
+    }
+
     private static function fingerprint(string $directory): string
     {
         $stamps = [];
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS));
 
-        /** @var SplFileInfo $file */
-        foreach ($files as $file) {
+        foreach (self::files($directory) as $file) {
             $stamps[] = sprintf(self::FILE_STAMP_FORMAT, $file->getPathname(), $file->getMTime());
         }
 

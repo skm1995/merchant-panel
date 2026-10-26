@@ -17,8 +17,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Builds every discovered controller and message handler from config/services.php, so a
- * missing binding, environment variable, or handler fails here instead of at runtime.
+ * Builds every discovered controller and message handler from the discovered services, so
+ * a missing binding, environment variable, or handler fails here instead of at runtime.
  */
 final class ServiceGraphTest extends TestCase
 {

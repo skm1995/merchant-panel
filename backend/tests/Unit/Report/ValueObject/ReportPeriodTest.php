@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Report\Service;
+namespace Tests\Unit\Report\ValueObject;
 
 use App\Report\Exception\InvalidReportPeriodException;
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportPeriod;
 use DateTimeImmutable;
 use Money\Currency;
 use PHPUnit\Framework\TestCase;

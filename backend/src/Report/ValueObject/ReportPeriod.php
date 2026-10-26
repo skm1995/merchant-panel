@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Report\Service;
+namespace App\Report\ValueObject;
 
 use App\Report\Exception\InvalidReportPeriodException;
 use DateTimeImmutable;

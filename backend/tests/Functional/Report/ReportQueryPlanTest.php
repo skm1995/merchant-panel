@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Report;
 
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportPeriod;
 use App\Report\Repository\PdoReportReadRepository;
 use App\Shared\Database\DatabaseConnection;
 use DateTimeImmutable;

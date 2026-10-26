@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Report\Request;
 
 use App\Report\Request\ReportPeriodInput;
-use App\Report\Service\ReportDate;
+use App\Report\ValueObject\ReportDate;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;

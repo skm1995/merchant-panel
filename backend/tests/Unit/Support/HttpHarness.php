@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Support;
 
-use App\Auth\Service\CurrentUser;
+use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;

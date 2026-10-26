@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Report\Request;
 
 use App\Report\Exception\InvalidReportPeriodException;
-use App\Report\Service\ReportDate;
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportDate;
+use App\Report\ValueObject\ReportPeriod;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
 use DateTimeImmutable;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Order\Controller;
 
 use App\Auth\Entity\User;
-use App\Auth\Service\CurrentUser;
+use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Cart\Repository\CartRepositoryInterface;
 use App\Cart\Service\CartService;
 use App\Catalog\Repository\ProductRepositoryInterface;

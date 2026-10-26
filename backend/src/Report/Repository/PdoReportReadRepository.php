@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Report\Repository;
 
 use App\Order\Enum\OrderStatusEnum;
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
 use App\Report\ReadModel\ReportedOrder;
 use App\Report\ReadModel\TopProduct;

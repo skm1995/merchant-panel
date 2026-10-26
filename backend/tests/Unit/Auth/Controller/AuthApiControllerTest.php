@@ -9,7 +9,7 @@ use App\Auth\Entity\User;
 use App\Auth\Repository\EmailVerificationTokenRepositoryInterface;
 use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\ConfirmEmailService;
-use App\Auth\Service\CurrentUser;
+use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;

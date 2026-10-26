@@ -20,6 +20,7 @@ node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_
 "${run[@]}" composer test-unit
 "${run[@]}" composer test-functional
 "${run[@]}" composer analyse
+"${run[@]}" composer deptrac
 "${run[@]}" composer cs-check
 
 "${node[@]}" npm run api:check

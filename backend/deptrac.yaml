@@ -1,0 +1,52 @@
+# Architecture rules checked in CI. Layers are the same in every feature, so the rules read
+# "a controller may use…" whichever feature the classes belong to.
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Controller
+      collectors:
+        - type: directory
+          value: src/\w+/Controller/.*
+    - name: HttpModel
+      collectors:
+        - type: directory
+          value: src/\w+/(Request|Response)/.*
+    - name: Application
+      collectors:
+        - type: directory
+          value: src/\w+/(Service|Command|Query)/.*
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/\w+/(Entity|ValueObject|ReadModel|Enum|Exception|Message|Gateway)/.*
+    - name: Repository
+      collectors:
+        - type: directory
+          value: src/\w+/Repository/.*
+    - name: Infrastructure
+      collectors:
+        - type: directory
+          value: src/\w+/Infrastructure/.*
+    - name: SharedHttp
+      collectors:
+        - type: directory
+          value: src/Shared/Http/.*
+    - name: SharedKernel
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/Shared/.*
+          must_not:
+            - type: directory
+              value: src/Shared/(Http|Request|Response)/.*
+  ruleset:
+    Controller: [HttpModel, Application, Domain, SharedHttp, SharedKernel]
+    HttpModel: [Application, Domain, SharedHttp, SharedKernel]
+    Application: [Domain, Repository, SharedKernel]
+    Domain: [SharedKernel]
+    Repository: [Domain, SharedKernel]
+    Infrastructure: [Application, Domain, Repository, SharedHttp, SharedKernel]
+    SharedHttp: [SharedKernel]
+    SharedKernel: []

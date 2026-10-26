@@ -2,13 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Auth\Service;
+namespace App\Auth\Infrastructure\Session;
 
 use App\Auth\Entity\User;
+use App\Auth\Service\CurrentUserInterface;
 use App\Shared\Http\Session;
 use App\Shared\Http\SessionUserInterface;
 
-final readonly class CurrentUser implements SessionUserInterface
+/**
+ * Keeps the signed-in user in the browser session.
+ */
+final readonly class CurrentUser implements CurrentUserInterface, SessionUserInterface
 {
     private const string SESSION_KEY = 'user_email';
 

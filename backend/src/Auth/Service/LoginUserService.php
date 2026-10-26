@@ -8,7 +8,7 @@ final readonly class LoginUserService
 {
     public function __construct(
         private UserAuthService $authService,
-        private CurrentUser $currentUser,
+        private CurrentUserInterface $currentUser,
     ) {
     }
 

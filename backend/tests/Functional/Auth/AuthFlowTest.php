@@ -7,7 +7,7 @@ namespace Tests\Functional\Auth;
 use App\Auth\Repository\PdoEmailVerificationTokenRepository;
 use App\Auth\Repository\PdoUserRepository;
 use App\Auth\Service\ConfirmationToken;
-use App\Auth\Service\CurrentUser;
+use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;

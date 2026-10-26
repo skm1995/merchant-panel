@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Auth\Service;
+namespace Tests\Unit\Auth\Infrastructure\Session;
 
 use App\Auth\Entity\User;
-use App\Auth\Service\CurrentUser;
+use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Shared\Http\Session;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;

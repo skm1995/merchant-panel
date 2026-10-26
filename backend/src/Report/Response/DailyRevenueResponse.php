@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Report\Response;
 
-use App\Report\Service\ReportDate;
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportDate;
+use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
 use App\Shared\Contract\Arrayable;
 use App\Shared\Response\MoneyResponse;

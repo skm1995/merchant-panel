@@ -25,7 +25,7 @@ use ReflectionParameter;
 final class Container implements ContainerInterface
 {
     private const string CIRCULAR_FORMAT = 'Circular dependency: %s.';
-    private const string NOT_INSTANTIABLE_FORMAT = '%s cannot be created; bind it to an implementation in config/services.php.';
+    private const string NOT_INSTANTIABLE_FORMAT = '%s cannot be created; give the interface one implementation in src/, mark one with #[DefaultImplementation], or build it in a #[ServiceFactory] method.';
     private const string UNRESOLVABLE_FORMAT = 'Parameter $%s of %s needs a class type, #[Env], or a default value.';
     private const string UNSUPPORTED_ENV_FORMAT = 'Parameter $%s of %s reads #[Env] but only string and int are supported.';
     private const string CHAIN_SEPARATOR = ' -> ';

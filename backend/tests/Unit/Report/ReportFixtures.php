@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Report;
 
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
 use App\Report\ReadModel\TopProduct;
 use DateTimeImmutable;

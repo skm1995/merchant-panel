@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Report\Service;
+namespace App\Report\ValueObject;
 
 use DateTimeImmutable;
 use DateTimeInterface;

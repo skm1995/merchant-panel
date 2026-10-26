@@ -23,6 +23,7 @@
     },
     "require-dev": {
         "ext-json": "*",
+        "deptrac/deptrac": "^4.7",
         "friendsofphp/php-cs-fixer": "^3.0",
         "league/openapi-psr7-validator": "^0.24",
         "nyholm/psr7": "^1.8",
@@ -55,6 +56,7 @@
         "analyse": "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M",
         "cs-check": "php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php",
         "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
+        "deptrac": "deptrac analyse --config-file=deptrac.yaml --no-progress",
         "migrate": "phinx migrate -c phinx.php",
         "openapi-validate": "php-openapi validate ../openapi/openapi.yaml",
         "openapi-bundle": "php-openapi inline ../openapi/openapi.yaml ../build/openapi.yaml"

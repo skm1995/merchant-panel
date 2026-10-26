@@ -15,7 +15,7 @@ use App\Auth\Request\ConfirmationTokenRequest;
 use App\Auth\Request\CredentialsRequest;
 use App\Auth\Response\SessionResponse;
 use App\Auth\Service\ConfirmEmailService;
-use App\Auth\Service\CurrentUser;
+use App\Auth\Service\CurrentUserInterface;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Shared\Http\CsrfToken;
@@ -41,7 +41,7 @@ final readonly class AuthApiController
         private RegisterUserService $registerUser,
         private LoginUserService $loginUser,
         private ConfirmEmailService $confirmEmail,
-        private CurrentUser $currentUser,
+        private CurrentUserInterface $currentUser,
         private CsrfToken $csrfToken,
         private Responder $responder,
     ) {

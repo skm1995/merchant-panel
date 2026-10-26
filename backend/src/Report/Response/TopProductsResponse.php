@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report\Response;
 
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\TopProduct;
 use App\Shared\Contract\Arrayable;
 use App\Shared\Response\MoneyResponse;

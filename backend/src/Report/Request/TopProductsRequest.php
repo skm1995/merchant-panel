@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report\Request;
 
-use App\Report\Service\ReportPeriod;
+use App\Report\ValueObject\ReportPeriod;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
 

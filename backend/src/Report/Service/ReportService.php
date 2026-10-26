@@ -9,6 +9,7 @@ use App\Report\ReadModel\DailyRevenue;
 use App\Report\ReadModel\ReportedOrder;
 use App\Report\ReadModel\TopProduct;
 use App\Report\Repository\ReportReadRepositoryInterface;
+use App\Report\ValueObject\ReportPeriod;
 use DateTimeImmutable;
 
 /**

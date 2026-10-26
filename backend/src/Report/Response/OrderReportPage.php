@@ -6,7 +6,7 @@ namespace App\Report\Response;
 
 use App\Order\Enum\OrderStatusEnum;
 use App\Report\ReadModel\ReportedOrder;
-use App\Report\Service\ReportDate;
+use App\Report\ValueObject\ReportDate;
 use App\Shared\Contract\Arrayable;
 use DateTimeImmutable;
 use Money\Currencies\ISOCurrencies;
