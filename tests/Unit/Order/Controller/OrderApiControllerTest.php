@@ -15,16 +15,17 @@ use App\Order\Controller\OrderApiController;
 use App\Order\Query\GetOrderHandler;
 use App\Order\Repository\OrderReadRepositoryInterface;
 use App\Order\Repository\OrderRepositoryInterface;
+use App\Order\Service\OrderStatusChange;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Order\OrderFixtures;
-use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\HttpHarness;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class OrderApiControllerTest extends TestCase
 {
@@ -65,6 +66,7 @@ final class OrderApiControllerTest extends TestCase
         $readOrders = $this->createStub(OrderReadRepositoryInterface::class);
         $readOrders->method('find')->willReturn(OrderFixtures::view());
         $transactions = new ImmediateTransactionRunner();
+        $orders = $this->createStub(OrderRepositoryInterface::class);
         $stock = new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock());
 
         return HttpHarness::json($request, new OrderApiController(
@@ -78,7 +80,7 @@ final class OrderApiControllerTest extends TestCase
                 self::RESERVATION_SECONDS,
             ),
             new GetOrderHandler($readOrders),
-            new CancelOrderHandler($this->createStub(OrderRepositoryInterface::class), $stock, $transactions),
+            new CancelOrderHandler($orders, new OrderStatusChange($orders, $stock), $transactions),
             HttpHarness::responder(),
         ));
     }

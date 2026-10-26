@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Order\Service;
 
-use App\Catalog\Service\StockReservation;
 use App\Order\Entity\OrderId;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\Exception\OrderNotFoundException;
@@ -18,7 +17,7 @@ final class OrderSettlement
 {
     public function __construct(
         private readonly OrderRepositoryInterface $orders,
-        private readonly StockReservation $stock,
+        private readonly OrderStatusChange $statusChange,
     ) {
     }
 
@@ -30,16 +29,6 @@ final class OrderSettlement
     {
         $order = $this->orders->findState($id) ?? throw new OrderNotFoundException();
 
-        if (!$order->status->canTransitionTo(OrderStatusEnum::PAID)) {
-            return false;
-        }
-
-        if (!$this->orders->transition($order->id, $order->status, OrderStatusEnum::PAID, $order->version)) {
-            return false;
-        }
-
-        $this->stock->commit($order->quantities);
-
-        return true;
+        return $this->statusChange->change($order, OrderStatusEnum::PAID);
     }
 }

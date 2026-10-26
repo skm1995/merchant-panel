@@ -14,11 +14,12 @@ use App\Order\Exception\InvalidOrderTransitionException;
 use App\Order\Exception\OrderNotFoundException;
 use App\Order\Exception\OrderVersionMismatchException;
 use App\Order\Repository\OrderRepositoryInterface;
+use App\Order\Service\OrderStatusChange;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Order\OrderFixtures;
-use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class CancelOrderHandlerTest extends TestCase
 {
@@ -86,7 +87,10 @@ final class CancelOrderHandlerTest extends TestCase
     {
         return new CancelOrderHandler(
             $orders,
-            new StockReservation($products ?? $this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()),
+            new OrderStatusChange(
+                $orders,
+                new StockReservation($products ?? $this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()),
+            ),
             new ImmediateTransactionRunner(),
         );
     }

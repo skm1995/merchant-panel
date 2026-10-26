@@ -10,6 +10,7 @@ use App\Order\Entity\OrderState;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Order\Service\OrderSettlement;
+use App\Order\Service\OrderStatusChange;
 use App\Payment\Command\HandlePaymentWebhookCommand;
 use App\Payment\Command\HandlePaymentWebhookHandler;
 use App\Payment\Entity\PaymentState;
@@ -25,13 +26,13 @@ use App\Payment\Gateway\PaymentWebhookEvent;
 use App\Payment\Repository\PaymentRepositoryInterface;
 use App\Payment\Repository\WebhookInboxRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
-use Money\Money;
 use App\Shared\Messaging\Outbox\OutboxInterface;
+use Money\Money;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Payment\PaymentFixtures;
-use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class HandlePaymentWebhookHandlerTest extends TestCase
 {
@@ -162,7 +163,7 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
             $gateways,
             $inbox,
             $payments,
-            new OrderSettlement($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())),
+            new OrderSettlement($orders, new OrderStatusChange($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()))),
             $this->transactions,
         );
     }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Order\Command;
 
-use App\Catalog\Service\StockReservation;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\Repository\OrderRepositoryInterface;
+use App\Order\Service\OrderStatusChange;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
 use App\Shared\Messaging\AsMessageHandler;
@@ -22,7 +22,7 @@ final class ExpireOrderReservationHandler
 {
     public function __construct(
         private readonly OrderRepositoryInterface $orders,
-        private readonly StockReservation $stock,
+        private readonly OrderStatusChange $statusChange,
         private readonly TransactionRunnerInterface $transactions,
     ) {
     }
@@ -33,12 +33,8 @@ final class ExpireOrderReservationHandler
         $this->transactions->run(function () use ($command): void {
             $order = $this->orders->findState($command->orderId);
 
-            if ($order === null || !$order->status->canTransitionTo(OrderStatusEnum::EXPIRED)) {
-                return;
-            }
-
-            if ($this->orders->transition($order->id, $order->status, OrderStatusEnum::EXPIRED, $order->version)) {
-                $this->stock->release($order->quantities);
+            if ($order !== null) {
+                $this->statusChange->change($order, OrderStatusEnum::EXPIRED);
             }
         }, IsolationLevelEnum::READ_COMMITTED);
     }

@@ -11,12 +11,13 @@ use App\Order\Command\ExpireOrderReservationHandler;
 use App\Order\Entity\OrderState;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\Repository\OrderRepositoryInterface;
+use App\Order\Service\OrderStatusChange;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Order\OrderFixtures;
-use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class ExpireOrderReservationHandlerTest extends TestCase
 {
@@ -33,7 +34,7 @@ final class ExpireOrderReservationHandlerTest extends TestCase
         $products->expects(self::once())->method('release')->with(5, 2)->willReturn(true);
         $transactions = new ImmediateTransactionRunner();
 
-        new ExpireOrderReservationHandler($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()), $transactions)
+        new ExpireOrderReservationHandler($orders, new OrderStatusChange($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())), $transactions)
             ->handle(new ExpireOrderReservationCommand(OrderFixtures::orderId()));
 
         self::assertSame(IsolationLevelEnum::READ_COMMITTED, $transactions->lastIsolationLevel);
@@ -58,7 +59,7 @@ final class ExpireOrderReservationHandlerTest extends TestCase
         $products = $this->createMock(ProductRepositoryInterface::class);
         $products->expects(self::never())->method('release');
 
-        new ExpireOrderReservationHandler($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()), new ImmediateTransactionRunner())
+        new ExpireOrderReservationHandler($orders, new OrderStatusChange($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())), new ImmediateTransactionRunner())
             ->handle(new ExpireOrderReservationCommand(OrderFixtures::orderId()));
     }
 
@@ -88,7 +89,7 @@ final class ExpireOrderReservationHandlerTest extends TestCase
     {
         return new ExpireOrderReservationHandler(
             $orders,
-            new StockReservation($this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()),
+            new OrderStatusChange($orders, new StockReservation($this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock())),
             new ImmediateTransactionRunner(),
         );
     }
