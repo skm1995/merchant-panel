@@ -6,6 +6,7 @@ namespace Tests\Functional\Messaging;
 
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Database\PdoTransactionRunner;
+use App\Shared\Logging\CorrelationId;
 use App\Shared\Messaging\Outbox\PdoOutbox;
 use DateTimeImmutable;
 use PDO;
@@ -17,17 +18,20 @@ final class PdoOutboxTest extends TestCase
     private const string DELETE_QUERY = 'DELETE FROM outbox_messages WHERE message_type = :type';
     private const string LOCK_ALL_QUERY = 'SELECT id FROM outbox_messages WHERE message_type = :type FOR UPDATE';
     private const string NOW = '2026-10-25 12:00:00';
+    private const string REQUEST_ID = 'outbox-request-1';
     private const string AFTER_LEASE = '2026-10-25 12:01:00';
     private const string LATER = '2026-10-25 12:15:00';
     private const int BATCH_SIZE = 10;
 
     private PDO $pdo;
     private PdoOutbox $outbox;
+    private CorrelationId $correlation;
 
     protected function setUp(): void
     {
         $this->pdo = DatabaseConnection::createFromEnvironment();
-        $this->outbox = new PdoOutbox($this->pdo);
+        $this->correlation = new CorrelationId();
+        $this->outbox = new PdoOutbox($this->pdo, $this->correlation);
         $this->clear();
     }
 
@@ -47,6 +51,15 @@ final class PdoOutboxTest extends TestCase
         self::assertEquals(new DateTimeImmutable(self::LATER), $claimed[1]->deliverAt);
         self::assertSame([], $this->claim(self::NOW), 'Claimed messages stay leased.');
         self::assertCount(2, $this->claim(self::AFTER_LEASE), 'An expired lease is claimed again.');
+    }
+
+    public function testKeepsTheRequestIdOfTheRequestThatAddedAMessage(): void
+    {
+        $this->outbox->add(new ExampleOutboxMessage('outside-request'), new DateTimeImmutable(self::NOW));
+        $this->correlation->set(self::REQUEST_ID);
+        $this->outbox->add(new ExampleOutboxMessage('in-request'), new DateTimeImmutable(self::NOW));
+
+        self::assertSame([null, self::REQUEST_ID], array_column($this->claim(self::NOW), 'correlationId'));
     }
 
     public function testSkipsMessagesLockedByAnotherRelay(): void

@@ -42,14 +42,19 @@ final class MessengerRuntime
     public function __construct(
         private readonly array $transportDsnKeys,
         private readonly array $routes,
-        private readonly array $outboxMessages = [],
+        private readonly array $outboxMessages,
+        private readonly CorrelationIdMiddleware $correlationId,
+        private readonly MessageLogMiddleware $messageLog,
     ) {
     }
 
     #[ServiceFactory]
-    public static function fromDiscovery(MessagingDiscovery $discovery): self
-    {
-        return new self($discovery->transportDsnKeys(), $discovery->routes(), $discovery->outboxMessages());
+    public static function fromDiscovery(
+        MessagingDiscovery $discovery,
+        CorrelationIdMiddleware $correlationId,
+        MessageLogMiddleware $messageLog,
+    ): self {
+        return new self($discovery->transportDsnKeys(), $discovery->routes(), $discovery->outboxMessages(), $correlationId, $messageLog);
     }
 
     /**
@@ -59,6 +64,8 @@ final class MessengerRuntime
     public function bus(array $handlers = []): MessageBusInterface
     {
         return new MessageBus([
+            $this->correlationId,
+            $this->messageLog,
             new SendMessageMiddleware(new RoutingSendersLocator($this->routes, $this->transportContainer())),
             new HandleMessageMiddleware(new HandlersLocator($handlers)),
         ]);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Shared\Messaging\Outbox;
 
+use App\Shared\Messaging\CorrelationIdStamp;
 use App\Shared\Messaging\Outbox\ClaimedOutboxMessage;
 use App\Shared\Messaging\Outbox\OutboxMessageTypes;
 use App\Shared\Messaging\Outbox\OutboxRelay;
@@ -20,6 +21,7 @@ use Tests\Unit\Support\FrozenClock;
 final class OutboxRelayTest extends TestCase
 {
     private const string NOW = '2026-10-25 12:00:00';
+    private const string REQUEST_ID = 'relay-request-1';
     private const string IN_FIVE_SECONDS = '2026-10-25 12:00:05';
     private const string BROKER_FAILURE = 'Broker unavailable.';
     private const int FIRST_ID = 1;
@@ -33,7 +35,7 @@ final class OutboxRelayTest extends TestCase
             OutboxRelay::BATCH_SIZE,
             new DateTimeImmutable(self::NOW),
             new DateTimeImmutable(self::NOW)->modify(sprintf('+%d seconds', OutboxRelay::LEASE_SECONDS)),
-        )->willReturn([self::claimed(self::FIRST_ID, self::NOW), self::claimed(self::SECOND_ID, self::IN_FIVE_SECONDS)]);
+        )->willReturn([self::claimed(self::FIRST_ID, self::NOW, self::REQUEST_ID), self::claimed(self::SECOND_ID, self::IN_FIVE_SECONDS)]);
         $removed = [];
         $store->method('remove')->willReturnCallback(static function (int $id) use (&$removed): void {
             $removed[] = $id;
@@ -54,6 +56,8 @@ final class OutboxRelayTest extends TestCase
         self::assertSame([self::FIRST_ID, self::SECOND_ID], $removed);
         self::assertNull($published[0]->last(DelayStamp::class));
         self::assertSame(5000, $published[1]->last(DelayStamp::class)?->getDelay());
+        self::assertSame(self::REQUEST_ID, $published[0]->last(CorrelationIdStamp::class)?->id);
+        self::assertNull($published[1]->last(CorrelationIdStamp::class));
     }
 
     public function testKeepsMessageWhenPublishingFailsSoItIsRetriedAfterTheLease(): void
@@ -68,13 +72,14 @@ final class OutboxRelayTest extends TestCase
         self::relay($store, $bus)->relayBatch();
     }
 
-    private static function claimed(int $id, string $deliverAt): ClaimedOutboxMessage
+    private static function claimed(int $id, string $deliverAt, ?string $correlationId = null): ClaimedOutboxMessage
     {
         return new ClaimedOutboxMessage(
             $id,
             ExampleOutboxMessage::messageType(),
             ['reference' => 'ref-' . $id],
             new DateTimeImmutable($deliverAt),
+            $correlationId,
         );
     }
 

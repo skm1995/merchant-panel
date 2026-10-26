@@ -133,6 +133,18 @@ answer a stale version with HTTP 412. Allowed status changes live on the status 
   broker APIs follow the real contract: an AMQP receiver's `get()` returns at most one
   message per call.
 
+## Logging and tracing
+
+- Log through the injected `Psr\Log\LoggerInterface` with a short constant message and a
+  context array; the logger writes JSON to stderr for Docker and ELK. Never echo or
+  `error_log()` diagnostics.
+- Every record carries `request_id`. HTTP requests take a well-formed `X-Request-Id` or get a
+  UUID, which the response returns. Outbox messages store it, the relay sends it as a
+  `CorrelationIdStamp`, and the worker restores it, so one id finds a request and all the
+  work it caused.
+- Unexpected exceptions are logged with their stack trace and answered with a generic 500;
+  the response never reveals internals.
+
 ## Caching
 
 Cache reads behind a repository decorator in the feature's `Infrastructure/Cache/`,

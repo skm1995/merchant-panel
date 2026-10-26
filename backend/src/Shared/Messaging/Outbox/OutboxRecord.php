@@ -20,6 +20,7 @@ final readonly class OutboxRecord implements EntityRecord
     public string $messageType;
     public string $payload;
     public string $deliverAt;
+    public ?string $correlationId;
 
     public function toEntity(): ClaimedOutboxMessage
     {
@@ -27,6 +28,6 @@ final readonly class OutboxRecord implements EntityRecord
             ?? throw new UnexpectedValueException(sprintf(self::INVALID_PAYLOAD_FORMAT, $this->id));
 
         /** @var array<string, mixed> $payload */
-        return new ClaimedOutboxMessage($this->id, $this->messageType, $payload, new DateTimeImmutable($this->deliverAt));
+        return new ClaimedOutboxMessage($this->id, $this->messageType, $payload, new DateTimeImmutable($this->deliverAt), $this->correlationId);
     }
 }

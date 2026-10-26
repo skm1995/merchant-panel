@@ -14,6 +14,7 @@ final readonly class ClaimedOutboxMessage
         public string $messageType,
         public array $payload,
         public DateTimeImmutable $deliverAt,
+        public ?string $correlationId,
     ) {
     }
 }

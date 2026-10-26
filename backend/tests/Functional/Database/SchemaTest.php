@@ -20,6 +20,7 @@ final class SchemaTest extends TestCase
         'carts.updated_at',
         'orders.updated_at',
         'outbox_messages.claimed_until',
+        'outbox_messages.correlation_id',
         'payments.updated_at',
         'products.updated_at',
         'users.email_verified_at',

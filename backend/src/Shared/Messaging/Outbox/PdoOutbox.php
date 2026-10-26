@@ -7,14 +7,15 @@ namespace App\Shared\Messaging\Outbox;
 use App\Shared\Database\RecordFetcher;
 use App\Shared\Database\SqlDateTime;
 use App\Shared\Database\SqlPlaceholders;
+use App\Shared\Logging\CorrelationId;
 use DateTimeImmutable;
 use PDO;
 
 final class PdoOutbox implements OutboxInterface, OutboxStoreInterface
 {
-    private const string INSERT_QUERY = 'INSERT INTO outbox_messages (message_type, payload, deliver_at) VALUES (:message_type, :payload, :deliver_at)';
+    private const string INSERT_QUERY = 'INSERT INTO outbox_messages (message_type, payload, correlation_id, deliver_at) VALUES (:message_type, :payload, :correlation_id, :deliver_at)';
     private const string CLAIM_QUERY_FORMAT = <<<'SQL'
-        SELECT id, message_type AS messageType, payload, deliver_at AS deliverAt
+        SELECT id, message_type AS messageType, payload, correlation_id AS correlationId, deliver_at AS deliverAt
         FROM outbox_messages
         WHERE message_type IN (%s) AND (claimed_until IS NULL OR claimed_until < ?)
         ORDER BY id
@@ -27,9 +28,10 @@ final class PdoOutbox implements OutboxInterface, OutboxStoreInterface
     private const string MESSAGE_TYPE_PARAMETER = 'message_type';
     private const string PAYLOAD_PARAMETER = 'payload';
     private const string DELIVER_AT_PARAMETER = 'deliver_at';
+    private const string CORRELATION_ID_PARAMETER = 'correlation_id';
     private const string ID_PARAMETER = 'id';
 
-    public function __construct(private readonly PDO $pdo)
+    public function __construct(private readonly PDO $pdo, private readonly CorrelationId $correlation)
     {
     }
 
@@ -38,6 +40,7 @@ final class PdoOutbox implements OutboxInterface, OutboxStoreInterface
         $this->pdo->prepare(self::INSERT_QUERY)->execute([
             self::MESSAGE_TYPE_PARAMETER => $message::messageType(),
             self::PAYLOAD_PARAMETER => json_encode($message->toArray(), JSON_THROW_ON_ERROR),
+            self::CORRELATION_ID_PARAMETER => $this->correlation->get(),
             self::DELIVER_AT_PARAMETER => SqlDateTime::format($deliverAt),
         ]);
     }

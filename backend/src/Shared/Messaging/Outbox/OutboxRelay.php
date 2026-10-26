@@ -6,6 +6,7 @@ namespace App\Shared\Messaging\Outbox;
 
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
+use App\Shared\Messaging\CorrelationIdStamp;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -62,7 +63,10 @@ final readonly class OutboxRelay
             $delay = ($message->deliverAt->getTimestamp() - $now->getTimestamp()) * self::MILLISECONDS_PER_SECOND;
             $this->bus->dispatch(new Envelope(
                 $this->types->restore($message->messageType, $message->payload),
-                $delay > 0 ? [new DelayStamp($delay)] : [],
+                [
+                    ...($delay > 0 ? [new DelayStamp($delay)] : []),
+                    ...($message->correlationId === null ? [] : [new CorrelationIdStamp($message->correlationId)]),
+                ],
             ));
             $this->store->remove($message->id);
         }
