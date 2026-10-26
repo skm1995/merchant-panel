@@ -39,5 +39,5 @@ interface ProductRepositoryInterface
     /**
      * Atomically turns reserved units into sold units, lowering both stock and reservations.
      */
-    public function commit(int $productId, int $quantity): bool;
+    public function sellReserved(int $productId, int $quantity): bool;
 }

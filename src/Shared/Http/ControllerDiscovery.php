@@ -19,7 +19,7 @@ final class ControllerDiscovery
     private const string NAMESPACE_FORMAT = '%s\\%s';
 
     /** @return list<class-string> */
-    public static function fromSource(): array
+    public static function findInSource(): array
     {
         $root = dirname(__DIR__, 3);
         $classes = [];
@@ -30,14 +30,14 @@ final class ControllerDiscovery
             $classes = [...$classes, ...ClassFinder::find($directory, $namespace)];
         }
 
-        return self::controllers($classes);
+        return self::filterControllers($classes);
     }
 
     /**
      * @param list<class-string> $classes
      * @return list<class-string>
      */
-    public static function controllers(array $classes): array
+    public static function filterControllers(array $classes): array
     {
         return array_values(array_filter($classes, static function (string $class): bool {
             $reflection = new ReflectionClass($class);

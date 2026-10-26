@@ -87,7 +87,7 @@ final readonly class AuthController
     }
 
     #[Route(HttpMethodEnum::GET, self::CONFIRM_ROUTE_PATH)]
-    public function confirm(Request $request): void
+    public function showConfirmation(Request $request): void
     {
         $token = ConfirmationTokenRequest::fromLink($request)->token;
 
@@ -95,7 +95,7 @@ final readonly class AuthController
     }
 
     #[Route(HttpMethodEnum::POST, self::CONFIRM_ROUTE_PATH)]
-    public function confirmPost(Request $request): void
+    public function confirm(Request $request): void
     {
         try {
             $this->confirmEmail->execute(ConfirmationTokenRequest::fromForm($request)->token);

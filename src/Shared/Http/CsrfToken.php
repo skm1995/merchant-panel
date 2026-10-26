@@ -14,7 +14,7 @@ final class CsrfToken
     {
     }
 
-    public function get(): string
+    public function getOrCreate(): string
     {
         $token = $this->session->get(self::SESSION_KEY);
 

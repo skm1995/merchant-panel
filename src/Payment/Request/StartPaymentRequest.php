@@ -25,7 +25,7 @@ final class StartPaymentRequest
             OrderId::fromString($request->routeParameter(self::ORDER_ID_PARAMETER)),
             (is_string($provider) ? PaymentProviderEnum::tryFrom($provider) : null)
                 ?? throw new InvalidRequestException(self::INVALID_PROVIDER_MESSAGE),
-            IdempotencyKey::fromRequest($request),
+            IdempotencyKey::parse($request),
         );
     }
 }

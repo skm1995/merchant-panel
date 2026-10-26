@@ -56,7 +56,7 @@ final class ResponderTest extends TestCase
         self::assertIsString($output);
         self::assertStringContainsString(self::ESCAPED_MESSAGE, $output);
         self::assertStringContainsString(
-            sprintf(self::CSRF_FIELD_FORMAT, CsrfToken::FIELD_NAME, $this->csrfToken->get()),
+            sprintf(self::CSRF_FIELD_FORMAT, CsrfToken::FIELD_NAME, $this->csrfToken->getOrCreate()),
             $output,
         );
     }

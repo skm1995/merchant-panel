@@ -29,7 +29,7 @@ final readonly class CartService
     public function create(): Cart
     {
         $cart = Cart::open(CartId::generate());
-        $this->carts->create($cart);
+        $this->carts->add($cart);
 
         return $cart;
     }
@@ -48,9 +48,9 @@ final readonly class CartService
             throw new InvalidCartQuantityException(self::MAXIMUM_QUANTITY);
         }
 
-        $this->catalog->product($productId);
+        $this->catalog->ensureExists($productId);
         $this->transactions->run(function () use ($cartId, $productId, $quantity): void {
-            $status = $this->carts->lockStatus($cartId) ?? throw new CartNotFoundException();
+            $status = $this->carts->findStatusForUpdate($cartId) ?? throw new CartNotFoundException();
 
             if ($status !== CartStatusEnum::OPEN) {
                 throw new CartNotOpenException();
@@ -75,7 +75,7 @@ final readonly class CartService
      */
     public function lockForCheckout(CartId $id): Cart
     {
-        $this->carts->lockStatus($id) ?? throw new CartNotFoundException();
+        $this->carts->findStatusForUpdate($id) ?? throw new CartNotFoundException();
 
         return $this->get($id);
     }

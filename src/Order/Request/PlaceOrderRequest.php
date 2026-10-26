@@ -17,7 +17,7 @@ final class PlaceOrderRequest
     {
         return new PlaceOrderCommand(
             CartId::fromString($request->routeParameter(self::CART_ID_PARAMETER)),
-            IdempotencyKey::fromRequest($request),
+            IdempotencyKey::parse($request),
         );
     }
 }

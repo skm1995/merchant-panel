@@ -25,7 +25,7 @@ final class ReportPeriodInput
     private const string INVALID_DATE_FORMAT = 'The "%s" query parameter must be a date in YYYY-MM-DD format.';
     private const string INVALID_CURRENCY_MESSAGE = 'The "currency" query parameter must be an ISO 4217 code.';
 
-    public static function fromRequest(Request $request): ReportPeriod
+    public static function parse(Request $request): ReportPeriod
     {
         $currency = $request->query(self::CURRENCY_PARAMETER) ?? self::DEFAULT_CURRENCY;
 

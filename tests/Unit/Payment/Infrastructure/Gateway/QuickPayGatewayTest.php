@@ -36,7 +36,7 @@ final class QuickPayGatewayTest extends TestCase
     {
         $clock = new FrozenClock(self::NOW);
 
-        $event = self::gateway($clock)->parseWebhook(self::PAYLOAD, self::signed(self::PAYLOAD, $clock->now()->getTimestamp()));
+        $event = self::gateway($clock)->parseSignedWebhook(self::PAYLOAD, self::signed(self::PAYLOAD, $clock->now()->getTimestamp()));
 
         self::assertSame('evt_9', $event->eventId);
         self::assertSame('qp_9', $event->providerPaymentId);
@@ -50,7 +50,7 @@ final class QuickPayGatewayTest extends TestCase
         $staleTimestamp = $clock->now()->getTimestamp() - QuickPayGateway::SIGNATURE_TOLERANCE_SECONDS - 1;
 
         $this->expectException(InvalidWebhookSignatureException::class);
-        self::gateway($clock)->parseWebhook(self::PAYLOAD, self::signed(self::PAYLOAD, $staleTimestamp));
+        self::gateway($clock)->parseSignedWebhook(self::PAYLOAD, self::signed(self::PAYLOAD, $staleTimestamp));
     }
 
     public function testRejectsSignatureOverDifferentContent(): void
@@ -59,7 +59,7 @@ final class QuickPayGatewayTest extends TestCase
         $headers = self::signed(self::PAYLOAD, $clock->now()->getTimestamp());
 
         $this->expectException(InvalidWebhookSignatureException::class);
-        self::gateway($clock)->parseWebhook(str_replace('25.00', '0.01', self::PAYLOAD), $headers);
+        self::gateway($clock)->parseSignedWebhook(str_replace('25.00', '0.01', self::PAYLOAD), $headers);
     }
 
     private static function gateway(FrozenClock $clock): QuickPayGateway

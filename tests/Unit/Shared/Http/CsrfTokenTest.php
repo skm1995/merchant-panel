@@ -35,7 +35,7 @@ final class CsrfTokenTest extends TestCase
 
     public function testGeneratesAndPersistsCryptographicallyRandomToken(): void
     {
-        $token = $this->csrfToken->get();
+        $token = $this->csrfToken->getOrCreate();
 
         self::assertSame(64, strlen($token));
         self::assertSame($token, $_SESSION[self::SESSION_KEY]);

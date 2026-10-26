@@ -21,5 +21,5 @@ interface PaymentGatewayInterface
      * @throws \App\Payment\Exception\InvalidWebhookSignatureException
      * @throws \App\Payment\Exception\InvalidWebhookPayloadException
      */
-    public function parseWebhook(string $payload, array $headers): PaymentWebhookEvent;
+    public function parseSignedWebhook(string $payload, array $headers): PaymentWebhookEvent;
 }

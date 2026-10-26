@@ -22,7 +22,7 @@ final readonly class TopProductsRequest
 
     public static function fromRequest(Request $request): self
     {
-        $period = ReportPeriodInput::fromRequest($request);
+        $period = ReportPeriodInput::parse($request);
         $limit = $request->query(self::LIMIT_PARAMETER);
 
         if ($limit === null) {

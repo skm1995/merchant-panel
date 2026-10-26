@@ -88,7 +88,7 @@ final class AuthFlowTest extends TestCase
         self::assertNotNull($registeredUser);
         self::assertTrue($registeredUser->isVerified());
         self::assertNotSame(self::PASSWORD, $registeredUser->passwordHash);
-        self::assertTrue($registeredUser->hasPassword(self::PASSWORD));
+        self::assertTrue($registeredUser->passwordMatches(self::PASSWORD));
         self::assertSame($this->email, $this->currentUser->email());
         $this->currentUser->signOut();
         self::assertNull($this->currentUser->email());

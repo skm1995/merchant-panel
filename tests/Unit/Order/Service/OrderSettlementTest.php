@@ -21,7 +21,7 @@ final class OrderSettlementTest extends TestCase
 {
     private const int VERSION = 2;
 
-    public function testMarksPendingOrderPaidAndCommitsItsStock(): void
+    public function testMarksPendingOrderPaidAndSellsItsStock(): void
     {
         $orders = $this->createMock(OrderRepositoryInterface::class);
         $orders->method('findState')->willReturn(self::state(OrderStatusEnum::PENDING_PAYMENT));
@@ -29,7 +29,7 @@ final class OrderSettlementTest extends TestCase
             ->with(OrderFixtures::orderId(), OrderStatusEnum::PENDING_PAYMENT, OrderStatusEnum::PAID, self::VERSION)
             ->willReturn(true);
         $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::once())->method('commit')->with(5, 2)->willReturn(true);
+        $products->expects(self::once())->method('sellReserved')->with(5, 2)->willReturn(true);
 
         self::assertTrue(new OrderSettlement($orders, new OrderStatusChange($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())))->markPaid(OrderFixtures::orderId()));
     }

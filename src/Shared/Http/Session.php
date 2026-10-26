@@ -27,7 +27,7 @@ final class Session
         session_set_cookie_params([
             'lifetime' => self::COOKIE_LIFETIME,
             'path' => self::COOKIE_PATH,
-            'secure' => self::secureCookie(),
+            'secure' => self::shouldUseSecureCookie(),
             'httponly' => true,
             'samesite' => self::SAME_SITE_POLICY,
         ]);
@@ -59,7 +59,7 @@ final class Session
         session_regenerate_id(true);
     }
 
-    private static function secureCookie(): bool
+    private static function shouldUseSecureCookie(): bool
     {
         $configured = Environment::find(self::SECURE_COOKIE_ENVIRONMENT_KEY);
 

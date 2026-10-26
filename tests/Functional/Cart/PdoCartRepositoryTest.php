@@ -42,7 +42,7 @@ final class PdoCartRepositoryTest extends TestCase
 
     public function testCreatesEmptyOpenCart(): void
     {
-        $this->carts->create(Cart::open($this->cartId));
+        $this->carts->add(Cart::open($this->cartId));
 
         $cart = $this->carts->find($this->cartId);
 
@@ -50,13 +50,13 @@ final class PdoCartRepositoryTest extends TestCase
         self::assertSame($this->cartId->value, $cart->id->value);
         self::assertTrue($cart->isOpen());
         self::assertSame([], $cart->lines);
-        self::assertSame(CartStatusEnum::OPEN, $this->carts->lockStatus($this->cartId));
+        self::assertSame(CartStatusEnum::OPEN, $this->carts->findStatusForUpdate($this->cartId));
     }
 
     public function testSavesReplacesAndRemovesItemsWithCurrentProductPrices(): void
     {
         [$first, $second] = TestProductData::create($this->pdo, $this->prefix, 2, self::PRICE_IN_GROSZE, self::STOCK);
-        $this->carts->create(Cart::open($this->cartId));
+        $this->carts->add(Cart::open($this->cartId));
 
         $this->carts->saveItem($this->cartId, $second, 1);
         $this->carts->saveItem($this->cartId, $first, 2);
@@ -72,7 +72,7 @@ final class PdoCartRepositoryTest extends TestCase
 
     public function testUpdatesStatus(): void
     {
-        $this->carts->create(Cart::open($this->cartId));
+        $this->carts->add(Cart::open($this->cartId));
 
         $this->carts->updateStatus($this->cartId, CartStatusEnum::CHECKED_OUT);
 
@@ -82,6 +82,6 @@ final class PdoCartRepositoryTest extends TestCase
     public function testUnknownCartIsMissing(): void
     {
         self::assertNull($this->carts->find($this->cartId));
-        self::assertNull($this->carts->lockStatus($this->cartId));
+        self::assertNull($this->carts->findStatusForUpdate($this->cartId));
     }
 }

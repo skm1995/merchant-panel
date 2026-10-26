@@ -25,7 +25,7 @@ final class ServiceGraphTest extends TestCase
     /** @return iterable<string, array{class-string}> */
     public static function entryPoints(): iterable
     {
-        foreach ([...ControllerDiscovery::fromSource(), HttpApplication::class, OutboxRelay::class] as $class) {
+        foreach ([...ControllerDiscovery::findInSource(), HttpApplication::class, OutboxRelay::class] as $class) {
             yield $class => [$class];
         }
     }

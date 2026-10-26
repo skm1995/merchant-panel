@@ -34,14 +34,14 @@ final class CachedProductRepositoryTest extends TestCase
         $products->expects(self::once())->method('lockForUpdate')->with([self::PRODUCT_ID])->willReturn([]);
         $products->expects(self::once())->method('reserve')->with(self::PRODUCT_ID, 1)->willReturn(true);
         $products->expects(self::once())->method('release')->with(self::PRODUCT_ID, 1)->willReturn(true);
-        $products->expects(self::once())->method('commit')->with(self::PRODUCT_ID, 1)->willReturn(true);
+        $products->expects(self::once())->method('sellReserved')->with(self::PRODUCT_ID, 1)->willReturn(true);
         $products->expects(self::once())->method('findPage')->with(10, null)->willReturn([]);
         $repository = $this->repository($products);
 
         $repository->lockForUpdate([self::PRODUCT_ID]);
         $repository->reserve(self::PRODUCT_ID, 1);
         $repository->release(self::PRODUCT_ID, 1);
-        $repository->commit(self::PRODUCT_ID, 1);
+        $repository->sellReserved(self::PRODUCT_ID, 1);
         $repository->findPage(10, null);
     }
 

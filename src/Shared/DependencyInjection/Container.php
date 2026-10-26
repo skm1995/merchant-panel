@@ -84,7 +84,7 @@ final class Container implements ContainerInterface
     {
         $reflection = new ReflectionClass($class)->getMethod($method);
         $arguments = array_map(
-            fn (ReflectionParameter $parameter): mixed => $this->argument($parameter, $class),
+            fn (ReflectionParameter $parameter): mixed => $this->resolveArgument($parameter, $class),
             $reflection->getParameters(),
         );
         $service = $reflection->invokeArgs($static ? null : $this->get($class), $arguments);
@@ -126,14 +126,14 @@ final class Container implements ContainerInterface
         }
 
         $arguments = array_map(
-            fn (ReflectionParameter $parameter): mixed => $this->argument($parameter, $class),
+            fn (ReflectionParameter $parameter): mixed => $this->resolveArgument($parameter, $class),
             $reflection->getConstructor()?->getParameters() ?? [],
         );
 
         return $reflection->newInstanceArgs($arguments);
     }
 
-    private function argument(ReflectionParameter $parameter, string $class): mixed
+    private function resolveArgument(ReflectionParameter $parameter, string $class): mixed
     {
         $autowire = ($parameter->getAttributes(Autowire::class)[0] ?? null)?->newInstance();
 

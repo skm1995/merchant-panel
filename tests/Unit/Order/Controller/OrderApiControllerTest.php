@@ -41,7 +41,7 @@ final class OrderApiControllerTest extends TestCase
     public function testCheckoutWithoutIdempotencyKeyIsBadRequest(): void
     {
         $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::never())->method('lockStatus');
+        $carts->expects(self::never())->method('findStatusForUpdate');
 
         $body = $this->dispatch(new Request(HttpMethodEnum::POST->value, self::CHECKOUT_PATH), $carts);
 

@@ -25,7 +25,7 @@ final class PdoProductRepository implements ProductRepositoryInterface
         SET reserved = reserved - :quantity, version = version + 1
         WHERE id = :id AND reserved >= :required_quantity
         SQL;
-    private const string COMMIT_QUERY = <<<'SQL'
+    private const string SELL_RESERVED_QUERY = <<<'SQL'
         UPDATE products
         SET stock = stock - :quantity, reserved = reserved - :quantity_reserved, version = version + 1
         WHERE id = :id AND reserved >= :required_quantity
@@ -88,9 +88,9 @@ final class PdoProductRepository implements ProductRepositoryInterface
         return $this->changeReservation(self::RELEASE_QUERY, $productId, $quantity);
     }
 
-    public function commit(int $productId, int $quantity): bool
+    public function sellReserved(int $productId, int $quantity): bool
     {
-        $statement = $this->pdo->prepare(self::COMMIT_QUERY);
+        $statement = $this->pdo->prepare(self::SELL_RESERVED_QUERY);
         $statement->execute([
             self::ID_PARAMETER => $productId,
             self::QUANTITY_PARAMETER => $quantity,

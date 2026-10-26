@@ -85,7 +85,7 @@ final class PdoOrderRepositoryTest extends TestCase
     {
         [$productId] = TestProductData::create($this->pdo, $this->prefix . count($this->cartIds), 1, self::PRICE_IN_GROSZE, self::STOCK);
         $cartId = CartId::generate();
-        new PdoCartRepository($this->pdo)->create(Cart::open($cartId));
+        new PdoCartRepository($this->pdo)->add(Cart::open($cartId));
         $this->cartIds[] = $cartId;
 
         return Order::place(

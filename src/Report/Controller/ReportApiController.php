@@ -31,7 +31,7 @@ final readonly class ReportApiController
     #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function dailyRevenue(Request $request): void
     {
-        $period = ReportPeriodInput::fromRequest($request);
+        $period = ReportPeriodInput::parse($request);
 
         $this->responder->json(new DailyRevenueResponse($period, $this->reports->dailyRevenue($period)));
     }

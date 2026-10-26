@@ -57,7 +57,7 @@ final readonly class QuickPayGateway implements PaymentGatewayInterface
         );
     }
 
-    public function parseWebhook(string $payload, array $headers): PaymentWebhookEvent
+    public function parseSignedWebhook(string $payload, array $headers): PaymentWebhookEvent
     {
         $this->verifySignature($payload, $headers[self::SIGNATURE_HEADER] ?? null);
         $data = WebhookPayload::decode($payload);

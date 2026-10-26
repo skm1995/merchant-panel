@@ -57,7 +57,7 @@ final readonly class RegisterUserService
     {
         $token = ConfirmationToken::generate();
         $this->tokens->store($user->email, $token->hash(), $this->tokenExpiry());
-        $this->dispatch($user, $token);
+        $this->queueConfirmationEmail($user, $token);
     }
 
     private function resendConfirmation(User $user): void
@@ -76,10 +76,10 @@ final readonly class RegisterUserService
             throw new ResendLimitReachedException();
         }
 
-        $this->dispatch($user, $token);
+        $this->queueConfirmationEmail($user, $token);
     }
 
-    private function dispatch(User $user, ConfirmationToken $token): void
+    private function queueConfirmationEmail(User $user, ConfirmationToken $token): void
     {
         $this->outbox->add(new ConfirmationEmailMessage($user->email, $token->value), $this->clock->now());
     }

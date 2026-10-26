@@ -56,4 +56,16 @@ final class ProductCatalogTest extends TestCase
         $this->expectException(ProductNotFoundException::class);
         new ProductCatalog($products)->product(self::PRODUCT_ID);
     }
+
+    public function testEnsuresAProductExists(): void
+    {
+        $products = $this->createStub(ProductRepositoryInterface::class);
+        $products->method('findById')->willReturnOnConsecutiveCalls(ProductFactory::create(self::PRODUCT_ID), null);
+        $catalog = new ProductCatalog($products);
+
+        $catalog->ensureExists(self::PRODUCT_ID);
+
+        $this->expectException(ProductNotFoundException::class);
+        $catalog->ensureExists(self::PRODUCT_ID);
+    }
 }

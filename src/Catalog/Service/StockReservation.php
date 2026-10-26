@@ -79,9 +79,9 @@ final readonly class StockReservation
      *
      * @param array<int, int> $quantities quantities keyed by product id
      */
-    public function commit(array $quantities): void
+    public function sell(array $quantities): void
     {
-        $this->settle($quantities, $this->products->commit(...));
+        $this->settle($quantities, $this->products->sellReserved(...));
     }
 
     /**

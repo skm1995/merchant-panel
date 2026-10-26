@@ -96,21 +96,21 @@ final class StockReservationTest extends TestCase
         new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())->release([3 => 1]);
     }
 
-    public function testCommitsReservationsAsSoldStockInIdOrder(): void
+    public function testSellsReservedStockInIdOrder(): void
     {
         $products = $this->createMock(ProductRepositoryInterface::class);
-        $committed = [];
+        $sold = [];
         $products->expects(self::exactly(2))
-            ->method('commit')
-            ->willReturnCallback(static function (int $productId, int $quantity) use (&$committed): bool {
-                $committed[] = [$productId, $quantity];
+            ->method('sellReserved')
+            ->willReturnCallback(static function (int $productId, int $quantity) use (&$sold): bool {
+                $sold[] = [$productId, $quantity];
 
                 return true;
             });
 
-        new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())->commit([8 => 1, 3 => 2]);
+        new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())->sell([8 => 1, 3 => 2]);
 
-        self::assertSame([[3, 2], [8, 1]], $committed);
+        self::assertSame([[3, 2], [8, 1]], $sold);
     }
 
     public function testRecordsWhichProductsChangedInTheOutbox(): void
@@ -119,7 +119,7 @@ final class StockReservationTest extends TestCase
         $products->method('lockForUpdate')->willReturn([ProductFactory::create(3), ProductFactory::create(8)]);
         $products->method('reserve')->willReturn(true);
         $products->method('release')->willReturn(true);
-        $products->method('commit')->willReturn(true);
+        $products->method('sellReserved')->willReturn(true);
         $recorded = [];
         $outbox = $this->createMock(OutboxInterface::class);
         $outbox->expects(self::exactly(3))->method('add')->willReturnCallback(
@@ -131,7 +131,7 @@ final class StockReservationTest extends TestCase
 
         $reservation->reserve([8 => 1, 3 => 2]);
         $reservation->release([8 => 1]);
-        $reservation->commit([3 => 2]);
+        $reservation->sell([3 => 2]);
 
         self::assertSame([[3, 8], [8], [3]], $recorded);
     }

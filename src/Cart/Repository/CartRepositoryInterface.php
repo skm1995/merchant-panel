@@ -10,14 +10,14 @@ use App\Cart\Enum\CartStatusEnum;
 
 interface CartRepositoryInterface
 {
-    public function create(Cart $cart): void;
+    public function add(Cart $cart): void;
 
     public function find(CartId $id): ?Cart;
 
     /**
      * Locks the cart row until the surrounding transaction ends and returns its status.
      */
-    public function lockStatus(CartId $id): ?CartStatusEnum;
+    public function findStatusForUpdate(CartId $id): ?CartStatusEnum;
 
     public function updateStatus(CartId $id, CartStatusEnum $status): void;
 

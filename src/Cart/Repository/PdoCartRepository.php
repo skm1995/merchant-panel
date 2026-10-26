@@ -40,7 +40,7 @@ final class PdoCartRepository implements CartRepositoryInterface
     {
     }
 
-    public function create(Cart $cart): void
+    public function add(Cart $cart): void
     {
         $this->pdo->prepare(self::CREATE_QUERY)->execute([
             self::ID_PARAMETER => $cart->id->toBinary(),
@@ -71,7 +71,7 @@ final class PdoCartRepository implements CartRepositoryInterface
         );
     }
 
-    public function lockStatus(CartId $id): ?CartStatusEnum
+    public function findStatusForUpdate(CartId $id): ?CartStatusEnum
     {
         $statement = $this->pdo->prepare(self::LOCK_QUERY);
         $statement->execute([self::ID_PARAMETER => $id->toBinary()]);

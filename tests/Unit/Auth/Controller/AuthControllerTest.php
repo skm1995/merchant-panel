@@ -101,7 +101,7 @@ final class AuthControllerTest extends TestCase
         $request = self::post(self::CONFIRM_PATH, [self::TOKEN_FIELD => self::TOKEN_VALUE]);
         $users = $this->createStub(UserRepositoryInterface::class);
 
-        $output = $this->capture(fn () => $this->controller($users)->confirmPost($request));
+        $output = $this->capture(fn () => $this->controller($users)->confirm($request));
 
         self::assertStringContainsString(self::INVALID_TOKEN_ERROR, $output);
     }

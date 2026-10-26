@@ -14,5 +14,5 @@ interface WebhookInboxRepositoryInterface
     /**
      * Records the event; returns false when it was already recorded.
      */
-    public function record(PaymentProviderEnum $provider, string $eventId): bool;
+    public function recordIfNew(PaymentProviderEnum $provider, string $eventId): bool;
 }

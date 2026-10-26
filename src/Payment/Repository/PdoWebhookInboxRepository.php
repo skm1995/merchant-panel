@@ -19,7 +19,7 @@ final class PdoWebhookInboxRepository implements WebhookInboxRepositoryInterface
     {
     }
 
-    public function record(PaymentProviderEnum $provider, string $eventId): bool
+    public function recordIfNew(PaymentProviderEnum $provider, string $eventId): bool
     {
         try {
             $this->pdo->prepare(self::RECORD_QUERY)->execute([

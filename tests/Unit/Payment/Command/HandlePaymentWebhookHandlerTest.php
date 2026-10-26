@@ -51,7 +51,7 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
         $payments = $this->pendingPayment();
         $payments->expects(self::once())->method('updateStatus')->with(PaymentFixtures::paymentId(), PaymentStatusEnum::SUCCEEDED);
         $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::once())->method('commit')->willReturn(true);
+        $products->expects(self::once())->method('sellReserved')->willReturn(true);
 
         $result = $this->handler($payments, $this->event(PaymentOutcomeEnum::SUCCEEDED), $products)->handle(self::command());
 
@@ -73,7 +73,7 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
         $payments = $this->pendingPayment();
         $payments->expects(self::once())->method('updateStatus')->with(PaymentFixtures::paymentId(), PaymentStatusEnum::FAILED);
         $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::never())->method('commit');
+        $products->expects(self::never())->method('sellReserved');
 
         $this->handler($payments, $this->event(PaymentOutcomeEnum::FAILED), $products)->handle(self::command());
     }
@@ -149,11 +149,11 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
         bool $firstDelivery = true,
     ): HandlePaymentWebhookHandler {
         $gateway = $this->createStub(PaymentGatewayInterface::class);
-        $gateway->method('parseWebhook')->willReturn($event);
+        $gateway->method('parseSignedWebhook')->willReturn($event);
         $gateways = $this->createStub(PaymentGatewayFactoryInterface::class);
         $gateways->method('create')->willReturn($gateway);
         $inbox = $this->createStub(WebhookInboxRepositoryInterface::class);
-        $inbox->method('record')->willReturn($firstDelivery);
+        $inbox->method('recordIfNew')->willReturn($firstDelivery);
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $orders->method('findState')->willReturn(new OrderState(OrderFixtures::orderId(), $orderStatus, 1, [5 => 2]));
         $orders->method('transition')->willReturn(true);

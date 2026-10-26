@@ -37,7 +37,7 @@ final class FakePayGatewayTest extends TestCase
 
     public function testParsesSignedWebhook(): void
     {
-        $event = self::gateway()->parseWebhook(self::PAYLOAD, self::signed(self::PAYLOAD));
+        $event = self::gateway()->parseSignedWebhook(self::PAYLOAD, self::signed(self::PAYLOAD));
 
         self::assertSame('evt_1', $event->eventId);
         self::assertSame('fp_1', $event->providerPaymentId);
@@ -45,7 +45,7 @@ final class FakePayGatewayTest extends TestCase
         self::assertTrue(Money::PLN(2500)->equals($event->amount));
         self::assertSame(
             PaymentOutcomeEnum::FAILED,
-            self::gateway()->parseWebhook(self::FAILED_PAYLOAD, self::signed(self::FAILED_PAYLOAD))->outcome,
+            self::gateway()->parseSignedWebhook(self::FAILED_PAYLOAD, self::signed(self::FAILED_PAYLOAD))->outcome,
         );
     }
 
@@ -53,7 +53,7 @@ final class FakePayGatewayTest extends TestCase
     {
         foreach ([[self::SIGNATURE_HEADER => str_repeat('0', 64)], []] as $headers) {
             try {
-                self::gateway()->parseWebhook(self::PAYLOAD, $headers);
+                self::gateway()->parseSignedWebhook(self::PAYLOAD, $headers);
                 self::fail('Expected the signature to be rejected.');
             } catch (InvalidWebhookSignatureException) {
                 self::addToAssertionCount(1);
@@ -65,7 +65,7 @@ final class FakePayGatewayTest extends TestCase
     {
         $this->expectException(InvalidWebhookPayloadException::class);
 
-        self::gateway()->parseWebhook(self::MALFORMED_PAYLOAD, self::signed(self::MALFORMED_PAYLOAD));
+        self::gateway()->parseSignedWebhook(self::MALFORMED_PAYLOAD, self::signed(self::MALFORMED_PAYLOAD));
     }
 
     private static function gateway(): FakePayGateway

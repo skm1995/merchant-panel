@@ -35,7 +35,7 @@ final class CartApiControllerTest extends TestCase
     public function testCreatesCart(): void
     {
         $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::once())->method('create');
+        $carts->expects(self::once())->method('add');
 
         $body = $this->dispatch(new Request(HttpMethodEnum::POST->value, self::CARTS_PATH), $carts);
 
@@ -56,7 +56,7 @@ final class CartApiControllerTest extends TestCase
     public function testCheckedOutCartRejectsChangesWithConflict(): void
     {
         $carts = $this->createStub(CartRepositoryInterface::class);
-        $carts->method('lockStatus')->willReturn(CartStatusEnum::CHECKED_OUT);
+        $carts->method('findStatusForUpdate')->willReturn(CartStatusEnum::CHECKED_OUT);
 
         $this->dispatch(new Request(HttpMethodEnum::PUT->value, self::ITEM_PATH, body: self::QUANTITY_BODY), $carts);
 

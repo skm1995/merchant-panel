@@ -16,7 +16,7 @@ final class IdempotencyKey
     private const string PRINTABLE_KEY_PATTERN = '/^[\x21-\x7e]{1,' . self::MAXIMUM_LENGTH . '}$/';
     private const string INVALID_KEY_MESSAGE = 'The Idempotency-Key header is required and must contain 1 to ' . self::MAXIMUM_LENGTH . ' printable ASCII characters.';
 
-    public static function fromRequest(Request $request): string
+    public static function parse(Request $request): string
     {
         $key = $request->header(HeaderNameEnum::IDEMPOTENCY_KEY->value);
 

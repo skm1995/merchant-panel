@@ -62,7 +62,7 @@ final class UserAuthService
     {
         $user = self::normalizeEmail($email) |> $this->users->findByEmail(...);
 
-        return $user?->hasPassword($password) === true ? $user : null;
+        return $user?->passwordMatches($password) === true ? $user : null;
     }
 
     private static function normalizeEmail(string $email): string

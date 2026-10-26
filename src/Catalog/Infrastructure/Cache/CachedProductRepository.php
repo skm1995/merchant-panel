@@ -48,8 +48,8 @@ final readonly class CachedProductRepository implements ProductRepositoryInterfa
         return $this->products->release($productId, $quantity);
     }
 
-    public function commit(int $productId, int $quantity): bool
+    public function sellReserved(int $productId, int $quantity): bool
     {
-        return $this->products->commit($productId, $quantity);
+        return $this->products->sellReserved($productId, $quantity);
     }
 }

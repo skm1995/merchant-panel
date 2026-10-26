@@ -47,7 +47,7 @@ final readonly class FakePayGateway implements PaymentGatewayInterface
         );
     }
 
-    public function parseWebhook(string $payload, array $headers): PaymentWebhookEvent
+    public function parseSignedWebhook(string $payload, array $headers): PaymentWebhookEvent
     {
         $signature = $headers[self::SIGNATURE_HEADER] ?? throw new InvalidWebhookSignatureException();
 

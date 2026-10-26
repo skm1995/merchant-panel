@@ -17,7 +17,7 @@ final class ControllerDiscoveryTest extends TestCase
     {
         self::assertSame(
             [ExampleController::class],
-            ControllerDiscovery::controllers(ClassFinder::find(__DIR__ . '/Fixture/Discovery', self::NAMESPACE)),
+            ControllerDiscovery::filterControllers(ClassFinder::find(__DIR__ . '/Fixture/Discovery', self::NAMESPACE)),
         );
     }
 }

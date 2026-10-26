@@ -38,7 +38,7 @@ final readonly class HandlePaymentWebhookHandler
 
     public function handle(HandlePaymentWebhookCommand $command): WebhookResultEnum
     {
-        $event = $this->gateways->create($command->provider)->parseWebhook($command->payload, $command->headers);
+        $event = $this->gateways->create($command->provider)->parseSignedWebhook($command->payload, $command->headers);
 
         return $this->transactions->run(
             fn (): WebhookResultEnum => $this->apply($command, $event),
@@ -48,7 +48,7 @@ final readonly class HandlePaymentWebhookHandler
 
     private function apply(HandlePaymentWebhookCommand $command, PaymentWebhookEvent $event): WebhookResultEnum
     {
-        if (!$this->inbox->record($command->provider, $event->eventId)) {
+        if (!$this->inbox->recordIfNew($command->provider, $event->eventId)) {
             return WebhookResultEnum::DUPLICATE;
         }
 

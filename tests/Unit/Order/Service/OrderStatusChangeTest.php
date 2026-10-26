@@ -25,7 +25,7 @@ final class OrderStatusChangeTest extends TestCase
     /** @return iterable<string, array{OrderStatusEnum, non-empty-string}> */
     public static function stockEffects(): iterable
     {
-        yield 'paid commits the reservation' => [OrderStatusEnum::PAID, 'commit'];
+        yield 'paid commits the reservation' => [OrderStatusEnum::PAID, 'sellReserved'];
         yield 'cancelled releases it' => [OrderStatusEnum::CANCELLED, 'release'];
         yield 'expired releases it' => [OrderStatusEnum::EXPIRED, 'release'];
     }

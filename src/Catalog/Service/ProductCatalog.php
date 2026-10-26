@@ -31,6 +31,11 @@ final class ProductCatalog
         return new ProductPage($pageProducts, $hasNextPage ? $pageProducts[$size - 1]->id : null);
     }
 
+    public function ensureExists(int $id): void
+    {
+        $this->product($id);
+    }
+
     public function product(int $id): Product
     {
         return $this->products->findById($id) ?? throw new ProductNotFoundException($id);

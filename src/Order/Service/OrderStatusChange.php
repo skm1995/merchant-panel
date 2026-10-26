@@ -39,7 +39,7 @@ final readonly class OrderStatusChange
         }
 
         match ($to) {
-            OrderStatusEnum::PAID => $this->stock->commit($order->quantities),
+            OrderStatusEnum::PAID => $this->stock->sell($order->quantities),
             OrderStatusEnum::CANCELLED, OrderStatusEnum::EXPIRED => $this->stock->release($order->quantities),
             OrderStatusEnum::PENDING_PAYMENT => throw new LogicException(sprintf(self::NO_STOCK_EFFECT_FORMAT, $to->value)),
         };

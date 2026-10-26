@@ -23,7 +23,7 @@ final readonly class HttpApplication
     {
         $this->session->start();
 
-        foreach (ControllerDiscovery::fromSource() as $controller) {
+        foreach (ControllerDiscovery::findInSource() as $controller) {
             $this->router->registerController($this->container->get($controller));
         }
 

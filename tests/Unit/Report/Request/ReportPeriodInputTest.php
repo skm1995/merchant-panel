@@ -19,7 +19,7 @@ final class ReportPeriodInputTest extends TestCase
 
     public function testParsesThePeriodWithTheDefaultCurrency(): void
     {
-        $period = ReportPeriodInput::fromRequest(self::request(['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO]));
+        $period = ReportPeriodInput::parse(self::request(['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO]));
 
         self::assertSame(ReportFixtures::FROM, ReportDate::format($period->from));
         self::assertSame(ReportFixtures::TO, ReportDate::format($period->to));
@@ -41,7 +41,7 @@ final class ReportPeriodInputTest extends TestCase
     public function testRejectsInvalidParameters(array $parameters): void
     {
         $this->expectException(InvalidRequestException::class);
-        ReportPeriodInput::fromRequest(self::request($parameters));
+        ReportPeriodInput::parse(self::request($parameters));
     }
 
     /** @param array<string, string> $query */

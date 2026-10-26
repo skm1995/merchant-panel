@@ -21,7 +21,7 @@ final readonly class User
         return $this->emailVerifiedAt !== null;
     }
 
-    public function hasPassword(string $password): bool
+    public function passwordMatches(string $password): bool
     {
         return password_verify($password, $this->passwordHash);
     }

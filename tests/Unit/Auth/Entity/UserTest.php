@@ -27,7 +27,7 @@ final class UserTest extends TestCase
     {
         $user = new User(self::EMAIL, password_hash(self::PASSWORD, PASSWORD_DEFAULT), new DateTimeImmutable());
 
-        self::assertTrue($user->hasPassword(self::PASSWORD));
-        self::assertFalse($user->hasPassword(self::WRONG_PASSWORD));
+        self::assertTrue($user->passwordMatches(self::PASSWORD));
+        self::assertFalse($user->passwordMatches(self::WRONG_PASSWORD));
     }
 }

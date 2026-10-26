@@ -143,7 +143,7 @@ final class PlaceOrderHandlerTest extends TestCase
     private function openCart(): CartRepositoryInterface&MockObject
     {
         $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->method('lockStatus')->willReturn(CartStatusEnum::OPEN);
+        $carts->method('findStatusForUpdate')->willReturn(CartStatusEnum::OPEN);
         $carts->method('find')->willReturn(CartFixtures::cart([CartFixtures::line(self::PRODUCT_ID, self::QUANTITY, 1500)]));
 
         return $carts;
@@ -152,7 +152,7 @@ final class PlaceOrderHandlerTest extends TestCase
     private function checkedOutCart(): CartRepositoryInterface
     {
         $carts = $this->createStub(CartRepositoryInterface::class);
-        $carts->method('lockStatus')->willReturn(CartStatusEnum::CHECKED_OUT);
+        $carts->method('findStatusForUpdate')->willReturn(CartStatusEnum::CHECKED_OUT);
         $carts->method('find')->willReturn(CartFixtures::cart(
             [CartFixtures::line(self::PRODUCT_ID, self::QUANTITY, 1500)],
             CartStatusEnum::CHECKED_OUT,

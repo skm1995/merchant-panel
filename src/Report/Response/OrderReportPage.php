@@ -46,10 +46,10 @@ final readonly class OrderReportPage implements Arrayable
             array_map(static fn (ReportedOrder $order): array => [
                 (string) $order->orderNumber,
                 $order->products,
-                sprintf(self::AMOUNT_WITH_CURRENCY_FORMAT, self::amount($order->total), $order->total->getCurrency()->getCode()),
+                sprintf(self::AMOUNT_WITH_CURRENCY_FORMAT, self::formatAmount($order->total), $order->total->getCurrency()->getCode()),
                 $order->placedAt->format(self::DATETIME_FORMAT),
             ], $orders),
-            sprintf(self::SUMMARY_FORMAT, count($orders), $totals === [] ? self::ZERO_AMOUNT : self::amount(Money::sum(...$totals))),
+            sprintf(self::SUMMARY_FORMAT, count($orders), $totals === [] ? self::ZERO_AMOUNT : self::formatAmount(Money::sum(...$totals))),
         );
     }
 
@@ -58,7 +58,7 @@ final readonly class OrderReportPage implements Arrayable
         return [self::HEADING_KEY => $this->heading, self::ROWS_KEY => $this->rows, self::SUMMARY_KEY => $this->summary];
     }
 
-    private static function amount(Money $money): string
+    private static function formatAmount(Money $money): string
     {
         [$units, $fraction] = explode(self::DECIMAL_POINT, new DecimalMoneyFormatter(new ISOCurrencies())->format($money));
         $groups = str_split(strrev($units), self::THOUSANDS_GROUP);
