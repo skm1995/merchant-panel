@@ -4,7 +4,7 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 
 ## Repository layout
 
-- The root holds only what spans both sides: `compose.yaml` and `docker/` (configuration grouped by service), `bin/ci`, `.github/`, the API contract in `openapi/`, and documentation in `docs/`. Everything owned by one side lives in its directory.
+- The root holds only what spans both sides: `compose.yaml` and `docker/` (configuration grouped by service), `bin/ci` and `bin/loadtest`, `.github/`, the API contract in `openapi/`, the k6 scenarios in `loadtest/`, and documentation in `docs/`. Everything owned by one side lives in its directory.
 - `openapi/` is the single source of truth for the API: the backend validates real responses against it and the frontend generates its TypeScript types from it. Change the contract first, in `openapi/<feature>.yaml` with shared schemas in `shared.yaml`, and reference every path from `openapi/openapi.yaml`.
 - Patterns for recurring problems (API actions, sessions, CQRS, locking, idempotency, webhooks, messaging, caching, reports, legacy code, money, identifiers) are in `docs/patterns.md`; read the matching section before working in that area.
 

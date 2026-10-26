@@ -275,6 +275,17 @@ services:
     env_file:
       - docker/env/e2e.env
 
+  # Load test runner for bin/loadtest; it targets the test stack behind nginx-test.
+  k6:
+    image: grafana/k6:1.4.0
+    profiles:
+      - tools
+    volumes:
+      - ./loadtest:/loadtest:ro
+    env_file:
+      - docker/env/loadtest.env
+      - docker/env/payment.env
+
   mysql:
     image: mysql:8.4
     restart: unless-stopped

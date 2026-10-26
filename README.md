@@ -150,6 +150,15 @@ queries in Discover:
 - `app.level_name : "ERROR"` — errors, with their stack traces in `app.context.exception`
 - `app.message : "Message handled"` — worker activity with `app.context.duration_ms`
 
+## Load test
+
+`bin/loadtest` simulates Black Friday against the test stack: shoppers browse the catalog
+while others check out, pay, and receive provider webhooks twice. Products get less stock
+than the demand, so they sell out under contention. k6 fails the run when more than 1% of
+requests fail unexpectedly or p95 exceeds 800 ms; afterwards the script waits for unpaid
+reservations to expire and checks in MySQL that nothing was oversold and exactly the paid
+quantities were sold. Start the observability stack first to watch the run in Kibana.
+
 ## Services
 
 There is no service configuration file. `ContainerFactory` autowires classes from

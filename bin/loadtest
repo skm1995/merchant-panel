@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Runs the Black Friday load test against the test stack, with less stock than demand so
+# products sell out under contention, and then checks that stock never went wrong: nothing
+# oversold, every unpaid reservation released, and exactly the paid quantities sold.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+compose=(docker compose --profile test)
+mysql=("${compose[@]}" exec -T mysql sh -c 'exec mysql --batch --skip-column-names -uroot -p"$MYSQL_ROOT_PASSWORD" app_test 2>/dev/null')
+prefix="load-$(date +%s)"
+products=20
+initial_stock=40
+settle_timeout_seconds=60
+
+"${compose[@]}" up --detach --wait
+
+echo "Seeding ${products} products with ${initial_stock} units each (${prefix})..."
+"${mysql[@]}" <<SQL
+INSERT INTO products (sku, name, price_amount, price_currency, stock, reserved)
+WITH RECURSIVE sequence (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM sequence WHERE n < ${products})
+SELECT CONCAT('${prefix}-', n), CONCAT('Black Friday deal ', n), 1999 + n, 'PLN', ${initial_stock}, 0 FROM sequence;
+SQL
+product_ids=$("${mysql[@]}" <<< "SELECT GROUP_CONCAT(id) FROM products WHERE sku LIKE '${prefix}-%';")
+
+status=0
+docker compose --profile tools run --rm --no-deps --env "PRODUCT_IDS=${product_ids}" k6 run /loadtest/black-friday.js || status=$?
+
+echo "Waiting for unpaid reservations to expire..."
+for _ in $(seq 1 "${settle_timeout_seconds}"); do
+    reserved=$("${mysql[@]}" <<< "SELECT COALESCE(SUM(reserved), 0) FROM products WHERE sku LIKE '${prefix}-%';")
+    [ "${reserved}" = "0" ] && break
+    sleep 1
+done
+
+echo "Checking stock invariants..."
+violations=$("${mysql[@]}" <<SQL
+SELECT CONCAT(p.sku, ': stock=', p.stock, ' reserved=', p.reserved, ' sold=', ${initial_stock} - p.stock, ' paid quantity=', COALESCE(paid.quantity, 0))
+FROM products p
+LEFT JOIN (
+    SELECT oi.product_id, SUM(oi.quantity) AS quantity
+    FROM order_items oi JOIN orders o ON o.id = oi.order_id
+    WHERE o.status = 'paid'
+    GROUP BY oi.product_id
+) paid ON paid.product_id = p.id
+WHERE p.sku LIKE '${prefix}-%'
+    AND (p.stock < 0 OR p.reserved <> 0 OR ${initial_stock} - p.stock <> COALESCE(paid.quantity, 0));
+SQL
+)
+sold=$("${mysql[@]}" <<< "SELECT ${products} * ${initial_stock} - SUM(stock) FROM products WHERE sku LIKE '${prefix}-%';")
+echo "Sold ${sold} of $((products * initial_stock)) units."
+
+if [ -n "${violations}" ]; then
+    echo "Stock invariants violated:"
+    echo "${violations}"
+    status=1
+else
+    echo "Stock invariants hold: nothing oversold, every unpaid reservation released, every paid unit sold."
+fi
+
+echo "Removing load test data..."
+"${mysql[@]}" <<SQL
+DELETE pay FROM payments pay JOIN orders o ON o.id = pay.order_id JOIN order_items oi ON oi.order_id = o.id JOIN products p ON p.id = oi.product_id WHERE p.sku LIKE '${prefix}-%';
+CREATE TEMPORARY TABLE load_carts AS SELECT DISTINCT o.cart_id FROM orders o JOIN order_items oi ON oi.order_id = o.id JOIN products p ON p.id = oi.product_id WHERE p.sku LIKE '${prefix}-%'
+    UNION SELECT DISTINCT ci.cart_id FROM cart_items ci JOIN products p ON p.id = ci.product_id WHERE p.sku LIKE '${prefix}-%';
+DELETE oi FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.cart_id IN (SELECT cart_id FROM load_carts);
+DELETE FROM orders WHERE cart_id IN (SELECT cart_id FROM load_carts);
+DELETE FROM cart_items WHERE cart_id IN (SELECT cart_id FROM load_carts);
+DELETE FROM carts WHERE id IN (SELECT cart_id FROM load_carts);
+DELETE FROM products WHERE sku LIKE '${prefix}-%';
+SQL
+
+exit "${status}"
