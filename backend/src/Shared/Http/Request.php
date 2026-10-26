@@ -56,7 +56,12 @@ final readonly class Request
 
     public function isApi(): bool
     {
-        return str_starts_with($this->path, self::API_PATH_PREFIX);
+        return self::isApiPath($this->path);
+    }
+
+    public static function isApiPath(string $path): bool
+    {
+        return str_starts_with($path, self::API_PATH_PREFIX);
     }
 
     public function query(string $key): ?string

@@ -16,9 +16,13 @@ and follow the existing implementation it names.
   parameter the route does not declare is a programming error.
 - Constrain path parameters in the route (`{id:\d+}`) and map domain exceptions with
   `#[MapException]` instead of `try/catch`.
-- The JSON API under `/api/` is sessionless: it never reads the session or cookies and
-  identifies resources with unguessable ids or explicit credentials, which is why the
-  router skips CSRF there. Protect non-public operations with
+- The router wraps every route in middleware: `ErrorMiddleware` answers request parsing
+  failures (400, 428), and `#[RequireApiKey]` and `#[MapException]` add their policies.
+- The public JSON API under `/api/` is sessionless: it never reads the session or cookies
+  and identifies resources with unguessable ids or explicit credentials, so it needs no
+  CSRF token. Routes for the merchant panel opt into the session with `#[UsesSession]`;
+  like browser routes they then require the session's CSRF token, which API clients send
+  in the `X-CSRF-Token` header. Protect non-public operations with
   `#[RequireApiKey('<ENV_VARIABLE>')]` (header `X-Api-Key`, compared with `hash_equals`,
   HTTP 401).
 - Document every operation in the feature's `openapi/<feature>.yaml`; the functional suite

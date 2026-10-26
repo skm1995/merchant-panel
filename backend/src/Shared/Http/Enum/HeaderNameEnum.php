@@ -12,4 +12,5 @@ enum HeaderNameEnum: string
     case IF_MATCH = 'If-Match';
     case API_KEY = 'X-Api-Key';
     case IDEMPOTENCY_KEY = 'Idempotency-Key';
+    case CSRF_TOKEN = 'X-CSRF-Token';
 }

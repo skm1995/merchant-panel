@@ -24,7 +24,7 @@ final class HttpHarness
 
     public static function dispatch(Request $request, object ...$controllers): string
     {
-        $router = new Router(new CsrfToken(new Session()), self::responder());
+        $router = new Router(new CsrfToken(new Session()), new Session(), self::responder());
 
         foreach ($controllers as $controller) {
             $router->registerController($controller);

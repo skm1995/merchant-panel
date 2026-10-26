@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Shared\Http;
 
-use App\Shared\Config\Environment;
-use App\Shared\Http\Enum\HeaderNameEnum;
-use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
-use App\Shared\Http\Exception\InvalidRequestException;
-use App\Shared\Http\Exception\PreconditionRequiredException;
+use App\Shared\Http\Middleware\ApiKeyMiddleware;
+use App\Shared\Http\Middleware\CsrfMiddleware;
+use App\Shared\Http\Middleware\ErrorMiddleware;
+use App\Shared\Http\Middleware\ExceptionMappingMiddleware;
+use App\Shared\Http\Middleware\MiddlewarePipeline;
+use App\Shared\Http\Middleware\RequestHandlerInterface;
+use App\Shared\Http\Middleware\SessionMiddleware;
 use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
-use Throwable;
 
 final class Router
 {
@@ -25,19 +26,18 @@ final class Router
     private const string DEFAULT_PARAMETER_PATTERN = '[^/]+';
     private const int NOT_CAPTURED_OFFSET = -1;
     private const string NOT_FOUND_DETAIL = 'No route matches this method and path.';
-    private const string INVALID_CSRF_DETAIL = 'The CSRF token is missing or invalid.';
-    private const string INVALID_API_KEY_DETAIL = 'A valid X-Api-Key header is required.';
     private const string ROUTE_PATTERN_FORMAT = '#^%s$#';
     private const string PATTERN_DELIMITER = '#';
     private const string PATH_PARAMETER_MARKER = '{';
 
-    /** @var array<string, array<string, callable(Request): void>> */
+    /** @var array<string, array<string, RequestHandlerInterface>> */
     private array $routes = [];
     /** @var array<string, array<string, string>> */
     private array $patterns = [];
 
     public function __construct(
         private readonly CsrfToken $csrfToken,
+        private readonly Session $session,
         private readonly Responder $responder,
     ) {
     }
@@ -57,7 +57,7 @@ final class Router
                     throw new LogicException(self::DUPLICATE_ROUTE_MESSAGE);
                 }
 
-                $this->routes[$key][$route->path] = $this->action($controller, $method);
+                $this->routes[$key][$route->path] = $this->pipeline($route, $controller, $method);
 
                 if (str_contains($route->path, self::PATH_PARAMETER_MARKER)) {
                     $this->patterns[$key][$route->path] = self::compile($route->path);
@@ -68,82 +68,48 @@ final class Router
 
     public function dispatch(Request $request): void
     {
-        [$action, $parameters] = $this->match($request) ?? [null, []];
+        [$handler, $parameters] = $this->match($request) ?? [null, []];
 
-        if ($action === null) {
-            $this->reject($request, ResponseStatusEnum::NOT_FOUND, self::NOT_FOUND_DETAIL);
-
-            return;
-        }
-
-        if (
-            $request->method !== HttpMethodEnum::GET->value
-            && !$request->isApi()
-            && !$this->csrfToken->isValid($request->post(CsrfToken::FIELD_NAME))
-        ) {
-            $this->reject($request, ResponseStatusEnum::FORBIDDEN, self::INVALID_CSRF_DETAIL);
+        if ($handler === null) {
+            $this->responder->error($request, ResponseStatusEnum::NOT_FOUND, self::NOT_FOUND_DETAIL);
 
             return;
         }
 
-        $action($request->withRouteParameters($parameters));
+        $handler->handle($request->withRouteParameters($parameters));
     }
 
-    private function reject(Request $request, ResponseStatusEnum $status, string $detail): void
+    /**
+     * Builds the policies a route needs from its path and attributes. Browser routes and API
+     * routes marked #[UsesSession] get the session and CSRF protection; other API routes stay
+     * sessionless.
+     */
+    private function pipeline(Route $route, object $controller, ReflectionMethod $method): RequestHandlerInterface
     {
-        if ($request->isApi()) {
-            $this->responder->problem($status, $detail);
+        $middleware = [new ErrorMiddleware($this->responder)];
 
-            return;
+        if (!Request::isApiPath($route->path) || $method->getAttributes(UsesSession::class) !== []) {
+            $middleware[] = new SessionMiddleware($this->session);
+            $middleware[] = new CsrfMiddleware($this->csrfToken, $this->responder);
         }
 
-        $this->responder->status($status);
-    }
+        foreach ($method->getAttributes(RequireApiKey::class) as $attribute) {
+            $middleware[] = new ApiKeyMiddleware($attribute->newInstance(), $this->responder);
+        }
 
-    /** @return callable(Request): void */
-    private function action(object $controller, ReflectionMethod $method): callable
-    {
         $mappings = array_map(
             static fn ($attribute): MapException => $attribute->newInstance(),
             $method->getAttributes(MapException::class),
         );
-        $apiKey = ($method->getAttributes(RequireApiKey::class)[0] ?? null)?->newInstance();
 
-        return function (Request $request) use ($controller, $method, $mappings, $apiKey): void {
-            if ($apiKey !== null && !self::hasValidApiKey($request, $apiKey)) {
-                $this->reject($request, ResponseStatusEnum::UNAUTHORIZED, self::INVALID_API_KEY_DETAIL);
+        if ($mappings !== []) {
+            $middleware[] = new ExceptionMappingMiddleware($mappings, $this->responder);
+        }
 
-                return;
-            }
-
-            try {
-                $method->invoke($controller, $request);
-            } catch (InvalidRequestException $exception) {
-                $this->reject($request, ResponseStatusEnum::BAD_REQUEST, $exception->getMessage());
-            } catch (PreconditionRequiredException $exception) {
-                $this->reject($request, ResponseStatusEnum::PRECONDITION_REQUIRED, $exception->getMessage());
-            } catch (Throwable $exception) {
-                foreach ($mappings as $mapping) {
-                    if ($exception instanceof $mapping->exception) {
-                        $this->responder->problem($mapping->status, $exception->getMessage());
-
-                        return;
-                    }
-                }
-
-                throw $exception;
-            }
-        };
+        return new MiddlewarePipeline($middleware, new ControllerAction($controller, $method));
     }
 
-    private static function hasValidApiKey(Request $request, RequireApiKey $requirement): bool
-    {
-        $provided = $request->header(HeaderNameEnum::API_KEY->value);
-
-        return $provided !== null && hash_equals(Environment::get($requirement->environmentKey), $provided);
-    }
-
-    /** @return array{callable(Request): void, array<string, string>}|null */
+    /** @return array{RequestHandlerInterface, array<string, string>}|null */
     private function match(Request $request): ?array
     {
         $routes = $this->routes[$request->method] ?? [];

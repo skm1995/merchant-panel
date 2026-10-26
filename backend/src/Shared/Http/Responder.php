@@ -81,6 +81,20 @@ final class Responder
         ], $status, ContentTypeEnum::PROBLEM_JSON);
     }
 
+    /**
+     * Answers a rejected request: API clients get problem details, browsers a plain status.
+     */
+    public function error(Request $request, ResponseStatusEnum $status, string $detail): void
+    {
+        if ($request->isApi()) {
+            $this->problem($status, $detail);
+
+            return;
+        }
+
+        $this->status($status);
+    }
+
     public function status(ResponseStatusEnum $status): void
     {
         http_response_code($status->value);

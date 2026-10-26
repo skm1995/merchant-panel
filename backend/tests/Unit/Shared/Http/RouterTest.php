@@ -15,6 +15,7 @@ use App\Shared\Http\RequireApiKey;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
+use App\Shared\Http\UsesSession;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
 use LogicException;
@@ -38,6 +39,8 @@ final class RouterTest extends TestCase
     public const string API_KEY_VARIABLE = 'ROUTER_TEST_API_KEY';
     private const string API_KEY = 'router-test-key';
     private const string POST_VALUE = 'post route dispatched';
+    private const string SESSION_API_PATH = '/api/v1/session';
+    private const string CSRF_HEADER = 'x-csrf-token';
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
     private array $originalSession;
@@ -131,6 +134,34 @@ final class RouterTest extends TestCase
         $router->dispatch(new Request(HttpMethodEnum::POST->value, $controller::PATH));
 
         self::assertTrue($controller->called);
+    }
+
+    public function testSessionApiRouteRequiresTheCsrfTokenHeader(): void
+    {
+        $controller = new class () {
+            private const string PATH = '/api/v1/session';
+            public int $calls = 0;
+
+            #[Route(HttpMethodEnum::POST, self::PATH)]
+            #[UsesSession]
+            public function signIn(): void
+            {
+                $this->calls++;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        ob_start();
+        $router->dispatch(new Request(HttpMethodEnum::POST->value, self::SESSION_API_PATH));
+        $router->dispatch(new Request(
+            HttpMethodEnum::POST->value,
+            self::SESSION_API_PATH,
+            headers: [self::CSRF_HEADER => $this->csrfToken->create()],
+        ));
+        ob_end_clean();
+
+        self::assertSame(1, $controller->calls);
     }
 
     public function testRouteRequiringAnApiKeyRejectsMissingOrWrongKeys(): void
@@ -472,6 +503,6 @@ final class RouterTest extends TestCase
 
     private function router(): Router
     {
-        return new Router($this->csrfToken, new Responder($this->csrfToken));
+        return new Router($this->csrfToken, new Session(), new Responder($this->csrfToken));
     }
 }

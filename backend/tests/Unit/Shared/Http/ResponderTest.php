@@ -10,6 +10,8 @@ use App\Shared\Http\EntityTag;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
+use App\Shared\Http\Request;
+use App\Shared\Http\Enum\HttpMethodEnum;
 use PHPUnit\Framework\TestCase;
 
 final class ResponderTest extends TestCase
@@ -131,5 +133,18 @@ final class ResponderTest extends TestCase
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
         self::assertSame(self::BAD_REQUEST_BODY, $output);
+    }
+
+    public function testErrorAnswersApiRequestsWithProblemsAndPagesWithPlainStatus(): void
+    {
+        ob_start();
+        $this->responder->error(new Request(HttpMethodEnum::GET->value, '/api/v1/products'), ResponseStatusEnum::NOT_FOUND, self::DETAIL);
+        $problem = (string) ob_get_clean();
+        ob_start();
+        $this->responder->error(new Request(HttpMethodEnum::GET->value, '/login'), ResponseStatusEnum::NOT_FOUND, self::DETAIL);
+        $plain = (string) ob_get_clean();
+
+        self::assertStringContainsString(self::DETAIL, $problem);
+        self::assertSame('404 Not Found', $plain);
     }
 }
