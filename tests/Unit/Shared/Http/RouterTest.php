@@ -182,7 +182,7 @@ final class RouterTest extends TestCase
             HttpMethodEnum::POST->value,
             self::ROUTE_PATH,
             [],
-            [CsrfToken::FIELD_NAME => $this->csrfToken->getOrCreate()],
+            [CsrfToken::FIELD_NAME => $this->csrfToken->create()],
         );
         $router = $this->router();
         $router->registerController($controller);

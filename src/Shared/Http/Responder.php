@@ -34,7 +34,7 @@ final class Responder
     {
         self::header(HeaderNameEnum::CONTENT_TYPE, ContentTypeEnum::HTML->value);
         $data[self::CSRF_FIELD_DATA_KEY] = CsrfToken::FIELD_NAME;
-        $data[self::CSRF_TOKEN_DATA_KEY] = $this->csrfToken->getOrCreate();
+        $data[self::CSRF_TOKEN_DATA_KEY] = $this->csrfToken->get() ?? $this->csrfToken->create();
         $data[self::ESCAPE_DATA_KEY] = self::escape(...);
         $viewPath = sprintf(self::VIEW_PATH_FORMAT, dirname(__DIR__, 3), $view);
 

@@ -14,14 +14,20 @@ final class CsrfToken
     {
     }
 
-    public function getOrCreate(): string
+    public function get(): ?string
     {
         $token = $this->session->get(self::SESSION_KEY);
 
-        if (!is_string($token)) {
-            $token = random_bytes(self::RANDOM_BYTES) |> bin2hex(...);
-            $this->session->set(self::SESSION_KEY, $token);
-        }
+        return is_string($token) ? $token : null;
+    }
+
+    /**
+     * Generates a new token and stores it in the session, replacing any previous one.
+     */
+    public function create(): string
+    {
+        $token = random_bytes(self::RANDOM_BYTES) |> bin2hex(...);
+        $this->session->set(self::SESSION_KEY, $token);
 
         return $token;
     }

@@ -53,10 +53,13 @@ final class ResponderTest extends TestCase
         $this->responder->render(self::VIEW, [self::ERROR_KEY => self::MESSAGE]);
         $output = ob_get_clean();
 
+        $token = $this->csrfToken->get();
+
         self::assertIsString($output);
+        self::assertNotNull($token);
         self::assertStringContainsString(self::ESCAPED_MESSAGE, $output);
         self::assertStringContainsString(
-            sprintf(self::CSRF_FIELD_FORMAT, CsrfToken::FIELD_NAME, $this->csrfToken->getOrCreate()),
+            sprintf(self::CSRF_FIELD_FORMAT, CsrfToken::FIELD_NAME, $token),
             $output,
         );
     }

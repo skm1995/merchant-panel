@@ -7,6 +7,10 @@ namespace App\Shared\Http;
 use App\Shared\Config\Environment;
 use App\Shared\Http\Enum\ServerParameterEnum;
 
+/**
+ * The browser session. HttpApplication starts it for browser requests; the JSON API stays
+ * sessionless.
+ */
 final class Session
 {
     private const int COOKIE_LIFETIME = 0;
@@ -36,26 +40,21 @@ final class Session
 
     public function get(string $key): mixed
     {
-        $this->start();
-
         return $_SESSION[$key] ?? null;
     }
 
     public function set(string $key, mixed $value): void
     {
-        $this->start();
         $_SESSION[$key] = $value;
     }
 
     public function remove(string $key): void
     {
-        $this->start();
         unset($_SESSION[$key]);
     }
 
     public function regenerateId(): void
     {
-        $this->start();
         session_regenerate_id(true);
     }
 

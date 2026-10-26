@@ -33,12 +33,23 @@ final class CsrfTokenTest extends TestCase
         $_SESSION = $this->originalSession;
     }
 
-    public function testGeneratesAndPersistsCryptographicallyRandomToken(): void
+    public function testCreatesAndStoresACryptographicallyRandomToken(): void
     {
-        $token = $this->csrfToken->getOrCreate();
+        $token = $this->csrfToken->create();
 
         self::assertSame(64, strlen($token));
         self::assertSame($token, $_SESSION[self::SESSION_KEY]);
+        self::assertNotSame($token, $this->csrfToken->create());
+    }
+
+    public function testReadsOnlyATokenThatWasCreated(): void
+    {
+        self::assertNull($this->csrfToken->get());
+        self::assertArrayNotHasKey(self::SESSION_KEY, $_SESSION);
+
+        $token = $this->csrfToken->create();
+
+        self::assertSame($token, $this->csrfToken->get());
     }
 
     public function testValidatesOnlyMatchingStringToken(): void

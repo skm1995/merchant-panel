@@ -21,6 +21,7 @@ final class RoutingTest extends TestCase
     private const string LOGIN_PATH = '/login';
     private const string CONFIRM_PATH = '/confirm';
     private const string MISSING_PATH = '/missing-page';
+    private const string API_PATH = '/api/v1/products';
     private const string HEADING_SELECTOR = 'h1';
     private const string SESSION_COOKIE = 'PHPSESSID';
     private const string LAX_SAME_SITE = 'lax';
@@ -68,6 +69,14 @@ final class RoutingTest extends TestCase
         self::assertNotNull($cookie);
         self::assertTrue($cookie->isHttpOnly());
         self::assertSame(self::LAX_SAME_SITE, strtolower((string) $cookie->getSameSite()));
+    }
+
+    public function testApiRequestsDoNotStartASession(): void
+    {
+        $this->browser->request(HttpMethodEnum::GET->value, Browser::url(self::API_PATH));
+
+        self::assertSame(ResponseStatusEnum::OK->value, $this->browser->getInternalResponse()->getStatusCode());
+        self::assertNull($this->browser->getCookieJar()->get(self::SESSION_COOKIE));
     }
 
     public function testConfirmationPageWithoutTokenIsBadRequest(): void
