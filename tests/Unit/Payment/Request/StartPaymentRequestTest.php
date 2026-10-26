@@ -19,7 +19,7 @@ final class StartPaymentRequestTest extends TestCase
 
     public function testReadsOrderProviderAndIdempotencyKey(): void
     {
-        $command = StartPaymentRequest::fromRequest(self::request('{"provider":"quickpay"}', true))->toCommand();
+        $command = StartPaymentRequest::toCommand(self::request('{"provider":"quickpay"}', true));
 
         self::assertSame(OrderFixtures::ORDER_ID, $command->orderId->value);
         self::assertSame(PaymentProviderEnum::QUICKPAY, $command->provider);
@@ -30,14 +30,14 @@ final class StartPaymentRequestTest extends TestCase
     {
         $this->expectException(InvalidRequestException::class);
 
-        StartPaymentRequest::fromRequest(self::request('{"provider":"cash"}', true));
+        StartPaymentRequest::toCommand(self::request('{"provider":"cash"}', true));
     }
 
     public function testRequiresIdempotencyKey(): void
     {
         $this->expectException(InvalidRequestException::class);
 
-        StartPaymentRequest::fromRequest(self::request('{"provider":"fakepay"}', false));
+        StartPaymentRequest::toCommand(self::request('{"provider":"fakepay"}', false));
     }
 
     private static function request(string $body, bool $withKey): Request

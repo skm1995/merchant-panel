@@ -54,7 +54,7 @@ final class OrderApiController
     #[MapException(IdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function checkout(Request $request): void
     {
-        $orderId = $this->placeOrder->handle(PlaceOrderRequest::fromRequest($request)->toCommand());
+        $orderId = $this->placeOrder->handle(PlaceOrderRequest::toCommand($request));
         $order = $this->getOrder->handle(new GetOrderQuery($orderId));
 
         $this->responder->created(
@@ -68,7 +68,7 @@ final class OrderApiController
     #[MapException(OrderNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     public function show(Request $request): void
     {
-        $orderId = OrderId::fromString((string) $request->routeParameter(self::ID_PARAMETER));
+        $orderId = OrderId::fromString($request->routeParameter(self::ID_PARAMETER));
         $order = $this->getOrder->handle(new GetOrderQuery($orderId));
 
         $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
@@ -80,7 +80,7 @@ final class OrderApiController
     #[MapException(InvalidOrderTransitionException::class, ResponseStatusEnum::CONFLICT)]
     public function cancel(Request $request): void
     {
-        $command = CancelOrderRequest::fromRequest($request)->toCommand();
+        $command = CancelOrderRequest::toCommand($request);
         $this->cancelOrder->handle($command);
         $order = $this->getOrder->handle(new GetOrderQuery($command->orderId));
 

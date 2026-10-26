@@ -51,7 +51,7 @@ final class PaymentApiController
     #[MapException(PaymentIdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function start(Request $request): void
     {
-        $paymentId = $this->startPayment->handle(StartPaymentRequest::fromRequest($request)->toCommand());
+        $paymentId = $this->startPayment->handle(StartPaymentRequest::toCommand($request));
         $payment = $this->getPayment->handle(new GetPaymentQuery($paymentId));
 
         $this->responder->created(PaymentResponse::fromView($payment), sprintf(self::PAYMENT_LOCATION_FORMAT, $paymentId->value));
@@ -61,7 +61,7 @@ final class PaymentApiController
     #[MapException(PaymentNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     public function show(Request $request): void
     {
-        $paymentId = PaymentId::fromString((string) $request->routeParameter(self::ID_PARAMETER));
+        $paymentId = PaymentId::fromString($request->routeParameter(self::ID_PARAMETER));
 
         $this->responder->json(PaymentResponse::fromView($this->getPayment->handle(new GetPaymentQuery($paymentId))));
     }
@@ -74,7 +74,7 @@ final class PaymentApiController
     #[MapException(PaymentAmountMismatchException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function webhook(Request $request): void
     {
-        $result = $this->handleWebhook->handle(PaymentWebhookRequest::fromRequest($request)->toCommand());
+        $result = $this->handleWebhook->handle(PaymentWebhookRequest::toCommand($request));
 
         $this->responder->json(WebhookResponse::fromResult($result));
     }

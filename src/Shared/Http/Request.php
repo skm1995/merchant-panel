@@ -8,6 +8,7 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ServerParameterEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Serialization\JsonDecoder;
+use LogicException;
 
 final readonly class Request
 {
@@ -17,6 +18,7 @@ final readonly class Request
     private const string HEADER_WORD_SEPARATOR = '-';
     private const string SERVER_KEY_WORD_SEPARATOR = '_';
     private const string BODY_STREAM = 'php://input';
+    private const string UNKNOWN_ROUTE_PARAMETER_FORMAT = 'The route declares no "%s" parameter.';
     private const string INVALID_JSON_MESSAGE = 'The request body must be a JSON object.';
 
     /**
@@ -81,9 +83,12 @@ final readonly class Request
         );
     }
 
-    public function routeParameter(string $name): ?string
+    /**
+     * A parameter declared in the matched route path; asking for an undeclared one is a bug.
+     */
+    public function routeParameter(string $name): string
     {
-        return $this->routeParameters[$name] ?? null;
+        return $this->routeParameters[$name] ?? throw new LogicException(sprintf(self::UNKNOWN_ROUTE_PARAMETER_FORMAT, $name));
     }
 
     /** @return array<string, string> header values keyed by lowercase name */

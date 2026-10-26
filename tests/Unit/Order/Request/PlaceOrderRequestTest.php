@@ -20,8 +20,7 @@ final class PlaceOrderRequestTest extends TestCase
 
     public function testBuildsCommandFromCartIdAndIdempotencyKey(): void
     {
-        $command = PlaceOrderRequest::fromRequest(self::request(['idempotency-key' => OrderFixtures::IDEMPOTENCY_KEY]))
-            ->toCommand();
+        $command = PlaceOrderRequest::toCommand(self::request(['idempotency-key' => OrderFixtures::IDEMPOTENCY_KEY]));
 
         self::assertSame(CartFixtures::CART_ID, $command->cartId->value);
         self::assertSame(OrderFixtures::IDEMPOTENCY_KEY, $command->idempotencyKey);
@@ -41,7 +40,7 @@ final class PlaceOrderRequestTest extends TestCase
     {
         $this->expectException(InvalidRequestException::class);
 
-        PlaceOrderRequest::fromRequest(self::request($headers));
+        PlaceOrderRequest::toCommand(self::request($headers));
     }
 
     /** @param array<string, string> $headers */

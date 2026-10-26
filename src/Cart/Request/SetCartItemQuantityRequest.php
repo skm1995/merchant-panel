@@ -28,7 +28,7 @@ final readonly class SetCartItemQuantityRequest
         }
 
         return new self(
-            CartId::fromString((string) $request->routeParameter(self::CART_ID_PARAMETER)),
+            CartId::fromString($request->routeParameter(self::CART_ID_PARAMETER)),
             (int) $request->routeParameter(self::PRODUCT_ID_PARAMETER),
             $quantity,
         );

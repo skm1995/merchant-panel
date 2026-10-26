@@ -45,7 +45,7 @@ final class CartApiController
     #[MapException(CartNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     public function show(Request $request): void
     {
-        $cart = $this->carts->get(CartId::fromString((string) $request->routeParameter(self::ID_PARAMETER)));
+        $cart = $this->carts->get(CartId::fromString($request->routeParameter(self::ID_PARAMETER)));
 
         $this->responder->json(CartResponse::fromCart($cart));
     }

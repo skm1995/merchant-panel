@@ -10,6 +10,10 @@ and follow the existing implementation it names.
   application service, and respond with a response DTO implementing `Arrayable`.
 - Request DTOs parse and validate input and throw `InvalidRequestException` (HTTP 400);
   a missing required field is a 400, and missing values are `null`, never sentinel strings.
+  In CQRS features the request class parses straight into the Command or Query
+  (`PlaceOrderRequest::toCommand($request)`) instead of repeating its fields.
+- `Request::routeParameter()` returns the string matched by the route; asking for a
+  parameter the route does not declare is a programming error.
 - Constrain path parameters in the route (`{id:\d+}`) and map domain exceptions with
   `#[MapException]` instead of `try/catch`.
 - The JSON API under `/api/` is sessionless: it never reads the session or cookies and

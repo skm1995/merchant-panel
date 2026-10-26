@@ -32,7 +32,7 @@ final class OrderReportController
     #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function show(Request $request): void
     {
-        $query = OrderReportRequest::fromRequest($request)->toQuery();
+        $query = OrderReportRequest::toQuery($request);
 
         $this->responder->render(self::TEMPLATE, OrderReportPage::fromOrders($query, $this->orderReport->handle($query))->toArray());
     }

@@ -33,7 +33,7 @@ final class ReportApiController
     #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function dailyRevenue(Request $request): void
     {
-        $query = DailyRevenueRequest::fromRequest($request)->toQuery();
+        $query = DailyRevenueRequest::toQuery($request);
 
         $this->responder->json(DailyRevenueResponse::fromRows($query->period, $this->dailyRevenue->handle($query)));
     }
@@ -42,7 +42,7 @@ final class ReportApiController
     #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function topProducts(Request $request): void
     {
-        $query = TopProductsRequest::fromRequest($request)->toQuery();
+        $query = TopProductsRequest::toQuery($request);
 
         $this->responder->json(TopProductsResponse::fromRows($query->period, $this->topProducts->handle($query)));
     }

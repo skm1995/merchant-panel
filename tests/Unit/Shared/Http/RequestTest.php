@@ -8,6 +8,7 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ServerParameterEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Request;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 
 final class RequestTest extends TestCase
@@ -79,7 +80,9 @@ final class RequestTest extends TestCase
         $routed = $request->withRouteParameters([self::FIELD => self::VALUE]);
 
         self::assertSame(self::VALUE, $routed->routeParameter(self::FIELD));
-        self::assertNull($request->routeParameter(self::FIELD));
+
+        $this->expectException(LogicException::class);
+        $request->routeParameter(self::FIELD);
     }
 
     public function testRecognizesApiPaths(): void

@@ -19,7 +19,7 @@ final class ReportRequestTest extends TestCase
 
     public function testBuildsDailyRevenueQueryWithDefaultCurrency(): void
     {
-        $query = DailyRevenueRequest::fromRequest(self::request(['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO]))->toQuery();
+        $query = DailyRevenueRequest::toQuery(self::request(['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO]));
 
         self::assertSame(ReportFixtures::FROM, $query->period->from->format('Y-m-d'));
         self::assertSame(ReportFixtures::CURRENCY, $query->period->currency->getCode());
@@ -27,12 +27,12 @@ final class ReportRequestTest extends TestCase
 
     public function testBuildsTopProductsQueryWithLimit(): void
     {
-        $query = TopProductsRequest::fromRequest(self::request([
+        $query = TopProductsRequest::toQuery(self::request([
             'from' => ReportFixtures::FROM,
             'to' => ReportFixtures::TO,
             'limit' => '3',
             'currency' => 'EUR',
-        ]))->toQuery();
+        ]));
 
         self::assertSame(3, $query->limit);
         self::assertSame('EUR', $query->period->currency->getCode());
@@ -54,7 +54,7 @@ final class ReportRequestTest extends TestCase
     {
         $this->expectException(InvalidRequestException::class);
 
-        TopProductsRequest::fromRequest(self::request($parameters));
+        TopProductsRequest::toQuery(self::request($parameters));
     }
 
     /** @param array<string, string> $query */

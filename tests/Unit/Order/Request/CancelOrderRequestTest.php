@@ -17,7 +17,7 @@ final class CancelOrderRequestTest extends TestCase
 
     public function testReadsOrderIdAndExpectedVersion(): void
     {
-        $command = CancelOrderRequest::fromRequest(self::request(['if-match' => '"4"']))->toCommand();
+        $command = CancelOrderRequest::toCommand(self::request(['if-match' => '"4"']));
 
         self::assertSame(OrderFixtures::ORDER_ID, $command->orderId->value);
         self::assertSame(4, $command->expectedVersion);
@@ -27,7 +27,7 @@ final class CancelOrderRequestTest extends TestCase
     {
         $this->expectException(PreconditionRequiredException::class);
 
-        CancelOrderRequest::fromRequest(self::request([]));
+        CancelOrderRequest::toCommand(self::request([]));
     }
 
     /** @param array<string, string> $headers */
