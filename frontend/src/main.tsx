@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { BrowserRouter } from 'react-router';
+import { AppRoutes } from './AppRoutes';
+import { SessionProvider } from './session/SessionProvider';
 import './ui/tokens.css';
 
 const ROOT_ELEMENT_ID = 'root';
@@ -13,6 +15,10 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <SessionProvider>
+        <AppRoutes />
+      </SessionProvider>
+    </BrowserRouter>
   </StrictMode>,
 );
