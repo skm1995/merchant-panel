@@ -29,7 +29,7 @@ docker compose up --build -d
 Set `SESSION_COOKIE_SECURE=true` when the site is served over HTTPS, including
 when TLS terminates at a reverse proxy.
 
-Open the merchant panel at `http://localhost:8080`. nginx serves the React app from the
+Open the merchant panel at `http://localhost:8080`. Caddy serves the React app from the
 Vite development server, with hot reload, and sends `/api/` and `/legacy/` to PHP, so the
 panel and the API share one origin and the session cookie needs no CORS. Regenerate the
 API types after changing `openapi/` with

@@ -1,0 +1,13 @@
+# Development: the React app comes from the Vite dev server, including hot reload.
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	import /etc/caddy/backend.caddy php:80
+
+	handle {
+		reverse_proxy frontend:5173
+	}
+}

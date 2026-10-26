@@ -1,5 +1,5 @@
 // Black Friday load test: shoppers browse the catalog while others check out, pay, and
-// receive provider webhooks (each delivered twice) against the test stack behind nginx.
+// receive provider webhooks (each delivered twice) against the test stack behind Caddy.
 // Run it with bin/loadtest, which seeds the products and checks stock invariants afterwards.
 import { check } from 'k6';
 import crypto from 'k6/crypto';

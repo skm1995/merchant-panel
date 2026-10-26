@@ -1,0 +1,10 @@
+# Routes owned by the PHP backend, the JSON API and the legacy order report URL, plus the
+# proxy's own health check. Imported with the backend address: `import backend.caddy php:80`.
+@backend path /api/* /legacy/*
+handle @backend {
+	reverse_proxy {args[0]}
+}
+
+handle /healthz {
+	respond 204
+}

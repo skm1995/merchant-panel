@@ -1,0 +1,16 @@
+# Tests: the production build of the React app; unknown paths fall back to index.html so
+# the router handles them.
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	import /etc/caddy/backend.caddy php-test-web:80
+
+	handle {
+		root * /app/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
