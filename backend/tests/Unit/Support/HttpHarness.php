@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Support;
 
+use App\Auth\Service\CurrentUser;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
@@ -24,7 +25,7 @@ final class HttpHarness
 
     public static function dispatch(Request $request, object ...$controllers): string
     {
-        $router = new Router(new CsrfToken(new Session()), new Session(), self::responder());
+        $router = new Router(new CsrfToken(new Session()), new Session(), self::responder(), new CurrentUser(new Session()));
 
         foreach ($controllers as $controller) {
             $router->registerController($controller);

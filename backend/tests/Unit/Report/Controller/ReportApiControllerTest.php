@@ -20,6 +20,7 @@ final class ReportApiControllerTest extends TestCase
     private const string API_KEY = 'unit-test-reports-key';
     private const string DAILY_REVENUE_PATH = '/api/v1/reports/daily-revenue';
     private const string TOP_PRODUCTS_PATH = '/api/v1/reports/top-products';
+    private const string PANEL_TOP_PRODUCTS_PATH = '/api/v1/panel/reports/top-products';
 
     private string|false $originalKey;
 
@@ -41,6 +42,16 @@ final class ReportApiControllerTest extends TestCase
         $reports->expects(self::never())->method('dailyRevenue');
 
         $this->dispatch(self::DAILY_REVENUE_PATH, [], $reports);
+
+        self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
+    }
+
+    public function testPanelReportsRequireASignedInMerchant(): void
+    {
+        $reports = $this->createMock(ReportReadRepositoryInterface::class);
+        $reports->expects(self::never())->method('topProducts');
+
+        $this->dispatch(self::PANEL_TOP_PRODUCTS_PATH, [], $reports);
 
         self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
     }

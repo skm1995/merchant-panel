@@ -6,12 +6,13 @@ namespace App\Auth\Service;
 
 use App\Auth\Entity\User;
 use App\Shared\Http\Session;
+use App\Shared\Http\SessionUserInterface;
 
-final class CurrentUser
+final readonly class CurrentUser implements SessionUserInterface
 {
     private const string SESSION_KEY = 'user_email';
 
-    public function __construct(private readonly Session $session)
+    public function __construct(private Session $session)
     {
     }
 
@@ -20,6 +21,11 @@ final class CurrentUser
         $email = $this->session->get(self::SESSION_KEY);
 
         return is_string($email) ? $email : null;
+    }
+
+    public function isSignedIn(): bool
+    {
+        return $this->email() !== null;
     }
 
     public function signIn(User $user): void

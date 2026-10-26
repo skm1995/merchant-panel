@@ -1,4 +1,37 @@
 paths:
+  panelOrders:
+    get:
+      operationId: listPanelOrders
+      security:
+        - sessionCookie: []
+      summary: List orders newest first for the signed-in merchant
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          required: false
+          description: The next_cursor value returned by the previous page.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A page of orders.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/OrderSummaryPage'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
   checkout:
     post:
       operationId: checkoutCart
@@ -107,6 +140,35 @@ paths:
         '428':
           $ref: 'shared.yaml#/responses/Problem'
 schemas:
+  OrderSummaryPage:
+    type: object
+    additionalProperties: false
+    required: [data, next_cursor]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '#/schemas/OrderSummary'
+      next_cursor:
+        type: string
+        format: uuid
+        nullable: true
+  OrderSummary:
+    type: object
+    additionalProperties: false
+    required: [id, status, total, created_at]
+    properties:
+      id:
+        type: string
+        format: uuid
+      status:
+        type: string
+        enum: [pending_payment, paid, cancelled, expired]
+      total:
+        $ref: 'shared.yaml#/schemas/Money'
+      created_at:
+        type: string
+        format: date-time
   Order:
     type: object
     additionalProperties: false

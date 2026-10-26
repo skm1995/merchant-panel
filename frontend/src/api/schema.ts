@@ -265,6 +265,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/panel/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List orders newest first for the signed-in merchant */
+        get: operations["listPanelOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/panel/reports/daily-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily revenue for the signed-in merchant
+         * @description The daily revenue report for the merchant panel, authorized by the session.
+         */
+        get: operations["getPanelDailyRevenueReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/panel/reports/top-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Top products for the signed-in merchant
+         * @description The top products report for the merchant panel, authorized by the session.
+         */
+        get: operations["getPanelTopProductsReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/daily-revenue": {
         parameters: {
             query?: never;
@@ -391,6 +448,49 @@ export interface components {
             /** Format: uri */
             checkout_url: string;
         };
+        OrderSummary: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "pending_payment" | "paid" | "cancelled" | "expired";
+            total: components["schemas"]["Money"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        OrderSummaryPage: {
+            data: components["schemas"]["OrderSummary"][];
+            /** Format: uuid */
+            next_cursor: string | null;
+        };
+        DailyRevenueReport: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: string;
+            days: {
+                /** Format: date */
+                day: string;
+                orders: number;
+                revenue: components["schemas"]["Money"];
+                running_total: components["schemas"]["Money"];
+            }[];
+        };
+        TopProductsReport: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: string;
+            products: {
+                rank: number;
+                product_id: number;
+                sku: string;
+                name: string;
+                units_sold: number;
+                revenue: components["schemas"]["Money"];
+            }[];
+        };
     };
     responses: {
         /** @description An RFC 9457 problem details response. */
@@ -402,9 +502,31 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Daily revenue in the period. */
+        DailyRevenue: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["DailyRevenueReport"];
+            };
+        };
+        /** @description Ranked products in the period. */
+        TopProducts: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["TopProductsReport"];
+            };
+        };
     };
     parameters: {
         CartId: string;
+        From: string;
+        To: string;
+        Currency: string;
+        Limit: number;
     };
     requestBodies: never;
     headers: never;
@@ -837,12 +959,12 @@ export interface operations {
             422: components["responses"]["Problem"];
         };
     };
-    getDailyRevenueReport: {
+    listPanelOrders: {
         parameters: {
-            query: {
-                from: string;
-                to: string;
-                currency?: string;
+            query?: {
+                limit?: number;
+                /** @description The next_cursor value returned by the previous page. */
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -850,28 +972,70 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Daily revenue in the period. */
+            /** @description A page of orders. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** Format: date */
-                        from: string;
-                        /** Format: date */
-                        to: string;
-                        currency: string;
-                        days: {
-                            /** Format: date */
-                            day: string;
-                            orders: number;
-                            revenue: components["schemas"]["Money"];
-                            running_total: components["schemas"]["Money"];
-                        }[];
-                    };
+                    "application/json": components["schemas"]["OrderSummaryPage"];
                 };
             };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getPanelDailyRevenueReport: {
+        parameters: {
+            query: {
+                from: components["parameters"]["From"];
+                to: components["parameters"]["To"];
+                currency?: components["parameters"]["Currency"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["DailyRevenue"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getPanelTopProductsReport: {
+        parameters: {
+            query: {
+                from: components["parameters"]["From"];
+                to: components["parameters"]["To"];
+                currency?: components["parameters"]["Currency"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["TopProducts"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getDailyRevenueReport: {
+        parameters: {
+            query: {
+                from: components["parameters"]["From"];
+                to: components["parameters"]["To"];
+                currency?: components["parameters"]["Currency"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["DailyRevenue"];
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
         };
@@ -879,10 +1043,10 @@ export interface operations {
     getTopProductsReport: {
         parameters: {
             query: {
-                from: string;
-                to: string;
-                currency?: string;
-                limit?: number;
+                from: components["parameters"]["From"];
+                to: components["parameters"]["To"];
+                currency?: components["parameters"]["Currency"];
+                limit?: components["parameters"]["Limit"];
             };
             header?: never;
             path?: never;
@@ -890,29 +1054,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Ranked products in the period. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: date */
-                        from: string;
-                        /** Format: date */
-                        to: string;
-                        currency: string;
-                        products: {
-                            rank: number;
-                            product_id: number;
-                            sku: string;
-                            name: string;
-                            units_sold: number;
-                            revenue: components["schemas"]["Money"];
-                        }[];
-                    };
-                };
-            };
+            200: components["responses"]["TopProducts"];
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
         };

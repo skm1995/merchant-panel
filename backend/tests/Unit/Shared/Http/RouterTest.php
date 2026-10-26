@@ -7,11 +7,13 @@ namespace Tests\Unit\Shared\Http;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use DomainException;
+use App\Auth\Service\CurrentUser;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\MapException;
 use App\Shared\Http\RequireApiKey;
+use App\Shared\Http\RequireSignedIn;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -40,6 +42,7 @@ final class RouterTest extends TestCase
     private const string API_KEY = 'router-test-key';
     private const string POST_VALUE = 'post route dispatched';
     private const string SESSION_API_PATH = '/api/v1/session';
+    private const string PANEL_PATH = '/api/v1/panel/orders';
     private const string CSRF_HEADER = 'x-csrf-token';
     private CsrfToken $csrfToken;
     /** @var array<string, mixed> */
@@ -134,6 +137,30 @@ final class RouterTest extends TestCase
         $router->dispatch(new Request(HttpMethodEnum::POST->value, $controller::PATH));
 
         self::assertTrue($controller->called);
+    }
+
+    public function testSignedInRoutesRejectAnonymousVisitors(): void
+    {
+        $controller = new class () {
+            private const string PATH = '/api/v1/panel/orders';
+            public int $calls = 0;
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            #[RequireSignedIn]
+            public function list(): void
+            {
+                $this->calls++;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        ob_start();
+        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::PANEL_PATH));
+        ob_end_clean();
+
+        self::assertSame(0, $controller->calls);
+        self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
     }
 
     public function testSessionApiRouteRequiresTheCsrfTokenHeader(): void
@@ -503,6 +530,6 @@ final class RouterTest extends TestCase
 
     private function router(): Router
     {
-        return new Router($this->csrfToken, new Session(), new Responder($this->csrfToken));
+        return new Router($this->csrfToken, new Session(), new Responder($this->csrfToken), new CurrentUser(new Session()));
     }
 }

@@ -12,6 +12,7 @@ use App\Shared\Http\Middleware\ExceptionMappingMiddleware;
 use App\Shared\Http\Middleware\MiddlewarePipeline;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Middleware\SessionMiddleware;
+use App\Shared\Http\Middleware\SignedInMiddleware;
 use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
@@ -39,6 +40,7 @@ final class Router
         private readonly CsrfToken $csrfToken,
         private readonly Session $session,
         private readonly Responder $responder,
+        private readonly SessionUserInterface $user,
     ) {
     }
 
@@ -81,16 +83,22 @@ final class Router
 
     /**
      * Builds the policies a route needs from its path and attributes. Browser routes and API
-     * routes marked #[UsesSession] get the session and CSRF protection; other API routes stay
-     * sessionless.
+     * routes marked #[UsesSession] or #[RequireSignedIn] get the session and CSRF protection;
+     * other API routes stay sessionless.
      */
     private function pipeline(Route $route, object $controller, ReflectionMethod $method): RequestHandlerInterface
     {
         $middleware = [new ErrorMiddleware($this->responder)];
 
-        if (!Request::isApiPath($route->path) || $method->getAttributes(UsesSession::class) !== []) {
+        $requiresSignIn = $method->getAttributes(RequireSignedIn::class) !== [];
+
+        if (!Request::isApiPath($route->path) || $requiresSignIn || $method->getAttributes(UsesSession::class) !== []) {
             $middleware[] = new SessionMiddleware($this->session);
             $middleware[] = new CsrfMiddleware($this->csrfToken, $this->responder);
+        }
+
+        if ($requiresSignIn) {
+            $middleware[] = new SignedInMiddleware($this->user, $this->responder);
         }
 
         foreach ($method->getAttributes(RequireApiKey::class) as $attribute) {

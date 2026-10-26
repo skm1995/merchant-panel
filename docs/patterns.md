@@ -46,6 +46,12 @@ and follow the existing implementation it names.
   `POST /api/v1/email-confirmations`.
 - The session cookie is HttpOnly, so scripts cannot read it, and the panel keeps no
   credentials in browser storage. Integrations use API keys instead (`#[RequireApiKey]`).
+- Merchant-only data lives under `/api/v1/panel/` with `#[RequireSignedIn]`, which implies
+  the session and answers anonymous requests with 401. When integrations need the same
+  data with an API key, add a separate route that delegates to the same private method,
+  because route attributes apply to every route of a method.
+- Lists page with keyset pagination: the cursor is the public id of the last item, never
+  an internal key, and an index matching the sort order serves the next page.
 
 ## Registration and confirmation email
 

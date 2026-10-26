@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Order\Controller;
 
+use App\Auth\Entity\User;
+use App\Auth\Service\CurrentUser;
 use App\Cart\Repository\CartRepositoryInterface;
 use App\Cart\Service\CartService;
 use App\Catalog\Repository\ProductRepositoryInterface;
@@ -12,14 +14,20 @@ use App\Catalog\Service\StockReservation;
 use App\Order\Command\CancelOrderHandler;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Controller\OrderApiController;
+use App\Order\Enum\OrderStatusEnum;
 use App\Order\Query\GetOrderHandler;
+use App\Order\Query\ListOrdersHandler;
+use App\Order\ReadModel\OrderSummary;
 use App\Order\Repository\OrderReadRepositoryInterface;
 use App\Order\Repository\OrderRepositoryInterface;
 use App\Order\Service\OrderStatusChange;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
+use App\Shared\Http\Session;
 use App\Shared\Messaging\Outbox\OutboxInterface;
+use DateTimeImmutable;
+use Money\Money;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Order\OrderFixtures;
@@ -32,6 +40,7 @@ final class OrderApiControllerTest extends TestCase
     private const string CHECKOUT_PATH = '/api/v1/carts/' . CartFixtures::CART_ID . '/checkout';
     private const string ORDER_PATH = '/api/v1/orders/' . OrderFixtures::ORDER_ID;
     private const int RESERVATION_SECONDS = 900;
+    private const string PANEL_ORDERS_PATH = '/api/v1/panel/orders';
 
     protected function tearDown(): void
     {
@@ -59,12 +68,37 @@ final class OrderApiControllerTest extends TestCase
         self::assertSame(OrderFixtures::ORDER_ID, $body['id']);
     }
 
+    public function testListsOrdersOnlyForSignedInMerchants(): void
+    {
+        $session = new Session();
+        $session->start();
+        $originalSession = $_SESSION;
+        $_SESSION = [];
+
+        try {
+            $anonymous = $this->dispatch(new Request(HttpMethodEnum::GET->value, self::PANEL_ORDERS_PATH), $this->createStub(CartRepositoryInterface::class));
+            self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $anonymous['status']);
+
+            new CurrentUser($session)->signIn(new User('merchant@example.com', 'hash', new DateTimeImmutable()));
+            $page = $this->dispatch(new Request(HttpMethodEnum::GET->value, self::PANEL_ORDERS_PATH), $this->createStub(CartRepositoryInterface::class));
+        } finally {
+            $_SESSION = $originalSession;
+        }
+
+        self::assertIsArray($page['data']);
+        self::assertCount(1, $page['data']);
+        self::assertNull($page['next_cursor']);
+    }
+
     /** @return array<string, mixed> */
     private function dispatch(Request $request, CartRepositoryInterface $carts): array
     {
         $products = $this->createStub(ProductRepositoryInterface::class);
         $readOrders = $this->createStub(OrderReadRepositoryInterface::class);
         $readOrders->method('find')->willReturn(OrderFixtures::view());
+        $readOrders->method('findPage')->willReturn([
+            new OrderSummary(OrderFixtures::orderId(), OrderStatusEnum::PAID, Money::PLN(1000), new DateTimeImmutable()),
+        ]);
         $transactions = new ImmediateTransactionRunner();
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $stock = new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock());
@@ -81,6 +115,7 @@ final class OrderApiControllerTest extends TestCase
             ),
             new GetOrderHandler($readOrders),
             new CancelOrderHandler($orders, new OrderStatusChange($orders, $stock), $transactions),
+            new ListOrdersHandler($readOrders),
             HttpHarness::responder(),
         ));
     }

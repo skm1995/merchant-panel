@@ -7,60 +7,12 @@ paths:
       summary: Revenue of paid orders per day with a running total
       description: Requires the reporting API key. Days without paid orders are omitted.
       parameters:
-        - name: from
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: to
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: currency
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: '^[A-Z]{3}$'
-            default: PLN
+        - $ref: '#/parameters/From'
+        - $ref: '#/parameters/To'
+        - $ref: '#/parameters/Currency'
       responses:
         '200':
-          description: Daily revenue in the period.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [from, to, currency, days]
-                properties:
-                  from:
-                    type: string
-                    format: date
-                  to:
-                    type: string
-                    format: date
-                  currency:
-                    type: string
-                  days:
-                    type: array
-                    items:
-                      type: object
-                      additionalProperties: false
-                      required: [day, orders, revenue, running_total]
-                      properties:
-                        day:
-                          type: string
-                          format: date
-                        orders:
-                          type: integer
-                          minimum: 1
-                        revenue:
-                          $ref: 'shared.yaml#/schemas/Money'
-                        running_total:
-                          $ref: 'shared.yaml#/schemas/Money'
+          $ref: '#/responses/DailyRevenue'
         '400':
           $ref: 'shared.yaml#/responses/Problem'
         '401':
@@ -75,72 +27,160 @@ paths:
         Requires the reporting API key. Products with equal revenue share a rank
         (dense ranking), so the top N ranks can contain more than N products.
       parameters:
-        - name: from
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: to
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: currency
-          in: query
-          required: false
-          schema:
-            type: string
-            pattern: '^[A-Z]{3}$'
-            default: PLN
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 50
-            default: 10
+        - $ref: '#/parameters/From'
+        - $ref: '#/parameters/To'
+        - $ref: '#/parameters/Currency'
+        - $ref: '#/parameters/Limit'
       responses:
         '200':
-          description: Ranked products in the period.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [from, to, currency, products]
-                properties:
-                  from:
-                    type: string
-                    format: date
-                  to:
-                    type: string
-                    format: date
-                  currency:
-                    type: string
-                  products:
-                    type: array
-                    items:
-                      type: object
-                      additionalProperties: false
-                      required: [rank, product_id, sku, name, units_sold, revenue]
-                      properties:
-                        rank:
-                          type: integer
-                          minimum: 1
-                        product_id:
-                          type: integer
-                        sku:
-                          type: string
-                        name:
-                          type: string
-                        units_sold:
-                          type: integer
-                        revenue:
-                          $ref: 'shared.yaml#/schemas/Money'
+          $ref: '#/responses/TopProducts'
         '400':
           $ref: 'shared.yaml#/responses/Problem'
         '401':
           $ref: 'shared.yaml#/responses/Problem'
+  panelDailyRevenue:
+    get:
+      operationId: getPanelDailyRevenueReport
+      security:
+        - sessionCookie: []
+      summary: Daily revenue for the signed-in merchant
+      description: The daily revenue report for the merchant panel, authorized by the session.
+      parameters:
+        - $ref: '#/parameters/From'
+        - $ref: '#/parameters/To'
+        - $ref: '#/parameters/Currency'
+      responses:
+        '200':
+          $ref: '#/responses/DailyRevenue'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+  panelTopProducts:
+    get:
+      operationId: getPanelTopProductsReport
+      security:
+        - sessionCookie: []
+      summary: Top products for the signed-in merchant
+      description: The top products report for the merchant panel, authorized by the session.
+      parameters:
+        - $ref: '#/parameters/From'
+        - $ref: '#/parameters/To'
+        - $ref: '#/parameters/Currency'
+        - $ref: '#/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/responses/TopProducts'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+parameters:
+  From:
+    name: from
+    in: query
+    required: true
+    schema:
+      type: string
+      format: date
+  To:
+    name: to
+    in: query
+    required: true
+    schema:
+      type: string
+      format: date
+  Currency:
+    name: currency
+    in: query
+    required: false
+    schema:
+      type: string
+      pattern: '^[A-Z]{3}$'
+      default: PLN
+  Limit:
+    name: limit
+    in: query
+    required: false
+    schema:
+      type: integer
+      minimum: 1
+      maximum: 50
+      default: 10
+responses:
+  DailyRevenue:
+    description: Daily revenue in the period.
+    content:
+      application/json:
+        schema:
+          $ref: '#/schemas/DailyRevenueReport'
+  TopProducts:
+    description: Ranked products in the period.
+    content:
+      application/json:
+        schema:
+          $ref: '#/schemas/TopProductsReport'
+schemas:
+  DailyRevenueReport:
+    type: object
+    additionalProperties: false
+    required: [from, to, currency, days]
+    properties:
+      from:
+        type: string
+        format: date
+      to:
+        type: string
+        format: date
+      currency:
+        type: string
+      days:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [day, orders, revenue, running_total]
+          properties:
+            day:
+              type: string
+              format: date
+            orders:
+              type: integer
+              minimum: 1
+            revenue:
+              $ref: 'shared.yaml#/schemas/Money'
+            running_total:
+              $ref: 'shared.yaml#/schemas/Money'
+  TopProductsReport:
+    type: object
+    additionalProperties: false
+    required: [from, to, currency, products]
+    properties:
+      from:
+        type: string
+        format: date
+      to:
+        type: string
+        format: date
+      currency:
+        type: string
+      products:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [rank, product_id, sku, name, units_sold, revenue]
+          properties:
+            rank:
+              type: integer
+              minimum: 1
+            product_id:
+              type: integer
+            sku:
+              type: string
+            name:
+              type: string
+            units_sold:
+              type: integer
+            revenue:
+              $ref: 'shared.yaml#/schemas/Money'

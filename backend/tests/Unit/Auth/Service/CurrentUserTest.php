@@ -48,4 +48,13 @@ final class CurrentUserTest extends TestCase
 
         self::assertNull($this->currentUser->email());
     }
+
+    public function testKnowsWhetherSomeoneIsSignedIn(): void
+    {
+        self::assertFalse($this->currentUser->isSignedIn());
+
+        $this->currentUser->signIn(new User('merchant@example.com', 'hash', new DateTimeImmutable()));
+
+        self::assertTrue($this->currentUser->isSignedIn());
+    }
 }
