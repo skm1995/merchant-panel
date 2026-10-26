@@ -1,0 +1,12 @@
+# Response headers wherever the built panel is served (tests and production): the page loads
+# only its own scripts, styles, and API, cannot be framed, and responses do not name the
+# software behind them. Development leaves them out because Vite's hot reload injects inline
+# scripts.
+header {
+	Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	X-Content-Type-Options nosniff
+	X-Frame-Options DENY
+	Referrer-Policy strict-origin-when-cross-origin
+	-Server
+	-X-Powered-By
+}

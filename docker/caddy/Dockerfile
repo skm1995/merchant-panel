@@ -11,5 +11,6 @@ RUN npm run build
 FROM caddy:2.10.2-alpine
 
 COPY docker/caddy/backend.caddy /etc/caddy/backend.caddy
+COPY docker/caddy/headers.caddy /etc/caddy/headers.caddy
 COPY docker/caddy/prod.Caddyfile /etc/caddy/Caddyfile
 COPY --from=frontend /app/frontend/dist /srv/frontend

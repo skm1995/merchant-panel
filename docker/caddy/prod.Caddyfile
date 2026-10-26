@@ -8,6 +8,8 @@
 {$APP_DOMAIN} {
 	encode zstd gzip
 	log
+	import /etc/caddy/headers.caddy
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	import /etc/caddy/backend.caddy php:80
 
 	handle {

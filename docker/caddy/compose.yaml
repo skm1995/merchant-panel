@@ -6,6 +6,7 @@ services:
     volumes:
       - ../..:/app:ro
       - ./backend.caddy:/etc/caddy/backend.caddy:ro
+      - ./headers.caddy:/etc/caddy/headers.caddy:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
       interval: 2s

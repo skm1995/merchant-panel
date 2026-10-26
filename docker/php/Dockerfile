@@ -15,6 +15,7 @@ RUN apt-get update \
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 COPY docker/php/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/php/hardening.ini /usr/local/etc/php/conf.d/90-hardening.ini
 
 WORKDIR /app/backend
 
