@@ -83,7 +83,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertTrue($controller->called);
@@ -96,7 +96,7 @@ final class RouterTest extends TestCase
         http_response_code(200);
         ob_start();
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::MISSING_ROUTE_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::MISSING_ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertSame(404, http_response_code());
@@ -108,7 +108,7 @@ final class RouterTest extends TestCase
         $router = $this->router();
         ob_start();
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::MISSING_API_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::MISSING_API_PATH));
         $output = ob_get_clean();
 
         self::assertIsString($output);
@@ -134,7 +134,7 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller);
 
-        $router->dispatch(new Request(HttpMethodEnum::POST->value, $controller::PATH));
+        $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH));
 
         self::assertTrue($controller->called);
     }
@@ -156,7 +156,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
 
         ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::PANEL_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::PANEL_PATH));
         ob_end_clean();
 
         self::assertSame(0, $controller->calls);
@@ -180,8 +180,8 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
 
         ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::POST->value, self::SESSION_API_PATH));
-        $router->dispatch(new Request(
+        $router->handle(new Request(HttpMethodEnum::POST->value, self::SESSION_API_PATH));
+        $router->handle(new Request(
             HttpMethodEnum::POST->value,
             self::SESSION_API_PATH,
             headers: [self::CSRF_HEADER => $this->csrfToken->create()],
@@ -211,12 +211,12 @@ final class RouterTest extends TestCase
         try {
             foreach ([[], ['x-api-key' => 'wrong-key']] as $headers) {
                 ob_start();
-                $router->dispatch(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: $headers));
+                $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: $headers));
                 ob_end_clean();
                 self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
             }
 
-            $router->dispatch(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: ['x-api-key' => self::API_KEY]));
+            $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: ['x-api-key' => self::API_KEY]));
         } finally {
             putenv(self::API_KEY_VARIABLE);
         }
@@ -245,7 +245,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch($request);
+        $router->handle($request);
         $output = ob_get_clean();
 
         self::assertSame(self::POST_VALUE, $output);
@@ -288,7 +288,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
 
         ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::POST->value, self::ROUTE_PATH));
+        $router->handle(new Request(HttpMethodEnum::POST->value, self::ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertFalse($controller->called);
@@ -312,7 +312,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
 
         ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::PUT->value, self::ROUTE_PATH));
+        $router->handle(new Request(HttpMethodEnum::PUT->value, self::ROUTE_PATH));
         $output = ob_get_clean();
 
         self::assertFalse($controller->called);
@@ -334,7 +334,7 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller);
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
 
         self::assertSame(self::PRODUCT_ID, $controller->productId);
     }
@@ -353,7 +353,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::NESTED_PRODUCT_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::NESTED_PRODUCT_PATH));
         ob_end_clean();
 
         self::assertSame(404, http_response_code());
@@ -390,9 +390,9 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::NON_NUMERIC_PRODUCT_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::NON_NUMERIC_PRODUCT_PATH));
         ob_end_clean();
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
 
         self::assertTrue($controller->called);
     }
@@ -412,7 +412,7 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller);
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, '/codes/ab-123'));
+        $router->handle(new Request(HttpMethodEnum::GET->value, '/codes/ab-123'));
 
         self::assertSame('ab-123', $controller->code);
     }
@@ -487,7 +487,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
         ob_start();
 
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, $controller::PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH));
         $output = ob_get_clean();
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
@@ -509,7 +509,7 @@ final class RouterTest extends TestCase
         $router->registerController($controller);
 
         $this->expectException(DomainException::class);
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
+        $router->handle(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
     }
 
     /** @return array<string, mixed> */
@@ -518,7 +518,7 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller);
         ob_start();
-        $router->dispatch(new Request(HttpMethodEnum::GET->value, $path));
+        $router->handle(new Request(HttpMethodEnum::GET->value, $path));
         $output = ob_get_clean();
         self::assertIsString($output);
         $problem = json_decode($output, true, flags: JSON_THROW_ON_ERROR);

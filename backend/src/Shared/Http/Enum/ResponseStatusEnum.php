@@ -21,6 +21,7 @@ enum ResponseStatusEnum: int
     case UNPROCESSABLE_CONTENT = 422;
     case PRECONDITION_REQUIRED = 428;
     case TOO_MANY_REQUESTS = 429;
+    case INTERNAL_SERVER_ERROR = 500;
 
     public function message(): string
     {
@@ -40,6 +41,7 @@ enum ResponseStatusEnum: int
             self::UNPROCESSABLE_CONTENT => 'Unprocessable Content',
             self::PRECONDITION_REQUIRED => 'Precondition Required',
             self::TOO_MANY_REQUESTS => 'Too Many Requests',
+            self::INTERNAL_SERVER_ERROR => 'Internal Server Error',
         };
     }
 }

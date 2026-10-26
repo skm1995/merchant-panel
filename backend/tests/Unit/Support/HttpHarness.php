@@ -32,7 +32,7 @@ final class HttpHarness
         }
 
         ob_start();
-        $router->dispatch($request);
+        $router->handle($request);
         $output = ob_get_clean();
         Assert::assertIsString($output);
 

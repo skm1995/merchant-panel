@@ -36,6 +36,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/messenger.env
       - docker/env/payment.env
@@ -62,6 +63,7 @@ services:
     command: php bin/worker.php
     restart: unless-stopped
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/messenger.env
       - docker/env/mailer.env
@@ -89,6 +91,7 @@ services:
     profiles:
       - test
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/database-test.env
       - docker/env/messenger-test.env
@@ -120,6 +123,7 @@ services:
     profiles:
       - test
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/database-test.env
       - docker/env/payment.env
@@ -147,6 +151,7 @@ services:
     command: php bin/outbox-relay.php
     restart: unless-stopped
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/messenger.env
     depends_on:
@@ -166,6 +171,7 @@ services:
     profiles:
       - test
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/database-test.env
       - docker/env/messenger-test.env
@@ -186,6 +192,7 @@ services:
     profiles:
       - test
     env_file:
+      - docker/env/logging.env
       - docker/env/database.env
       - docker/env/database-test.env
       - docker/env/messenger-test.env

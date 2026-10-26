@@ -13,4 +13,5 @@ enum HeaderNameEnum: string
     case API_KEY = 'X-Api-Key';
     case IDEMPOTENCY_KEY = 'Idempotency-Key';
     case CSRF_TOKEN = 'X-CSRF-Token';
+    case REQUEST_ID = 'X-Request-Id';
 }

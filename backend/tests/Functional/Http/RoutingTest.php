@@ -23,6 +23,9 @@ final class RoutingTest extends TestCase
     private const string SESSION_COOKIE = 'PHPSESSID';
     private const string LAX_SAME_SITE = 'lax';
     private const string APP_ROOT_ELEMENT = '<div id="root"></div>';
+    private const string REQUEST_ID_HEADER = 'X-Request-Id';
+    private const string CLIENT_REQUEST_ID = 'functional-test-request-1';
+    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
 
     private HttpBrowser $browser;
 
@@ -73,5 +76,14 @@ final class RoutingTest extends TestCase
 
         self::assertSame(ResponseStatusEnum::OK->value, $this->browser->getInternalResponse()->getStatusCode());
         self::assertNull($this->browser->getCookieJar()->get(self::SESSION_COOKIE));
+    }
+
+    public function testTagsEveryResponseWithItsRequestId(): void
+    {
+        $generated = ApiClient::get(self::PRODUCTS_PATH);
+        $echoed = ApiClient::sendWithQuery(self::PRODUCTS_PATH, [], [self::REQUEST_ID_HEADER => self::CLIENT_REQUEST_ID]);
+
+        self::assertMatchesRegularExpression(self::UUID_PATTERN, $generated->getHeaderLine(self::REQUEST_ID_HEADER));
+        self::assertSame(self::CLIENT_REQUEST_ID, $echoed->getHeaderLine(self::REQUEST_ID_HEADER));
     }
 }

@@ -18,7 +18,7 @@ use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 
-final class Router
+final class Router implements RequestHandlerInterface
 {
     private const string INVALID_ROUTE_METHOD_MESSAGE = 'Route methods must be public and accept at most a Request.';
     private const string DUPLICATE_ROUTE_MESSAGE = 'A route is already registered for this method and path.';
@@ -68,7 +68,7 @@ final class Router
         }
     }
 
-    public function dispatch(Request $request): void
+    public function handle(Request $request): void
     {
         [$handler, $parameters] = $this->match($request) ?? [null, []];
 
