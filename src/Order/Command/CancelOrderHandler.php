@@ -17,12 +17,12 @@ use App\Shared\Database\TransactionRunnerInterface;
  * Cancels a pending order with optimistic locking: the caller sends the version it read,
  * and the conditional status update fails when anyone changed the order in between.
  */
-final class CancelOrderHandler
+final readonly class CancelOrderHandler
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orders,
-        private readonly OrderStatusChange $statusChange,
-        private readonly TransactionRunnerInterface $transactions,
+        private OrderRepositoryInterface $orders,
+        private OrderStatusChange $statusChange,
+        private TransactionRunnerInterface $transactions,
     ) {
     }
 

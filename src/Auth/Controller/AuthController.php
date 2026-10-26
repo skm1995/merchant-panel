@@ -17,7 +17,7 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
-final class AuthController
+final readonly class AuthController
 {
     private const string REGISTER_ROUTE_PATH = '/register';
     private const string LOGIN_ROUTE_PATH = '/login';
@@ -36,11 +36,11 @@ final class AuthController
     private const string TOKEN_DATA_KEY = 'token';
 
     public function __construct(
-        private readonly RegisterUserService $registerUser,
-        private readonly LoginUserService $loginUser,
-        private readonly ConfirmEmailService $confirmEmail,
-        private readonly CurrentUser $currentUser,
-        private readonly Responder $responder,
+        private RegisterUserService $registerUser,
+        private LoginUserService $loginUser,
+        private ConfirmEmailService $confirmEmail,
+        private CurrentUser $currentUser,
+        private Responder $responder,
     ) {
     }
 

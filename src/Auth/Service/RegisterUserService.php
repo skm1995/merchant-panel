@@ -20,18 +20,19 @@ use Psr\Clock\ClockInterface;
  * registration. The user, the token, and the email message are stored in one transaction
  * through the outbox, so a broker outage never leaves an account without its email.
  */
-final class RegisterUserService
+final readonly class RegisterUserService
 {
     public const int MAXIMUM_RESEND_ATTEMPTS = 5;
     public const int RESEND_WINDOW_SECONDS = 86400;
-    private const string TOKEN_EXPIRY = '+24 hours';
+    private const int TOKEN_LIFETIME_SECONDS = 86400;
+    private const string SECONDS_MODIFIER_FORMAT = '+%d seconds';
 
     public function __construct(
-        private readonly UserAuthService $authService,
-        private readonly EmailVerificationTokenRepositoryInterface $tokens,
-        private readonly OutboxInterface $outbox,
-        private readonly TransactionRunnerInterface $transactions,
-        private readonly ClockInterface $clock,
+        private UserAuthService $authService,
+        private EmailVerificationTokenRepositoryInterface $tokens,
+        private OutboxInterface $outbox,
+        private TransactionRunnerInterface $transactions,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -85,6 +86,6 @@ final class RegisterUserService
 
     private function tokenExpiry(): DateTimeImmutable
     {
-        return $this->clock->now()->modify(self::TOKEN_EXPIRY);
+        return $this->clock->now()->modify(sprintf(self::SECONDS_MODIFIER_FORMAT, self::TOKEN_LIFETIME_SECONDS));
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Order\Controller;
 
+use App\Cart\Entity\CartId;
 use App\Cart\Exception\CartNotFoundException;
 use App\Cart\Exception\CartNotOpenException;
 use App\Cart\Exception\EmptyCartException;
@@ -28,21 +29,20 @@ use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
-use App\Shared\Identifier\RandomUuid;
 
-final class OrderApiController
+final readonly class OrderApiController
 {
-    private const string CHECKOUT_ROUTE_PATH = '/api/v1/carts/{id:' . RandomUuid::PATTERN . '}/checkout';
-    private const string ORDER_ROUTE_PATH = '/api/v1/orders/{id:' . RandomUuid::PATTERN . '}';
+    private const string CHECKOUT_ROUTE_PATH = '/api/v1/carts/{id:' . CartId::PATTERN . '}/checkout';
+    private const string ORDER_ROUTE_PATH = '/api/v1/orders/{id:' . OrderId::PATTERN . '}';
     private const string CANCEL_ROUTE_PATH = self::ORDER_ROUTE_PATH . '/cancel';
     private const string ORDER_LOCATION_FORMAT = '/api/v1/orders/%s';
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
-        private readonly PlaceOrderHandler $placeOrder,
-        private readonly GetOrderHandler $getOrder,
-        private readonly CancelOrderHandler $cancelOrder,
-        private readonly Responder $responder,
+        private PlaceOrderHandler $placeOrder,
+        private GetOrderHandler $getOrder,
+        private CancelOrderHandler $cancelOrder,
+        private Responder $responder,
     ) {
     }
 

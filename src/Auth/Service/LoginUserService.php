@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Auth\Service;
 
-final class LoginUserService
+final readonly class LoginUserService
 {
     public function __construct(
-        private readonly UserAuthService $authService,
-        private readonly CurrentUser $currentUser,
+        private UserAuthService $authService,
+        private CurrentUser $currentUser,
     ) {
     }
 

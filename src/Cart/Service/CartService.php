@@ -15,14 +15,14 @@ use App\Catalog\Service\ProductCatalog;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
 
-final class CartService
+final readonly class CartService
 {
     public const int MAXIMUM_QUANTITY = 99;
 
     public function __construct(
-        private readonly CartRepositoryInterface $carts,
-        private readonly ProductCatalog $catalog,
-        private readonly TransactionRunnerInterface $transactions,
+        private CartRepositoryInterface $carts,
+        private ProductCatalog $catalog,
+        private TransactionRunnerInterface $transactions,
     ) {
     }
 

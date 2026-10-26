@@ -17,15 +17,15 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
-final class ProductApiController
+final readonly class ProductApiController
 {
     private const string PRODUCTS_ROUTE_PATH = '/api/v1/products';
     private const string PRODUCT_ROUTE_PATH = '/api/v1/products/{id:\d+}';
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
-        private readonly ProductCatalog $catalog,
-        private readonly Responder $responder,
+        private ProductCatalog $catalog,
+        private Responder $responder,
     ) {
     }
 

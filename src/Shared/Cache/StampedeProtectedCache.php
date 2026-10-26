@@ -15,7 +15,7 @@ use Psr\Clock\ClockInterface;
  * recomputed early with probabilistic early expiration (XFetch): the closer a value is to
  * expiry and the longer it took to compute, the likelier one request refreshes it first.
  */
-final class StampedeProtectedCache
+final readonly class StampedeProtectedCache
 {
     private const float XFETCH_BETA = 1.0;
     private const int LOCK_TTL_MILLISECONDS = 5000;
@@ -25,16 +25,16 @@ final class StampedeProtectedCache
     private const string TIMESTAMP_FORMAT = 'U.u';
 
     /** @var Closure(): float */
-    private readonly Closure $random;
+    private Closure $random;
 
     /**
      * @param (Closure(): float)|null $random returns a number in (0, 1]
      */
     public function __construct(
-        private readonly CacheStoreInterface $store,
-        private readonly ClockInterface $clock,
+        private CacheStoreInterface $store,
+        private ClockInterface $clock,
         ?Closure $random = null,
-        private readonly int $waitStepMicroseconds = self::DEFAULT_WAIT_STEP_MICROSECONDS,
+        private int $waitStepMicroseconds = self::DEFAULT_WAIT_STEP_MICROSECONDS,
     ) {
         $this->random = $random ?? static fn (): float => (mt_rand() + 1) / (mt_getrandmax() + 1);
     }

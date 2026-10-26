@@ -20,7 +20,7 @@ use UnexpectedValueException;
  * so repeated lookups of unknown ids do not reach the database; the short TTL bounds how
  * long a value can be stale if an invalidation is lost.
  */
-final class ProductCache
+final readonly class ProductCache
 {
     public const int TTL_SECONDS = 60;
     private const string KEY_FORMAT = 'catalog:product:%d';
@@ -36,8 +36,8 @@ final class ProductCache
     private const string VERSION_KEY = 'version';
 
     public function __construct(
-        private readonly StampedeProtectedCache $cache,
-        private readonly CacheStoreInterface $store,
+        private StampedeProtectedCache $cache,
+        private CacheStoreInterface $store,
     ) {
     }
 

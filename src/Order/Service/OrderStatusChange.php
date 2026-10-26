@@ -15,13 +15,13 @@ use LogicException;
  * that status: payment turns the reservation into sold stock, cancellation and expiry give
  * it back. Callers must run it inside a transaction.
  */
-final class OrderStatusChange
+final readonly class OrderStatusChange
 {
     private const string NO_STOCK_EFFECT_FORMAT = 'Changing an order to %s has no defined stock effect.';
 
     public function __construct(
-        private readonly OrderRepositoryInterface $orders,
-        private readonly StockReservation $stock,
+        private OrderRepositoryInterface $orders,
+        private StockReservation $stock,
     ) {
     }
 

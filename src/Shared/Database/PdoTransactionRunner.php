@@ -17,15 +17,15 @@ use Throwable;
  * retried a bounded number of times with a growing delay. Operations must therefore be
  * free of side effects outside the database.
  */
-final class PdoTransactionRunner implements TransactionRunnerInterface
+final readonly class PdoTransactionRunner implements TransactionRunnerInterface
 {
     public const int MAXIMUM_ATTEMPTS = 3;
     private const int DEFAULT_RETRY_DELAY_MICROSECONDS = 20000;
     private const string ISOLATION_LEVEL_STATEMENT_FORMAT = 'SET TRANSACTION ISOLATION LEVEL %s';
 
     public function __construct(
-        private readonly PDO $pdo,
-        private readonly int $retryDelayMicroseconds = self::DEFAULT_RETRY_DELAY_MICROSECONDS,
+        private PDO $pdo,
+        private int $retryDelayMicroseconds = self::DEFAULT_RETRY_DELAY_MICROSECONDS,
     ) {
     }
 

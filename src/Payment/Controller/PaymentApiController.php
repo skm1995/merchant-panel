@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payment\Controller;
 
+use App\Order\Entity\OrderId;
 use App\Order\Exception\OrderNotFoundException;
 use App\Payment\Command\HandlePaymentWebhookHandler;
 use App\Payment\Command\StartPaymentHandler;
@@ -27,21 +28,20 @@ use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
-use App\Shared\Identifier\RandomUuid;
 
-final class PaymentApiController
+final readonly class PaymentApiController
 {
-    private const string START_ROUTE_PATH = '/api/v1/orders/{id:' . RandomUuid::PATTERN . '}/payments';
-    private const string PAYMENT_ROUTE_PATH = '/api/v1/payments/{id:' . RandomUuid::PATTERN . '}';
+    private const string START_ROUTE_PATH = '/api/v1/orders/{id:' . OrderId::PATTERN . '}/payments';
+    private const string PAYMENT_ROUTE_PATH = '/api/v1/payments/{id:' . PaymentId::PATTERN . '}';
     private const string WEBHOOK_ROUTE_PATH = '/api/v1/payments/webhooks/{provider:[a-z]+}';
     private const string PAYMENT_LOCATION_FORMAT = '/api/v1/payments/%s';
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
-        private readonly StartPaymentHandler $startPayment,
-        private readonly GetPaymentHandler $getPayment,
-        private readonly HandlePaymentWebhookHandler $handleWebhook,
-        private readonly Responder $responder,
+        private StartPaymentHandler $startPayment,
+        private GetPaymentHandler $getPayment,
+        private HandlePaymentWebhookHandler $handleWebhook,
+        private Responder $responder,
     ) {
     }
 

@@ -12,12 +12,12 @@ use Symfony\Component\Messenger\Transport\Sender\SendersLocatorInterface;
 /**
  * Sends each message class to the transport named in the messaging configuration.
  */
-final class RoutingSendersLocator implements SendersLocatorInterface
+final readonly class RoutingSendersLocator implements SendersLocatorInterface
 {
     /** @param array<class-string, string> $routes transport names keyed by message class */
     public function __construct(
-        private readonly array $routes,
-        private readonly ContainerInterface $transports,
+        private array $routes,
+        private ContainerInterface $transports,
     ) {
     }
 

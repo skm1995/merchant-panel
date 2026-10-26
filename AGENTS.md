@@ -28,7 +28,7 @@ Use these rules when changing this project, and prefer its existing patterns and
 
 - PSR-12 for the PHP version in `composer.json`, PHPStan level 8.
 - Use the pipe operator (`|>`) for left-to-right transformations with first-class callables; do not force it or wrap a single expression in a closure just to pipe it.
-- Omit redundant parentheses around `new` when accessing a member. Give class constants explicit types; prefer backed enums for finite sets.
+- Omit redundant parentheses around `new` when accessing a member. Give class constants explicit types; prefer backed enums for finite sets. Declare a class `final readonly` when all its properties are readonly.
 - Never use empty string literals, and put string values in constants rather than inline literals (enum methods may use literals). Prefer readable `/` paths over assembled segments.
 
 ## Dependencies and data

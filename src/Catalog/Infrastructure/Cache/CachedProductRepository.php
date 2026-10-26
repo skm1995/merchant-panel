@@ -15,11 +15,11 @@ use App\Shared\DependencyInjection\DefaultImplementation;
  * stock changes always go to the database, because they must see committed data.
  */
 #[DefaultImplementation]
-final class CachedProductRepository implements ProductRepositoryInterface
+final readonly class CachedProductRepository implements ProductRepositoryInterface
 {
     public function __construct(
         #[Autowire(PdoProductRepository::class)] private readonly ProductRepositoryInterface $products,
-        private readonly ProductCache $cache,
+        private ProductCache $cache,
     ) {
     }
 

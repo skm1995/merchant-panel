@@ -23,12 +23,12 @@ use App\Payment\Repository\PaymentRepositoryInterface;
  * Idempotency-Key that loses the unique-index race returns the stored payment instead.
  * An order that changes after this check is handled when the provider reports the result.
  */
-final class StartPaymentHandler
+final readonly class StartPaymentHandler
 {
     public function __construct(
-        private readonly PaymentRepositoryInterface $payments,
-        private readonly GetOrderHandler $orders,
-        private readonly PaymentGatewayFactoryInterface $gateways,
+        private PaymentRepositoryInterface $payments,
+        private GetOrderHandler $orders,
+        private PaymentGatewayFactoryInterface $gateways,
     ) {
     }
 

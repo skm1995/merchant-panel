@@ -13,11 +13,11 @@ use App\Order\Repository\OrderRepositoryInterface;
  * Public Order service for other features that settle orders, such as payments.
  * Callers must run it inside their transaction.
  */
-final class OrderSettlement
+final readonly class OrderSettlement
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orders,
-        private readonly OrderStatusChange $statusChange,
+        private OrderRepositoryInterface $orders,
+        private OrderStatusChange $statusChange,
     ) {
     }
 

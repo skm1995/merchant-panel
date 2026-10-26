@@ -10,12 +10,12 @@ use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
 use Psr\Clock\ClockInterface;
 
-final class ConfirmEmailService
+final readonly class ConfirmEmailService
 {
     public function __construct(
-        private readonly EmailVerificationTokenRepositoryInterface $tokens,
-        private readonly TransactionRunnerInterface $transactions,
-        private readonly ClockInterface $clock,
+        private EmailVerificationTokenRepositoryInterface $tokens,
+        private TransactionRunnerInterface $transactions,
+        private ClockInterface $clock,
     ) {
     }
 

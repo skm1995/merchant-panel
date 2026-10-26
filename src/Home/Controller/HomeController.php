@@ -10,14 +10,14 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
-final class HomeController
+final readonly class HomeController
 {
     private const string TEMPLATE = 'home/index';
     private const string USER_EMAIL_DATA_KEY = 'userEmail';
 
     public function __construct(
-        private readonly CurrentUser $currentUser,
-        private readonly Responder $responder,
+        private CurrentUser $currentUser,
+        private Responder $responder,
     ) {
     }
 

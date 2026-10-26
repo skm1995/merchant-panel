@@ -20,7 +20,7 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
  * claimed again when its lease expires. Messages due in the future are published with a
  * DelayStamp and wait in RabbitMQ. Consumers must therefore be idempotent.
  */
-final class OutboxRelay
+final readonly class OutboxRelay
 {
     public const int BATCH_SIZE = 100;
     public const int LEASE_SECONDS = 30;
@@ -28,11 +28,11 @@ final class OutboxRelay
     private const int MILLISECONDS_PER_SECOND = 1000;
 
     public function __construct(
-        private readonly OutboxStoreInterface $store,
-        private readonly TransactionRunnerInterface $transactions,
-        private readonly MessageBusInterface $bus,
-        private readonly OutboxMessageTypes $types,
-        private readonly ClockInterface $clock,
+        private OutboxStoreInterface $store,
+        private TransactionRunnerInterface $transactions,
+        private MessageBusInterface $bus,
+        private OutboxMessageTypes $types,
+        private ClockInterface $clock,
     ) {
     }
 

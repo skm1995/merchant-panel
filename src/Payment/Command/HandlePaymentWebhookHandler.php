@@ -25,14 +25,14 @@ use App\Shared\Database\TransactionRunnerInterface;
  * so concurrent deliveries for the same payment are serialized and a settled payment
  * ignores later events.
  */
-final class HandlePaymentWebhookHandler
+final readonly class HandlePaymentWebhookHandler
 {
     public function __construct(
-        private readonly PaymentGatewayFactoryInterface $gateways,
-        private readonly WebhookInboxRepositoryInterface $inbox,
-        private readonly PaymentRepositoryInterface $payments,
-        private readonly OrderSettlement $orders,
-        private readonly TransactionRunnerInterface $transactions,
+        private PaymentGatewayFactoryInterface $gateways,
+        private WebhookInboxRepositoryInterface $inbox,
+        private PaymentRepositoryInterface $payments,
+        private OrderSettlement $orders,
+        private TransactionRunnerInterface $transactions,
     ) {
     }
 

@@ -9,11 +9,11 @@ use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
-final class FailedMessageRetrier
+final readonly class FailedMessageRetrier
 {
     public function __construct(
-        private readonly TransportInterface $failedTransport,
-        private readonly MessageBusInterface $bus,
+        private TransportInterface $failedTransport,
+        private MessageBusInterface $bus,
     ) {
     }
 

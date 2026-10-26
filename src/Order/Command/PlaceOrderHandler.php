@@ -26,17 +26,17 @@ use Psr\Clock\ClockInterface;
  * concurrent checkouts of the same cart, so a repeated request with the same
  * Idempotency-Key finds the committed order and receives it again instead of a conflict.
  */
-final class PlaceOrderHandler
+final readonly class PlaceOrderHandler
 {
     private const string RESERVATION_MODIFIER_FORMAT = '+%d seconds';
 
     public function __construct(
-        private readonly OrderRepositoryInterface $orders,
-        private readonly CartService $carts,
-        private readonly StockReservation $stock,
-        private readonly OutboxInterface $outbox,
-        private readonly TransactionRunnerInterface $transactions,
-        private readonly ClockInterface $clock,
+        private OrderRepositoryInterface $orders,
+        private CartService $carts,
+        private StockReservation $stock,
+        private OutboxInterface $outbox,
+        private TransactionRunnerInterface $transactions,
+        private ClockInterface $clock,
         #[Env('ORDER_RESERVATION_SECONDS')] private readonly int $reservationSeconds,
     ) {
     }

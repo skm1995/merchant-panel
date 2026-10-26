@@ -19,14 +19,14 @@ use Psr\Clock\ClockInterface;
  * overlapping products wait for each other instead of deadlocking. Every change is recorded
  * in the outbox in the same transaction, so cached product data is invalidated after commit.
  */
-final class StockReservation
+final readonly class StockReservation
 {
     private const string RESERVATION_INCONSISTENCY_FORMAT = 'Product %d has fewer reserved units than are being settled.';
 
     public function __construct(
-        private readonly ProductRepositoryInterface $products,
-        private readonly OutboxInterface $outbox,
-        private readonly ClockInterface $clock,
+        private ProductRepositoryInterface $products,
+        private OutboxInterface $outbox,
+        private ClockInterface $clock,
     ) {
     }
 

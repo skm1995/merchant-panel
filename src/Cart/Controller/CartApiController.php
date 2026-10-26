@@ -19,7 +19,7 @@ use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
-final class CartApiController
+final readonly class CartApiController
 {
     private const string CARTS_ROUTE_PATH = '/api/v1/carts';
     private const string CART_ROUTE_PATH = self::CARTS_ROUTE_PATH . '/{id:' . CartId::PATTERN . '}';
@@ -28,8 +28,8 @@ final class CartApiController
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
-        private readonly CartService $carts,
-        private readonly Responder $responder,
+        private CartService $carts,
+        private Responder $responder,
     ) {
     }
 

@@ -18,7 +18,7 @@ use Money\Money;
  * Simulated redirect provider: the customer pays on a hosted page and the provider
  * reports the result with webhooks signed by HMAC-SHA256 of the raw body.
  */
-final class FakePayGateway implements PaymentGatewayInterface
+final readonly class FakePayGateway implements PaymentGatewayInterface
 {
     private const string PROVIDER_ID_PREFIX = 'fp_';
     private const string CHECKOUT_URL_FORMAT = '%s/pay/%s';
@@ -32,8 +32,8 @@ final class FakePayGateway implements PaymentGatewayInterface
     private const string CURRENCY_FIELD = 'currency';
 
     public function __construct(
-        private readonly string $checkoutBaseUrl,
-        private readonly string $webhookSecret,
+        private string $checkoutBaseUrl,
+        private string $webhookSecret,
     ) {
     }
 

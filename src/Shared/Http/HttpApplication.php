@@ -10,12 +10,12 @@ use Psr\Container\ContainerInterface;
  * Web entry point: starts the session, registers every discovered controller, and
  * dispatches the request. Controllers are built through the container.
  */
-final class HttpApplication
+final readonly class HttpApplication
 {
     public function __construct(
-        private readonly ContainerInterface $container,
-        private readonly Router $router,
-        private readonly Session $session,
+        private ContainerInterface $container,
+        private Router $router,
+        private Session $session,
     ) {
     }
 

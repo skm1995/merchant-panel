@@ -17,14 +17,14 @@ use App\Shared\Http\Route;
 /**
  * Serves the order report at the URL of the legacy script it replaced, so existing links keep working.
  */
-final class OrderReportController
+final readonly class OrderReportController
 {
     private const string ROUTE_PATH = '/legacy/order-report.php';
     private const string TEMPLATE = 'report/order-report';
 
     public function __construct(
-        private readonly ReportService $reports,
-        private readonly Responder $responder,
+        private ReportService $reports,
+        private Responder $responder,
     ) {
     }
 

@@ -15,7 +15,7 @@ use ReflectionNamedType;
  * an application interface with one implementation is bound to it, #[DefaultImplementation] chooses
  * among several, and #[ServiceFactory] methods build the service their return type names.
  */
-final class ServiceDiscovery
+final readonly class ServiceDiscovery
 {
     private const string BINDINGS_KEY = 'bindings';
     private const string DEFAULTS_KEY = 'defaults';
@@ -38,10 +38,10 @@ final class ServiceDiscovery
      * @param array<string, array{class-string, string, bool}> $factories class, method, and whether it is static, keyed by service id
      */
     private function __construct(
-        private readonly array $bindings,
-        private readonly array $defaults,
-        private readonly array $ambiguous,
-        private readonly array $factories,
+        private array $bindings,
+        private array $defaults,
+        private array $ambiguous,
+        private array $factories,
     ) {
     }
 

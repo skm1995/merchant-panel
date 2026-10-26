@@ -22,7 +22,7 @@ use Psr\Clock\ClockInterface;
  * Simulated provider with a different webhook format whose signature covers a timestamp,
  * so old webhooks cannot be replayed.
  */
-final class QuickPayGateway implements PaymentGatewayInterface
+final readonly class QuickPayGateway implements PaymentGatewayInterface
 {
     public const int SIGNATURE_TOLERANCE_SECONDS = 300;
     private const string PROVIDER_ID_PREFIX = 'qp_';
@@ -41,9 +41,9 @@ final class QuickPayGateway implements PaymentGatewayInterface
     private const string REJECTED_STATE = 'REJECTED';
 
     public function __construct(
-        private readonly string $checkoutBaseUrl,
-        private readonly string $webhookSecret,
-        private readonly ClockInterface $clock,
+        private string $checkoutBaseUrl,
+        private string $webhookSecret,
+        private ClockInterface $clock,
     ) {
     }
 

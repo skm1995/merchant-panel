@@ -16,14 +16,14 @@ use App\Shared\Http\RequireApiKey;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
-final class ReportApiController
+final readonly class ReportApiController
 {
     private const string DAILY_REVENUE_ROUTE_PATH = '/api/v1/reports/daily-revenue';
     private const string TOP_PRODUCTS_ROUTE_PATH = '/api/v1/reports/top-products';
 
     public function __construct(
-        private readonly ReportService $reports,
-        private readonly Responder $responder,
+        private ReportService $reports,
+        private Responder $responder,
     ) {
     }
 

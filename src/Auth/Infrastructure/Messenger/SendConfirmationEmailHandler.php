@@ -10,7 +10,7 @@ use App\Shared\Messaging\AsMessageHandler;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
-final class SendConfirmationEmailHandler
+final readonly class SendConfirmationEmailHandler
 {
     private const string SUBJECT = 'Confirm your email address';
     private const string BODY = 'Confirm your email address by opening this link: %s';
@@ -18,7 +18,7 @@ final class SendConfirmationEmailHandler
     private const string URL_PATH_SEPARATOR = '/';
 
     public function __construct(
-        private readonly MailerInterface $mailer,
+        private MailerInterface $mailer,
         #[Env('APP_BASE_URL')] private readonly string $baseUrl,
         #[Env('MAILER_FROM')] private readonly string $senderEmail,
     ) {

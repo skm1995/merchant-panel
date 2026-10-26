@@ -18,12 +18,12 @@ use App\Shared\Messaging\AsMessageHandler;
  * awaiting payment changes, through a conditional update on its version, so a payment or
  * cancellation that won the race is never undone.
  */
-final class ExpireOrderReservationHandler
+final readonly class ExpireOrderReservationHandler
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orders,
-        private readonly OrderStatusChange $statusChange,
-        private readonly TransactionRunnerInterface $transactions,
+        private OrderRepositoryInterface $orders,
+        private OrderStatusChange $statusChange,
+        private TransactionRunnerInterface $transactions,
     ) {
     }
 
