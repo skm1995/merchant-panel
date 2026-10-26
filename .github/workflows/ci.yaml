@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+# The jobs only read the repository; the deploy reaches the server with its own SSH key.
+permissions:
+  contents: read
+
 jobs:
   quality:
     runs-on: ubuntu-latest

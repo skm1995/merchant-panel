@@ -1,6 +1,7 @@
 # Production on one server, deployed by bin/deploy after CI passes. The images contain the
-# code, only Caddy publishes ports, and values come from the .env file bin/deploy writes next
-# to this file; the variable groups in docker/env/ are shared with development.
+# code, command-line processes run as www-data rather than root, and only Caddy publishes
+# ports. Values come from the .env file bin/deploy writes next to this file; the variable
+# groups in docker/env/ are shared with development.
 name: vanilla-php-playground
 
 services:
@@ -9,6 +10,7 @@ services:
       file: docker/php/compose.yaml
       service: app-prod
     command: composer migrate
+    user: www-data
     restart: "no"
     env_file:
       - docker/env/database.env
@@ -23,6 +25,7 @@ services:
       file: docker/php/compose.yaml
       service: app-prod
     command: composer seed-demo
+    user: www-data
     restart: "no"
     profiles:
       - tools
@@ -66,6 +69,7 @@ services:
       file: docker/php/compose.yaml
       service: app-prod
     command: php bin/worker.php
+    user: www-data
     env_file:
       - docker/env/logging.env
       - docker/env/database.env
@@ -91,6 +95,7 @@ services:
       file: docker/php/compose.yaml
       service: app-prod
     command: php bin/outbox-relay.php
+    user: www-data
     env_file:
       - docker/env/logging.env
       - docker/env/database.env
