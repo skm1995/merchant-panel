@@ -1,0 +1,9 @@
+# Base definition for every service that runs the frontend toolchain; compose.yaml extends
+# it. The whole repository is mounted so the frontend can read the shared openapi/ contract.
+# Relative paths here resolve from this directory.
+services:
+  node:
+    image: node:24-alpine
+    working_dir: /app/frontend
+    volumes:
+      - ../..:/app

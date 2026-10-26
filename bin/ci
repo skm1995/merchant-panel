@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 
 compose=(docker compose --profile test)
 run=("${compose[@]}" run --rm --no-deps php-test)
+node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_NOTIFIER=false frontend-test)
 
 "${compose[@]}" build
 "${run[@]}" composer install --no-interaction --no-progress
@@ -18,3 +19,11 @@ run=("${compose[@]}" run --rm --no-deps php-test)
 "${run[@]}" composer test-functional
 "${run[@]}" composer analyse
 "${run[@]}" composer cs-check
+
+"${node[@]}" npm ci
+"${node[@]}" npm run api:check
+"${node[@]}" npm run typecheck
+"${node[@]}" npm run lint
+"${node[@]}" npm run format:check
+"${node[@]}" npm test
+"${node[@]}" npm run build

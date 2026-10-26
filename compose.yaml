@@ -209,6 +209,28 @@ services:
       mailhog:
         condition: service_started
 
+  frontend:
+    extends:
+      file: docker/node/compose.yaml
+      service: node
+    command: sh -c "npm ci && npm run dev"
+    ports:
+      - "5173:5173"
+    env_file:
+      - docker/env/frontend.env
+    depends_on:
+      php:
+        condition: service_healthy
+
+  # Runs frontend checks through `docker compose run`; it has no long-running process, so it
+  # lives in the tools profile that `docker compose up` does not start.
+  frontend-test:
+    extends:
+      file: docker/node/compose.yaml
+      service: node
+    profiles:
+      - tools
+
   mysql:
     image: mysql:8.4
     restart: unless-stopped

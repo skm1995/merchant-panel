@@ -29,7 +29,11 @@ docker compose up --build -d
 Set `SESSION_COOKIE_SECURE=true` when the site is served over HTTPS, including
 when TLS terminates at a reverse proxy.
 
-The application runs at `http://localhost:8080`. MailHog is available at
+The React frontend runs at `http://localhost:5173`; its development server forwards
+`/api` to the backend, so both share one origin. Regenerate the API types after changing
+`openapi/` with `docker compose --profile tools run --rm frontend-test npm run api:types`.
+
+The backend runs at `http://localhost:8080`. MailHog is available at
 `http://localhost:8025`, and RabbitMQ management is available at
 `http://localhost:15672`.
 
