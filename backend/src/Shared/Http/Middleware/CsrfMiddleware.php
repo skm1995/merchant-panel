@@ -13,7 +13,7 @@ use App\Shared\Http\Responder;
 
 /**
  * Rejects state-changing requests that rely on the session cookie unless they carry the
- * session's CSRF token: browser forms in a hidden field, API clients in a header.
+ * session's CSRF token in the X-CSRF-Token header.
  */
 final readonly class CsrfMiddleware implements MiddlewareInterface
 {
@@ -25,7 +25,7 @@ final readonly class CsrfMiddleware implements MiddlewareInterface
 
     public function process(Request $request, RequestHandlerInterface $next): void
     {
-        $token = $request->post(CsrfToken::FIELD_NAME) ?? $request->header(HeaderNameEnum::CSRF_TOKEN->value);
+        $token = $request->header(HeaderNameEnum::CSRF_TOKEN->value);
 
         if ($request->method !== HttpMethodEnum::GET->value && !$this->csrfToken->isValid($token)) {
             $this->responder->error($request, ResponseStatusEnum::FORBIDDEN, self::INVALID_TOKEN_DETAIL);

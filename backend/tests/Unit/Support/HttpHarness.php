@@ -18,9 +18,9 @@ use PHPUnit\Framework\Assert;
  */
 final class HttpHarness
 {
-    public static function responder(?Session $session = null): Responder
+    public static function responder(): Responder
     {
-        return new Responder(new CsrfToken($session ?? new Session()));
+        return new Responder();
     }
 
     public static function dispatch(Request $request, object ...$controllers): string

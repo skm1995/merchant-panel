@@ -154,7 +154,7 @@ final class AuthApiControllerTest extends TestCase
             new ConfirmEmailService($tokens, new ImmediateTransactionRunner(), new FrozenClock()),
             $currentUser,
             $this->csrfToken,
-            HttpHarness::responder($this->session),
+            HttpHarness::responder(),
         );
     }
 }

@@ -239,8 +239,7 @@ final class RouterTest extends TestCase
         $request = new Request(
             HttpMethodEnum::POST->value,
             self::ROUTE_PATH,
-            [],
-            [CsrfToken::FIELD_NAME => $this->csrfToken->create()],
+            headers: [self::CSRF_HEADER => $this->csrfToken->create()],
         );
         $router = $this->router();
         $router->registerController($controller);
@@ -530,6 +529,6 @@ final class RouterTest extends TestCase
 
     private function router(): Router
     {
-        return new Router($this->csrfToken, new Session(), new Responder($this->csrfToken), new CurrentUser(new Session()));
+        return new Router($this->csrfToken, new Session(), new Responder(), new CurrentUser(new Session()));
     }
 }

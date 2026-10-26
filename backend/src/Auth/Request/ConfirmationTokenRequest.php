@@ -16,16 +16,6 @@ final readonly class ConfirmationTokenRequest
     {
     }
 
-    public static function fromLink(Request $request): self
-    {
-        return self::fromValue($request->query(self::TOKEN_FIELD));
-    }
-
-    public static function fromForm(Request $request): self
-    {
-        return self::fromValue($request->post(self::TOKEN_FIELD));
-    }
-
     public static function fromJson(Request $request): self
     {
         $token = $request->json()[self::TOKEN_FIELD] ?? null;

@@ -8,6 +8,8 @@ A React and TypeScript application that talks to the backend only through the JS
 - Keep each test next to its module as `<Module>.test.ts(x)`.
 - Fake the API with MSW (`src/test/server.ts`), never by mocking the API client module. Build fake responses with the typed helpers in `src/test/api.ts` so they cannot drift from the contract; a request without a handler fails the test.
 
+- Cover the main user journeys end to end with Playwright in `e2e/`, against the test stack behind nginx with the real backend, worker, and MailHog. Keep these few and use unique data; unit-level behavior belongs in Vitest.
+
 ## API
 
 - Call the backend only through `src/api/client.ts`. Paths, parameters, and bodies are typed from `src/api/schema.ts`, which `npm run api:types` generates from `../openapi/`; never edit it by hand, and `npm run api:check` fails when it is stale.

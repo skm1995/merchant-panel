@@ -5,72 +5,48 @@ declare(strict_types=1);
 namespace Tests\Unit\Shared\Http;
 
 use App\Shared\Contract\Arrayable;
-use App\Shared\Http\CsrfToken;
 use App\Shared\Http\EntityTag;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Responder;
-use App\Shared\Http\Session;
 use App\Shared\Http\Request;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use PHPUnit\Framework\TestCase;
 
 final class ResponderTest extends TestCase
 {
-    private const string VIEW = 'auth/login';
-    private const string ERROR_KEY = 'error';
+    private const string VIEW = 'report/order-report';
+    private const string HEADING_KEY = 'heading';
+    private const string ROWS_KEY = 'rows';
+    private const string SUMMARY_KEY = 'summary';
     private const string MESSAGE = '<unsafe message>';
     private const string ESCAPED_MESSAGE = '&lt;unsafe message&gt;';
-    private const string CSRF_FIELD_FORMAT = 'name="%s" value="%s"';
-    private const string REDIRECT_PATH = '/login';
     private const string BAD_REQUEST_BODY = '400 Bad Request';
     private const string NAME_KEY = 'name';
     private const string NAME = 'Zażółć/gęślą';
     private const string DETAIL = 'The product does not exist.';
 
-    /** @var array<string, mixed> */
-    private array $originalSession;
-    private CsrfToken $csrfToken;
     private Responder $responder;
 
     protected function setUp(): void
     {
-        $session = new Session();
-        $session->start();
-        $this->originalSession = $_SESSION;
-        $_SESSION = [];
-        $this->csrfToken = new CsrfToken($session);
-        $this->responder = new Responder($this->csrfToken);
+        $this->responder = new Responder();
     }
 
     protected function tearDown(): void
     {
-        $_SESSION = $this->originalSession;
         http_response_code(ResponseStatusEnum::OK->value);
     }
 
-    public function testRenderEscapesDynamicValuesAndAddsCsrfField(): void
+    public function testRenderEscapesDynamicValues(): void
     {
         ob_start();
 
-        $this->responder->render(self::VIEW, [self::ERROR_KEY => self::MESSAGE]);
+        $this->responder->render(self::VIEW, [self::HEADING_KEY => self::MESSAGE, self::ROWS_KEY => [], self::SUMMARY_KEY => self::MESSAGE]);
         $output = ob_get_clean();
 
-        $token = $this->csrfToken->get();
-
         self::assertIsString($output);
-        self::assertNotNull($token);
         self::assertStringContainsString(self::ESCAPED_MESSAGE, $output);
-        self::assertStringContainsString(
-            sprintf(self::CSRF_FIELD_FORMAT, CsrfToken::FIELD_NAME, $token),
-            $output,
-        );
-    }
-
-    public function testRedirectUsesSeeOtherStatus(): void
-    {
-        $this->responder->redirect(self::REDIRECT_PATH);
-
-        self::assertSame(ResponseStatusEnum::SEE_OTHER->value, http_response_code());
+        self::assertStringNotContainsString(self::MESSAGE, $output);
     }
 
     public function testJsonWritesUnescapedJsonWithStatus(): void

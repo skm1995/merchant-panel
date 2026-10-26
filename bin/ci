@@ -12,6 +12,8 @@ node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_
 
 "${compose[@]}" build
 "${run[@]}" composer install --no-interaction --no-progress
+"${node[@]}" npm ci
+"${node[@]}" npm run build
 "${compose[@]}" up --detach --wait
 "${run[@]}" composer validate --no-check-publish
 "${run[@]}" composer openapi-validate
@@ -20,10 +22,9 @@ node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_
 "${run[@]}" composer analyse
 "${run[@]}" composer cs-check
 
-"${node[@]}" npm ci
 "${node[@]}" npm run api:check
 "${node[@]}" npm run typecheck
 "${node[@]}" npm run lint
 "${node[@]}" npm run format:check
 "${node[@]}" npm test
-"${node[@]}" npm run build
+docker compose --profile tools run --rm --no-deps e2e npx playwright test

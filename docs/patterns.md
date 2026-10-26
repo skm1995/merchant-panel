@@ -28,15 +28,17 @@ and follow the existing implementation it names.
 - Document every operation in the feature's `openapi/<feature>.yaml`; the functional suite
   validates real responses, including problem details, against it.
 
-## Browser forms and sessions
+## Sessions and CSRF
 
 - GET requests never change state. Mutations, including email confirmation, are POSTs
-  with a session-bound CSRF token validated before any service runs; invalid or missing
-  tokens get HTTP 403. Functional tests prove that opening a GET link does not change
-  anything and that a valid POST does, and cover token replay or expiry.
+  with the session's CSRF token in the `X-CSRF-Token` header, validated before any service
+  runs; invalid or missing tokens get HTTP 403. The emailed confirmation link opens a React
+  page that confirms only when the user presses its button; tests prove that opening the
+  link changes nothing and that the POST does, and cover token replay.
 - Sessions use strict session ID handling and HttpOnly, SameSite=Lax cookies, Secure on
   HTTPS. Regenerate the session ID after login and logout.
-- Views only produce markup and escape output through the shared renderer's helper.
+- The only server-rendered page left is the legacy order report; views only produce
+  markup and escape output through the shared renderer's helper.
 
 ## Panel authentication
 

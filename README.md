@@ -29,11 +29,14 @@ docker compose up --build -d
 Set `SESSION_COOKIE_SECURE=true` when the site is served over HTTPS, including
 when TLS terminates at a reverse proxy.
 
-The React frontend runs at `http://localhost:5173`; its development server forwards
-`/api` to the backend, so both share one origin. Regenerate the API types after changing
-`openapi/` with `docker compose --profile tools run --rm frontend-test npm run api:types`.
+Open the merchant panel at `http://localhost:8080`. nginx serves the React app from the
+Vite development server, with hot reload, and sends `/api/` and `/legacy/` to PHP, so the
+panel and the API share one origin and the session cookie needs no CORS. Regenerate the
+API types after changing `openapi/` with
+`docker compose --profile tools run --rm frontend-test npm run api:types`.
 
-The backend runs at `http://localhost:8080`. MailHog is available at
+`bin/ci` also runs the Playwright end-to-end tests against the test stack, which serves
+the production build of the panel on port 8081. MailHog is available at
 `http://localhost:8025`, and RabbitMQ management is available at
 `http://localhost:15672`.
 

@@ -6,7 +6,6 @@ namespace App\Shared\Http;
 
 final class CsrfToken
 {
-    public const string FIELD_NAME = '_csrf_token';
     private const string SESSION_KEY = '_csrf_token';
     private const int RANDOM_BYTES = 32;
 

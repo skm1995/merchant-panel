@@ -1,0 +1,13 @@
+# Base definition for the reverse proxy in front of the frontend and the backend; compose.yaml
+# extends it. Relative paths here resolve from this directory.
+services:
+  nginx:
+    image: nginx:1.29-alpine
+    volumes:
+      - ../..:/app:ro
+      - ./backend.conf:/etc/nginx/backend.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

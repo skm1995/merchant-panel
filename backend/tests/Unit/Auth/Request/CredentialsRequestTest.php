@@ -12,25 +12,9 @@ use PHPUnit\Framework\TestCase;
 
 final class CredentialsRequestTest extends TestCase
 {
-    private const string PATH = '/login';
     private const string API_PATH = '/api/v1/session';
     private const string EMAIL = 'person@example.com';
     private const string PASSWORD = 'correct-horse-battery';
-
-    public function testReadsEmailAndPasswordFromForm(): void
-    {
-        $credentials = CredentialsRequest::fromForm(self::request(['email' => self::EMAIL, 'password' => self::PASSWORD]));
-
-        self::assertSame(self::EMAIL, $credentials->email);
-        self::assertSame(self::PASSWORD, $credentials->password);
-    }
-
-    public function testRejectsFormWithoutBothFields(): void
-    {
-        $this->expectException(InvalidRequestException::class);
-
-        CredentialsRequest::fromForm(self::request(['email' => self::EMAIL]));
-    }
 
     public function testReadsEmailAndPasswordFromJson(): void
     {
@@ -50,11 +34,5 @@ final class CredentialsRequestTest extends TestCase
     private static function json(string $body): Request
     {
         return new Request(HttpMethodEnum::POST->value, self::API_PATH, body: $body);
-    }
-
-    /** @param array<string, string> $form */
-    private static function request(array $form): Request
-    {
-        return new Request(HttpMethodEnum::POST->value, self::PATH, [], $form);
     }
 }

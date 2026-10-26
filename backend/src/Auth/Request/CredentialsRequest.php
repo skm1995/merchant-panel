@@ -17,11 +17,6 @@ final readonly class CredentialsRequest
     {
     }
 
-    public static function fromForm(Request $request): self
-    {
-        return self::fromValues($request->post(self::EMAIL_FIELD), $request->post(self::PASSWORD_FIELD));
-    }
-
     public static function fromJson(Request $request): self
     {
         $data = $request->json();

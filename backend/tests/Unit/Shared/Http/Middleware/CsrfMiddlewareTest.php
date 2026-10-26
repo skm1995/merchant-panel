@@ -49,15 +49,6 @@ final class CsrfMiddlewareTest extends TestCase
         self::assertCount(1, $this->handler->handled);
     }
 
-    public function testAcceptsTheTokenFromAFormField(): void
-    {
-        $token = $this->csrfToken->create();
-
-        $this->process(new Request(HttpMethodEnum::POST->value, self::PAGE_PATH, post: [CsrfToken::FIELD_NAME => $token]));
-
-        self::assertCount(1, $this->handler->handled);
-    }
-
     public function testAcceptsTheTokenFromTheHeader(): void
     {
         $token = $this->csrfToken->create();

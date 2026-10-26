@@ -6,7 +6,7 @@ A pure PHP JSON API without a framework or ORM. The root `AGENTS.md` applies as 
 
 - Give each production class its own `<ClassName>Test` in the mirrored namespace under `tests/Unit/`. Unit tests build classes directly with test doubles; test controllers through `Tests\Unit\Support\HttpHarness`, which dispatches through the real router.
 - Keep unit and functional suites separate. Functional tests run against dedicated test infrastructure (database, broker queues, worker), apply migrations, clean up their data, and use unique test data.
-- Exercise HTTP in functional tests through the web server with an HTTP client (`HttpBrowser` for browser flows); never include the front controller or overwrite superglobals. Test repositories against the real test database instead of mocking PDO.
+- Exercise HTTP in functional tests through nginx and the web server with an HTTP client: `ApiClient` for sessionless routes and `SessionApiClient` for session routes, which keeps the cookie and sends the CSRF header. Never include the front controller or overwrite superglobals. Test repositories against the real test database instead of mocking PDO. Browser flows are covered by the Playwright tests in `frontend/e2e/`.
 - Functional tests validate every real API response, including problem details, against `../openapi/`.
 
 ## Architecture
