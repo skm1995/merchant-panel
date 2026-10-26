@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Report\Query;
+namespace App\Report\Service;
 
 use App\Report\Exception\InvalidReportPeriodException;
 use DateTimeImmutable;

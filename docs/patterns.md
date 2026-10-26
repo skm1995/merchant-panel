@@ -122,6 +122,9 @@ outbox events handled by the worker, and keep TTLs short as a safety net.
 
 ## Reporting queries
 
+Reports only read, so they use a plain `ReportService` over the read repository rather
+than CQRS query handlers.
+
 For every reporting or performance-sensitive query, add a functional test that loads a
 realistic amount of data, runs `ANALYZE TABLE`, and asserts the expected index and access
 type in `EXPLAIN FORMAT=JSON`. Filter indexed columns with half-open ranges, never by

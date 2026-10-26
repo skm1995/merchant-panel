@@ -17,7 +17,7 @@ final class OrderReportRequestTest extends TestCase
 
     public function testKeepsTheLegacyDefaults(): void
     {
-        $query = OrderReportRequest::toQuery(new Request(HttpMethodEnum::GET->value, self::PATH));
+        $query = OrderReportRequest::fromRequest(new Request(HttpMethodEnum::GET->value, self::PATH));
 
         self::assertSame(OrderStatusEnum::PAID, $query->status);
         self::assertSame('2000-01-01', $query->since->format('Y-m-d'));
@@ -27,7 +27,7 @@ final class OrderReportRequestTest extends TestCase
     {
         foreach ([['status' => "paid' OR '1'='1"], ['since' => '2000-01-01 OR 1']] as $parameters) {
             try {
-                OrderReportRequest::toQuery(new Request(HttpMethodEnum::GET->value, self::PATH, $parameters));
+                OrderReportRequest::fromRequest(new Request(HttpMethodEnum::GET->value, self::PATH, $parameters));
                 self::fail('Expected the parameters to be rejected.');
             } catch (InvalidRequestException) {
                 self::addToAssertionCount(1);

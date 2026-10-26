@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Report\Controller;
 
 use App\Report\Enum\ReportEnvironmentEnum;
-use App\Report\Query\OrderReportHandler;
 use App\Report\Request\OrderReportRequest;
 use App\Report\Response\OrderReportPage;
+use App\Report\Service\ReportService;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Request;
 use App\Shared\Http\RequireApiKey;
@@ -23,7 +23,7 @@ final class OrderReportController
     private const string TEMPLATE = 'report/order-report';
 
     public function __construct(
-        private readonly OrderReportHandler $orderReport,
+        private readonly ReportService $reports,
         private readonly Responder $responder,
     ) {
     }
@@ -32,8 +32,9 @@ final class OrderReportController
     #[RequireApiKey(ReportEnvironmentEnum::API_KEY->value)]
     public function show(Request $request): void
     {
-        $query = OrderReportRequest::toQuery($request);
+        $query = OrderReportRequest::fromRequest($request);
+        $orders = $this->reports->orders($query->status, $query->since);
 
-        $this->responder->render(self::TEMPLATE, OrderReportPage::fromOrders($query, $this->orderReport->handle($query))->toArray());
+        $this->responder->render(self::TEMPLATE, OrderReportPage::fromOrders($query->status, $query->since, $orders)->toArray());
     }
 }

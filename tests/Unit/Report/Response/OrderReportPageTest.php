@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Report\Response;
 
 use App\Order\Enum\OrderStatusEnum;
-use App\Report\Query\OrderReportQuery;
 use App\Report\ReadModel\ReportedOrder;
 use App\Report\Response\OrderReportPage;
 use DateTimeImmutable;
@@ -17,7 +16,8 @@ final class OrderReportPageTest extends TestCase
     public function testFormatsAmountsLikeTheLegacyReportWithoutFloats(): void
     {
         $page = OrderReportPage::fromOrders(
-            new OrderReportQuery(OrderStatusEnum::PAID, new DateTimeImmutable('1999-01-01')),
+            OrderStatusEnum::PAID,
+            new DateTimeImmutable('1999-01-01'),
             [
                 new ReportedOrder(12, 'Mug', Money::PLN(123456), new DateTimeImmutable('1999-05-01 10:00:00')),
                 new ReportedOrder(13, null, Money::PLN(5), new DateTimeImmutable('1999-05-02 10:00:00')),
@@ -34,7 +34,7 @@ final class OrderReportPageTest extends TestCase
 
     public function testSummarizesAnEmptyReport(): void
     {
-        $page = OrderReportPage::fromOrders(new OrderReportQuery(OrderStatusEnum::EXPIRED, new DateTimeImmutable('1999-01-01')), []);
+        $page = OrderReportPage::fromOrders(OrderStatusEnum::EXPIRED, new DateTimeImmutable('1999-01-01'), []);
 
         self::assertSame([], $page->rows);
         self::assertSame('Orders: 0, total: 0.00', $page->summary);

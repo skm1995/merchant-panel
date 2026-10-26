@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Report\Query;
+namespace Tests\Unit\Report\Service;
 
-use App\Report\Query\ReportDate;
+use App\Report\Service\ReportDate;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

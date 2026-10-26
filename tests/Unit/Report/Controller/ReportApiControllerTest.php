@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Report\Controller;
 
 use App\Report\Controller\ReportApiController;
-use App\Report\Query\DailyRevenueHandler;
-use App\Report\Query\TopProductsHandler;
 use App\Report\Repository\ReportReadRepositoryInterface;
+use App\Report\Service\ReportService;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
@@ -68,7 +67,7 @@ final class ReportApiControllerTest extends TestCase
     {
         return HttpHarness::json(
             new Request(HttpMethodEnum::GET->value, $path, ['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO], headers: $headers),
-            new ReportApiController(new DailyRevenueHandler($reports), new TopProductsHandler($reports), HttpHarness::responder()),
+            new ReportApiController(new ReportService($reports), HttpHarness::responder()),
         );
     }
 }

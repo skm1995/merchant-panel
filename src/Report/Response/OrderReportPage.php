@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Report\Response;
 
-use App\Report\Query\OrderReportQuery;
-use App\Report\Query\ReportDate;
+use App\Order\Enum\OrderStatusEnum;
 use App\Report\ReadModel\ReportedOrder;
+use App\Report\Service\ReportDate;
 use App\Shared\Contract\Arrayable;
+use DateTimeImmutable;
 use Money\Currencies\ISOCurrencies;
 use Money\Formatter\DecimalMoneyFormatter;
 use Money\Money;
@@ -36,12 +37,12 @@ final readonly class OrderReportPage implements Arrayable
     }
 
     /** @param list<ReportedOrder> $orders */
-    public static function fromOrders(OrderReportQuery $query, array $orders): self
+    public static function fromOrders(OrderStatusEnum $status, DateTimeImmutable $since, array $orders): self
     {
         $totals = array_map(static fn (ReportedOrder $order): Money => $order->total, $orders);
 
         return new self(
-            sprintf(self::HEADING_FORMAT, $query->status->value, ReportDate::format($query->since)),
+            sprintf(self::HEADING_FORMAT, $status->value, ReportDate::format($since)),
             array_map(static fn (ReportedOrder $order): array => [
                 (string) $order->orderNumber,
                 $order->products,
