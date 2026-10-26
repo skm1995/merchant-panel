@@ -1,0 +1,19 @@
+{
+    "shown": {
+        "heading": "Product Test product 1 (<prefix>-1)",
+        "message": null,
+        "price": "1999",
+        "stock": "10"
+    },
+    "saved": {
+        "heading": "Product Test product 1 (<prefix>-1)",
+        "message": "Saved.",
+        "price": "2500",
+        "stock": "7"
+    },
+    "stored": {
+        "price_amount": 2500,
+        "stock": 7,
+        "version": 1
+    }
+}

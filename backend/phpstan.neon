@@ -9,6 +9,9 @@ parameters:
         - phinx.php
         - tools
         - bin
+    excludePaths:
+        # Imported legacy code awaiting replacement; see public/legacy/product-stock.php.
+        - public/legacy
     tmpDir: .phpstan-cache
 
 services:
