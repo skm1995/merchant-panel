@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Deploys the checked-out commit to the production server: prepares the server, uploads
+# the commit over SSH, writes the server's .env from this environment, starts
+# compose.prod.yaml, and checks that the site answers over HTTPS. The deploy job in
+# .github/workflows/ci.yaml runs it after CI passes on master.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+required=(
+    DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS APP_DOMAIN
+    MYSQL_PASSWORD MYSQL_ROOT_PASSWORD RABBITMQ_PASSWORD
+    FAKEPAY_WEBHOOK_SECRET QUICKPAY_WEBHOOK_SECRET REPORTS_API_KEY MAILPIT_PASSWORD
+)
+for name in "${required[@]}"; do
+    if [ -z "${!name:-}" ]; then
+        echo "Required environment variable \"${name}\" is not set." >&2
+        exit 1
+    fi
+done
+
+caddy_image=caddy:2.10.2-alpine
+smoke_test_attempts=30
+workdir=$(mktemp -d)
+trap 'rm -rf "${workdir}"' EXIT
+
+install -m 600 /dev/null "${workdir}/key"
+printf '%s\n' "${DEPLOY_SSH_KEY}" > "${workdir}/key"
+printf '%s\n' "${DEPLOY_KNOWN_HOSTS}" > "${workdir}/known_hosts"
+ssh=(ssh -i "${workdir}/key" -o UserKnownHostsFile="${workdir}/known_hosts" -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}")
+
+install -m 600 /dev/null "${workdir}/.env"
+cat > "${workdir}/.env" <<ENV
+APP_DOMAIN=${APP_DOMAIN}
+MYSQL_DATABASE=app
+MYSQL_USER=app
+MYSQL_PASSWORD=${MYSQL_PASSWORD}
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+RABBITMQ_USER=app
+RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+MAILER_FROM=no-reply@${APP_DOMAIN}
+FAKEPAY_CHECKOUT_URL=https://${APP_DOMAIN}/fakepay
+FAKEPAY_WEBHOOK_SECRET=${FAKEPAY_WEBHOOK_SECRET}
+QUICKPAY_CHECKOUT_URL=https://${APP_DOMAIN}/quickpay
+QUICKPAY_WEBHOOK_SECRET=${QUICKPAY_WEBHOOK_SECRET}
+REPORTS_API_KEY=${REPORTS_API_KEY}
+MAILPIT_PASSWORD=${MAILPIT_PASSWORD}
+ENV
+
+echo "Preparing the server..."
+"${ssh[@]}" 'bash -s' < docker/server/provision.sh
+
+echo "Uploading $(git rev-parse --short HEAD)..."
+git archive --format=tar HEAD | "${ssh[@]}" 'rm -rf app.next && mkdir app.next && tar -x -C app.next'
+"${ssh[@]}" 'umask 077 && cat > app.next/.env' < "${workdir}/.env"
+
+echo "Starting the services..."
+"${ssh[@]}" "CADDY_IMAGE=${caddy_image} bash -s" <<'REMOTE'
+set -euo pipefail
+rm -rf app
+mv app.next app
+cd app
+password=$(sed -n 's/^MAILPIT_PASSWORD=//p' .env)
+hash=$(sudo docker run --rm "${CADDY_IMAGE}" caddy hash-password --plaintext "${password}")
+echo "MAILPIT_PASSWORD_HASH='${hash}'" >> .env
+sudo docker compose -f compose.prod.yaml up --detach --build --remove-orphans --wait
+sudo docker compose -f compose.prod.yaml run --rm -T seed-demo < /dev/null
+sudo docker image prune --force >/dev/null
+REMOTE
+
+echo "Checking https://${APP_DOMAIN}..."
+for _ in $(seq 1 "${smoke_test_attempts}"); do
+    if curl --fail --silent --output /dev/null "https://${APP_DOMAIN}/api/v1/products?limit=1"; then
+        echo "Deployed: https://${APP_DOMAIN}"
+        exit 0
+    fi
+    sleep 2
+done
+
+echo "https://${APP_DOMAIN} does not answer." >&2
+exit 1

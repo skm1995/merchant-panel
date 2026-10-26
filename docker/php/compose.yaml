@@ -1,5 +1,6 @@
-# Base definition for every service that runs the backend image; compose.yaml extends it.
-# The whole repository is mounted so the backend can read the shared openapi/ contract.
+# Base definitions for the services that run the backend image. In development and tests
+# (compose.yaml) the whole repository is mounted so the backend can read the shared openapi/
+# contract; in production (compose.prod.yaml) the code is part of the image.
 # Relative paths here resolve from this directory.
 services:
   app:
@@ -12,3 +13,12 @@ services:
     working_dir: /app/backend
     volumes:
       - ../..:/app
+
+  app-prod:
+    build:
+      context: ../..
+      dockerfile: docker/php/Dockerfile
+      target: prod
+      args:
+        PHP_VERSION: "8.5"
+    restart: unless-stopped

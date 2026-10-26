@@ -5,7 +5,7 @@ parameters:
         - public
         - tests
         - views
-        - database/migrations
+        - database
         - phinx.php
         - tools
         - bin

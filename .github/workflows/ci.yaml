@@ -18,3 +18,28 @@ jobs:
       - name: Stop services
         if: always()
         run: docker compose --profile test down --volumes
+
+  deploy:
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Deploy to the server
+        run: bin/deploy
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          FAKEPAY_WEBHOOK_SECRET: ${{ secrets.FAKEPAY_WEBHOOK_SECRET }}
+          QUICKPAY_WEBHOOK_SECRET: ${{ secrets.QUICKPAY_WEBHOOK_SECRET }}
+          REPORTS_API_KEY: ${{ secrets.REPORTS_API_KEY }}
+          MAILPIT_PASSWORD: ${{ secrets.MAILPIT_PASSWORD }}

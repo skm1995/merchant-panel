@@ -1,0 +1,179 @@
+# Production on one server, deployed by bin/deploy after CI passes. The images contain the
+# code, only Caddy publishes ports, and values come from the .env file bin/deploy writes next
+# to this file; the variable groups in docker/env/ are shared with development.
+name: vanilla-php-playground
+
+services:
+  migrate:
+    extends:
+      file: docker/php/compose.yaml
+      service: app-prod
+    command: composer migrate
+    restart: "no"
+    env_file:
+      - docker/env/database.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # Adds the demo catalog when it is missing; products edited in the panel stay as they are.
+  # bin/deploy runs it with `docker compose run`, so it lives in the tools profile.
+  seed-demo:
+    extends:
+      file: docker/php/compose.yaml
+      service: app-prod
+    command: composer seed-demo
+    restart: "no"
+    profiles:
+      - tools
+    env_file:
+      - docker/env/database.env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  php:
+    extends:
+      file: docker/php/compose.yaml
+      service: app-prod
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://localhost/api/v1/products?limit=1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    env_file:
+      - docker/env/logging.env
+      - docker/env/database.env
+      - docker/env/messenger.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/reports.env
+    environment:
+      ORDER_RESERVATION_SECONDS: 900
+      SESSION_COOKIE_SECURE: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    extends:
+      file: docker/php/compose.yaml
+      service: app-prod
+    command: php bin/worker.php
+    env_file:
+      - docker/env/logging.env
+      - docker/env/database.env
+      - docker/env/messenger.env
+      - docker/env/mailer.env
+      - docker/env/redis.env
+    environment:
+      APP_BASE_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  outbox-relay:
+    extends:
+      file: docker/php/compose.yaml
+      service: app-prod
+    command: php bin/outbox-relay.php
+    env_file:
+      - docker/env/logging.env
+      - docker/env/database.env
+      - docker/env/messenger.env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  caddy:
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      MAILPIT_PASSWORD_HASH: ${MAILPIT_PASSWORD_HASH:?MAILPIT_PASSWORD_HASH is required}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      php:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
+      MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping --host=127.0.0.1 --user=root --password="$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27.0
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  rabbitmq_data:
+  caddy_data:
+  caddy_config:

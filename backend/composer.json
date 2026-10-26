@@ -60,6 +60,7 @@
         "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",
         "deptrac": "deptrac analyse --config-file=deptrac.yaml --no-progress",
         "migrate": "phinx migrate -c phinx.php",
+        "seed-demo": "phinx seed:run -c phinx.php -s DemoCatalogSeeder",
         "openapi-validate": "php-openapi validate ../openapi/openapi.yaml",
         "openapi-bundle": "php-openapi inline ../openapi/openapi.yaml ../build/openapi.yaml"
     }

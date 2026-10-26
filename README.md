@@ -129,6 +129,28 @@ wait in RabbitMQ. Several relays can run side by side, and a message whose relay
 crashed is published again after its 30-second lease, so delivery is at least
 once and consumers are idempotent.
 
+## Production
+
+The demo runs at `https://92-5-154-24.sslip.io` on one Oracle Cloud Always Free ARM server.
+Every push to `master` deploys there once CI passes: the `deploy` job runs `bin/deploy`,
+which prepares the server (`docker/server/provision.sh`), uploads the commit, writes the
+server's `.env` from GitHub secrets and variables, starts `compose.prod.yaml`, adds the demo
+catalog, and checks that the API answers over HTTPS.
+
+`compose.prod.yaml` builds images with the code inside: PHP without Xdebug and with OPcache
+that never rechecks files, and Caddy with the built React app, which obtains and renews the
+HTTPS certificate itself. Only Caddy publishes ports. Mailpit, which shows the confirmation
+emails, is at `https://mail.<domain>` behind the user `demo` and the `MAILPIT_PASSWORD`
+secret.
+
+| GitHub setting | Kind | Purpose |
+| --- | --- | --- |
+| `DEPLOY_HOST`, `DEPLOY_USER`, `APP_DOMAIN` | variables | server address, SSH user, public domain |
+| `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` | secrets | SSH key and the server's host key |
+| `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `RABBITMQ_PASSWORD` | secrets | service credentials |
+| `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET`, `REPORTS_API_KEY` | secrets | application secrets |
+| `MAILPIT_PASSWORD` | secret | password for the Mailpit page |
+
 ## Logs and tracing
 
 Every process logs JSON lines to stderr. Each record carries `request_id`: HTTP responses
