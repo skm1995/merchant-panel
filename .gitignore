@@ -1,10 +1,22 @@
-.idea
-composer.phar
+# Local environment and IDE files
 /.env
 /.env.*
 !/.env.example
-/vendor/
-/.phpunit.cache/
-/.php-cs-fixer.cache
-/.phpstan-cache/
+.idea/
+
+# Backend
+/backend/vendor/
+/backend/composer.phar
+/backend/.phpunit.cache/
+/backend/.php-cs-fixer.cache
+/backend/.phpstan-cache/
+
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/coverage/
+/frontend/test-results/
+/frontend/playwright-report/
+
+# Generated artifacts
 /build/

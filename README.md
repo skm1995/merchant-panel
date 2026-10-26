@@ -1,5 +1,18 @@
 # Vanilla PHP Playground
 
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `backend/` | PHP JSON API: `src/`, `tests/`, migrations, worker and relay entry points |
+| `frontend/` | React application that uses the backend only through the API |
+| `openapi/` | API contract shared by both sides |
+| `docker/`, `compose.yaml` | local stack and the test infrastructure used by `bin/ci` |
+| `docs/` | patterns and architecture notes |
+
+Backend containers mount the repository at `/app` and work in `/app/backend`; map the
+project root to `/app` in your IDE for Xdebug.
+
 ## Local development
 
 Copy `.env.example` to `.env`, then start the application and services.

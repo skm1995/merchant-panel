@@ -17,7 +17,7 @@ use Symfony\Component\HttpClient\HttpClient;
  */
 final class ApiClient
 {
-    private const string SPECIFICATION_PATH = '/openapi/openapi.yaml';
+    private const string SPECIFICATION_PATH = '/../openapi/openapi.yaml';
 
     private static ?ResponseValidator $validator = null;
 
