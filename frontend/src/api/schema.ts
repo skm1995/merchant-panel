@@ -4,6 +4,65 @@
  */
 
 export interface paths {
+    "/api/v1/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Describe the browser session and issue its CSRF token
+         * @description Starts the session when needed. Send the returned csrf_token in the X-CSRF-Token header of every state-changing request to a session route.
+         */
+        get: operations["getSession"];
+        put?: never;
+        /** Sign in with email and password */
+        post: operations["signIn"];
+        /** Sign out */
+        delete: operations["signOut"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an account and send the email confirmation
+         * @description Repeating the registration of an unverified account with its password sends the confirmation again, within a resend limit.
+         */
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an email address with the token from the confirmation email */
+        post: operations["confirmEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products": {
         parameters: {
             query?: never;
@@ -250,6 +309,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Session: {
+            authenticated: boolean;
+            /** Format: email */
+            email: string | null;
+            csrf_token: string;
+        };
+        Credentials: {
+            email: string;
+            /** Format: password */
+            password: string;
+        };
+        Problem: {
+            type: string;
+            title: string;
+            status: number;
+            detail: string;
+        };
+        EmailConfirmation: {
+            token: string;
+        };
         Money: {
             /**
              * @description Amount in minor currency units.
@@ -269,12 +348,6 @@ export interface components {
         ProductPage: {
             data: components["schemas"]["Product"][];
             next_cursor: number | null;
-        };
-        Problem: {
-            type: string;
-            title: string;
-            status: number;
-            detail: string;
         };
         LineItem: {
             product_id: number;
@@ -331,6 +404,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description The csrf_token returned by GET /api/v1/session. */
+        CsrfToken: string;
         CartId: string;
     };
     requestBodies: never;
@@ -339,6 +414,136 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+        };
+    };
+    signIn: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token returned by GET /api/v1/session. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    signOut: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token returned by GET /api/v1/session. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Problem"];
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token returned by GET /api/v1/session. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            /** @description The confirmation email is on its way. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+        };
+    };
+    confirmEmail: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The csrf_token returned by GET /api/v1/session. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailConfirmation"];
+            };
+        };
+        responses: {
+            /** @description The email address is confirmed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
     listProducts: {
         parameters: {
             query?: {

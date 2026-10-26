@@ -8,6 +8,8 @@ enum ResponseStatusEnum: int
 {
     case OK = 200;
     case CREATED = 201;
+    case ACCEPTED = 202;
+    case NO_CONTENT = 204;
     case SEE_OTHER = 303;
     case BAD_REQUEST = 400;
     case UNAUTHORIZED = 401;
@@ -17,12 +19,15 @@ enum ResponseStatusEnum: int
     case PRECONDITION_FAILED = 412;
     case UNPROCESSABLE_CONTENT = 422;
     case PRECONDITION_REQUIRED = 428;
+    case TOO_MANY_REQUESTS = 429;
 
     public function message(): string
     {
         return match ($this) {
             self::OK => 'OK',
             self::CREATED => 'Created',
+            self::ACCEPTED => 'Accepted',
+            self::NO_CONTENT => 'No Content',
             self::SEE_OTHER => 'See Other',
             self::BAD_REQUEST => 'Bad Request',
             self::UNAUTHORIZED => 'Unauthorized',
@@ -32,6 +37,7 @@ enum ResponseStatusEnum: int
             self::PRECONDITION_FAILED => 'Precondition Failed',
             self::UNPROCESSABLE_CONTENT => 'Unprocessable Content',
             self::PRECONDITION_REQUIRED => 'Precondition Required',
+            self::TOO_MANY_REQUESTS => 'Too Many Requests',
         };
     }
 }

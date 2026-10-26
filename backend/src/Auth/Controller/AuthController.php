@@ -123,7 +123,7 @@ final readonly class AuthController
         string $template,
         string $successPath,
     ): void {
-        $credentials = CredentialsRequest::fromRequest($request);
+        $credentials = CredentialsRequest::fromForm($request);
 
         try {
             $action($credentials->email, $credentials->password);

@@ -1,0 +1,139 @@
+paths:
+  session:
+    get:
+      operationId: getSession
+      summary: Describe the browser session and issue its CSRF token
+      description: >-
+        Starts the session when needed. Send the returned csrf_token in the X-CSRF-Token
+        header of every state-changing request to a session route.
+      responses:
+        '200':
+          description: The current session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Session'
+    post:
+      operationId: signIn
+      summary: Sign in with email and password
+      parameters:
+        - $ref: '#/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Credentials'
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Session'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+    delete:
+      operationId: signOut
+      summary: Sign out
+      parameters:
+        - $ref: '#/parameters/CsrfToken'
+      responses:
+        '204':
+          description: Signed out.
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+  registrations:
+    post:
+      operationId: register
+      summary: Create an account and send the email confirmation
+      description: >-
+        Repeating the registration of an unverified account with its password sends the
+        confirmation again, within a resend limit.
+      parameters:
+        - $ref: '#/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Credentials'
+      responses:
+        '202':
+          description: The confirmation email is on its way.
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '409':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+        '429':
+          $ref: 'shared.yaml#/responses/Problem'
+  emailConfirmations:
+    post:
+      operationId: confirmEmail
+      summary: Confirm an email address with the token from the confirmation email
+      parameters:
+        - $ref: '#/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/EmailConfirmation'
+      responses:
+        '204':
+          description: The email address is confirmed.
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+parameters:
+  CsrfToken:
+    name: X-CSRF-Token
+    in: header
+    required: true
+    description: The csrf_token returned by GET /api/v1/session.
+    schema:
+      type: string
+schemas:
+  Session:
+    type: object
+    additionalProperties: false
+    required: [authenticated, email, csrf_token]
+    properties:
+      authenticated:
+        type: boolean
+      email:
+        type: string
+        format: email
+        nullable: true
+      csrf_token:
+        type: string
+        minLength: 1
+  Credentials:
+    type: object
+    additionalProperties: false
+    required: [email, password]
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+        format: password
+  EmailConfirmation:
+    type: object
+    additionalProperties: false
+    required: [token]
+    properties:
+      token:
+        type: string
+        minLength: 1

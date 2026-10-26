@@ -82,6 +82,14 @@ final class Responder
     }
 
     /**
+     * Writes a status that needs no body, such as 202 Accepted or 204 No Content.
+     */
+    public function withoutBody(ResponseStatusEnum $status): void
+    {
+        http_response_code($status->value);
+    }
+
+    /**
      * Answers a rejected request: API clients get problem details, browsers a plain status.
      */
     public function error(Request $request, ResponseStatusEnum $status, string $detail): void

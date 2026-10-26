@@ -14,6 +14,7 @@ final class ConfirmationTokenRequestTest extends TestCase
 {
     private const string PATH = '/confirm';
     private const string TOKEN = 'confirmation-token';
+    private const string API_PATH = '/api/v1/email-confirmations';
 
     public function testReadsTokenFromLinkQuery(): void
     {
@@ -34,5 +35,19 @@ final class ConfirmationTokenRequestTest extends TestCase
         $this->expectException(InvalidRequestException::class);
 
         ConfirmationTokenRequest::fromForm(new Request(HttpMethodEnum::POST->value, self::PATH));
+    }
+
+    public function testReadsTheTokenFromJson(): void
+    {
+        $request = new Request(HttpMethodEnum::POST->value, self::API_PATH, body: '{"token":"' . self::TOKEN . '"}');
+
+        self::assertSame(self::TOKEN, ConfirmationTokenRequest::fromJson($request)->token);
+    }
+
+    public function testRejectsJsonWithoutAToken(): void
+    {
+        $this->expectException(InvalidRequestException::class);
+
+        ConfirmationTokenRequest::fromJson(new Request(HttpMethodEnum::POST->value, self::API_PATH, body: '{"token":""}'));
     }
 }

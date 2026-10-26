@@ -26,8 +26,19 @@ final readonly class ConfirmationTokenRequest
         return self::fromValue($request->post(self::TOKEN_FIELD));
     }
 
+    public static function fromJson(Request $request): self
+    {
+        $token = $request->json()[self::TOKEN_FIELD] ?? null;
+
+        return self::fromValue(is_string($token) ? $token : null);
+    }
+
     private static function fromValue(?string $token): self
     {
-        return new self($token ?? throw new InvalidRequestException(self::MISSING_TOKEN_MESSAGE));
+        if ($token === null || strlen($token) === 0) {
+            throw new InvalidRequestException(self::MISSING_TOKEN_MESSAGE);
+        }
+
+        return new self($token);
     }
 }

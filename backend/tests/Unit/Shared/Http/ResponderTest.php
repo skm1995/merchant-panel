@@ -147,4 +147,14 @@ final class ResponderTest extends TestCase
         self::assertStringContainsString(self::DETAIL, $problem);
         self::assertSame('404 Not Found', $plain);
     }
+
+    public function testWithoutBodyWritesOnlyTheStatus(): void
+    {
+        ob_start();
+        $this->responder->withoutBody(ResponseStatusEnum::NO_CONTENT);
+        $output = ob_get_clean();
+
+        self::assertSame(ResponseStatusEnum::NO_CONTENT->value, http_response_code());
+        self::assertSame(0, strlen((string) $output));
+    }
 }

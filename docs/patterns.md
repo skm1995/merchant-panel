@@ -38,6 +38,15 @@ and follow the existing implementation it names.
   HTTPS. Regenerate the session ID after login and logout.
 - Views only produce markup and escape output through the shared renderer's helper.
 
+## Panel authentication
+
+- The React panel authenticates with the browser session, not tokens: `GET /api/v1/session`
+  reports who is signed in and issues the CSRF token, `POST` signs in, and `DELETE` signs
+  out. Registration and email confirmation are `POST /api/v1/registrations` and
+  `POST /api/v1/email-confirmations`.
+- The session cookie is HttpOnly, so scripts cannot read it, and the panel keeps no
+  credentials in browser storage. Integrations use API keys instead (`#[RequireApiKey]`).
+
 ## Registration and confirmation email
 
 - Registration stores the user, the token, and the confirmation message atomically

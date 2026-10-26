@@ -3,11 +3,19 @@ info:
   title: Vanilla PHP Playground API
   version: 1.0.0
   description: >-
-    Product catalog and cart API. The API is sessionless; a cart id is an
-    unguessable UUID that grants access to the cart. Monetary amounts are strings in minor currency units
+    Shop and merchant panel API. Shop routes are sessionless; a cart id is an
+    unguessable UUID that grants access to the cart. Panel routes (session,
+    registrations, email confirmations) use the browser session cookie and require
+    the session's CSRF token in the X-CSRF-Token header for state changes. Monetary amounts are strings in minor currency units
     (for example grosze) with an ISO 4217 currency code. Errors use RFC 9457
     problem details.
 paths:
+  /api/v1/session:
+    $ref: 'auth.yaml#/paths/session'
+  /api/v1/registrations:
+    $ref: 'auth.yaml#/paths/registrations'
+  /api/v1/email-confirmations:
+    $ref: 'auth.yaml#/paths/emailConfirmations'
   /api/v1/products:
     $ref: 'catalog.yaml#/paths/products'
   /api/v1/products/{id}:

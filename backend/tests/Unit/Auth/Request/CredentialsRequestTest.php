@@ -13,12 +13,13 @@ use PHPUnit\Framework\TestCase;
 final class CredentialsRequestTest extends TestCase
 {
     private const string PATH = '/login';
+    private const string API_PATH = '/api/v1/session';
     private const string EMAIL = 'person@example.com';
     private const string PASSWORD = 'correct-horse-battery';
 
     public function testReadsEmailAndPasswordFromForm(): void
     {
-        $credentials = CredentialsRequest::fromRequest(self::request(['email' => self::EMAIL, 'password' => self::PASSWORD]));
+        $credentials = CredentialsRequest::fromForm(self::request(['email' => self::EMAIL, 'password' => self::PASSWORD]));
 
         self::assertSame(self::EMAIL, $credentials->email);
         self::assertSame(self::PASSWORD, $credentials->password);
@@ -28,7 +29,27 @@ final class CredentialsRequestTest extends TestCase
     {
         $this->expectException(InvalidRequestException::class);
 
-        CredentialsRequest::fromRequest(self::request(['email' => self::EMAIL]));
+        CredentialsRequest::fromForm(self::request(['email' => self::EMAIL]));
+    }
+
+    public function testReadsEmailAndPasswordFromJson(): void
+    {
+        $credentials = CredentialsRequest::fromJson(self::json('{"email":"person@example.com","password":"correct-horse-battery"}'));
+
+        self::assertSame(self::EMAIL, $credentials->email);
+        self::assertSame(self::PASSWORD, $credentials->password);
+    }
+
+    public function testRejectsJsonWithoutTwoStrings(): void
+    {
+        $this->expectException(InvalidRequestException::class);
+
+        CredentialsRequest::fromJson(self::json('{"email":"person@example.com","password":12345678}'));
+    }
+
+    private static function json(string $body): Request
+    {
+        return new Request(HttpMethodEnum::POST->value, self::API_PATH, body: $body);
     }
 
     /** @param array<string, string> $form */
