@@ -21,6 +21,9 @@ final class SessionApiClient
     private const string JSON_CONTENT_TYPE = 'application/json';
     private const string CONTENT_TYPE_SERVER_KEY = 'CONTENT_TYPE';
     private const string CSRF_TOKEN_SERVER_KEY = 'HTTP_X_CSRF_TOKEN';
+    private const string HEADER_SERVER_KEY_PREFIX = 'HTTP_';
+    private const string HEADER_WORD_SEPARATOR = '-';
+    private const string SERVER_WORD_SEPARATOR = '_';
 
     private HttpBrowser $browser;
 
@@ -34,9 +37,16 @@ final class SessionApiClient
         return $this->request(HttpMethodEnum::GET, $path, null, []);
     }
 
-    public function send(HttpMethodEnum $method, string $path, ?string $body = null): ResponseInterface
+    /** @param array<string, string> $headers extra headers by name, such as If-Match */
+    public function send(HttpMethodEnum $method, string $path, ?string $body = null, array $headers = []): ResponseInterface
     {
-        return $this->request($method, $path, $body, [self::CSRF_TOKEN_SERVER_KEY => $this->csrfToken()]);
+        $server = [self::CSRF_TOKEN_SERVER_KEY => $this->csrfToken()];
+
+        foreach ($headers as $name => $value) {
+            $server[self::HEADER_SERVER_KEY_PREFIX . strtoupper(str_replace(self::HEADER_WORD_SEPARATOR, self::SERVER_WORD_SEPARATOR, $name))] = $value;
+        }
+
+        return $this->request($method, $path, $body, $server);
     }
 
     public function sendWithoutCsrfToken(HttpMethodEnum $method, string $path, ?string $body = null): ResponseInterface

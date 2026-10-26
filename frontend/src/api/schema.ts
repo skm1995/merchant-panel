@@ -265,6 +265,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/panel/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** Get a product with its stock for editing */
+        get: operations["getPanelProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a product's price and stock
+         * @description Uses optimistic locking: send the ETag from the last read in If-Match. A missing header returns 428, a stale one 412, and stock below the reserved units 422. Replaces the retired /legacy/product-stock.php page, whose links now redirect to the panel's product editor.
+         */
+        patch: operations["editPanelProduct"];
+        trace?: never;
+    };
     "/api/v1/panel/orders": {
         parameters: {
             query?: never;
@@ -448,6 +471,18 @@ export interface components {
             /** Format: uri */
             checkout_url: string;
         };
+        ProductDetails: {
+            id: number;
+            sku: string;
+            name: string;
+            price: components["schemas"]["Money"];
+            stock: number;
+            reserved: number;
+        };
+        ProductEdit: {
+            price: components["schemas"]["Money"];
+            stock: number;
+        };
         OrderSummary: {
             /** Format: uuid */
             id: string;
@@ -500,6 +535,17 @@ export interface components {
             };
             content: {
                 "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The product as the panel edits it. */
+        ProductDetails: {
+            headers: {
+                /** @description Strong entity tag of the product version, for If-Match. */
+                ETag?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ProductDetails"];
             };
         };
         /** @description Daily revenue in the period. */
@@ -957,6 +1003,49 @@ export interface operations {
             401: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
+        };
+    };
+    getPanelProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ProductDetails"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    editPanelProduct: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductEdit"];
+            };
+        };
+        responses: {
+            200: components["responses"]["ProductDetails"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            412: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            428: components["responses"]["Problem"];
         };
     };
     listPanelOrders: {

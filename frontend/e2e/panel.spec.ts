@@ -28,3 +28,14 @@ test('panel pages need a signed-in merchant', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
+
+test('old links to the retired stock page open the product editor', async ({ page, request }) => {
+  const email = uniqueEmail('e2e-legacy-link');
+  await createMerchant(request, email);
+  await signIn(page, email);
+
+  await page.goto('/legacy/product-stock.php?id=999999');
+
+  await expect(page).toHaveURL(/\/products\/999999\/edit$/);
+  await expect(page.getByRole('alert')).toHaveText('Product 999999 does not exist.');
+});

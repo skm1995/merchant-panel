@@ -159,6 +159,19 @@ wrapping them in functions.
 3. Refactor. The golden master changes only for an intended, reviewed behavior change, and
    old URLs keep working when external links depend on them.
 
+## Strangling a legacy page
+
+1. Import the page as found and record a golden master of what it shows and what it
+   stores, through the web server; keep it out of static analysis until it is replaced.
+2. Build the replacement on the current architecture: an API operation with the usual
+   policies (sign-in, CSRF, optimistic locking, outbox events) and a React screen.
+3. Turn the old URL into a route that redirects to the new screen with 301, accepting only
+   well-formed input, and delete the old page. Replace the golden master with tests that
+   the redirect works and that the inputs that reached the old code change nothing.
+
+The retired `/legacy/product-stock.php` went this way; see its tests in
+`backend/tests/Functional/Catalog/`.
+
 ## Money and identifiers
 
 - Amounts are `Money\Money` everywhere in the domain, never floats or bare integers;

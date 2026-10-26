@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { apiClient } from '../api/client';
 import type { components } from '../api/schema';
 import { Alert } from '../ui/Alert';
@@ -14,6 +15,14 @@ const COLUMNS: Column<Product>[] = [
   { header: 'Name', cell: (product) => product.name },
   { header: 'Price', cell: (product) => formatMoney(product.price) },
   { header: 'Available', cell: (product) => String(product.available_quantity) },
+  {
+    header: 'Actions',
+    cell: (product) => (
+      <Link to={`/products/${String(product.id)}/edit`} aria-label={`Edit ${product.name}`}>
+        Edit
+      </Link>
+    ),
+  },
 ];
 
 const fetchProducts: FetchPage<Product, number> = async (cursor) => {

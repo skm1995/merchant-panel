@@ -52,4 +52,9 @@ final readonly class CachedProductRepository implements ProductRepositoryInterfa
     {
         return $this->products->sellReserved($productId, $quantity);
     }
+
+    public function update(Product $product, int $expectedVersion): bool
+    {
+        return $this->products->update($product, $expectedVersion);
+    }
 }

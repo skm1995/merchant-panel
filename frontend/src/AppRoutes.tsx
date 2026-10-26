@@ -4,6 +4,7 @@ import { LoginPage } from './auth/LoginPage';
 import { RegisterPage } from './auth/RegisterPage';
 import { OrdersPage } from './panel/OrdersPage';
 import { PanelLayout } from './panel/PanelLayout';
+import { ProductEditPage } from './panel/ProductEditPage';
 import { ProductsPage } from './panel/ProductsPage';
 import { ReportsPage } from './panel/ReportsPage';
 import { RequireSignedIn } from './session/RequireSignedIn';
@@ -19,6 +20,7 @@ export function AppRoutes() {
           <Route index element={<Navigate to="/orders" replace />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/:id/edit" element={<ProductEditPage />} />
           <Route path="/reports" element={<ReportsPage />} />
         </Route>
       </Route>

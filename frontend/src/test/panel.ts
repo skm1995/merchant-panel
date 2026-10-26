@@ -5,6 +5,7 @@ type OrderSummary = components['schemas']['OrderSummary'];
 type OrderSummaryPage = components['schemas']['OrderSummaryPage'];
 type Product = components['schemas']['Product'];
 type ProductPage = components['schemas']['ProductPage'];
+type ProductDetails = components['schemas']['ProductDetails'];
 
 export const ORDERS_PATH = '/api/v1/panel/orders';
 export const PRODUCTS_PATH = '/api/v1/products';
@@ -46,5 +47,24 @@ export function ordersHandler(
 export function productsHandler(products: Product[]) {
   return http.get(PRODUCTS_PATH, () =>
     HttpResponse.json<ProductPage>({ data: products, next_cursor: null }),
+  );
+}
+
+export const PANEL_PRODUCT_PATH = '/api/v1/panel/products/:id';
+
+export function productDetails(id: number): ProductDetails {
+  return {
+    id,
+    sku: `SKU-${String(id)}`,
+    name: 'Mug',
+    price: { amount: '1999', currency: 'PLN' },
+    stock: 10,
+    reserved: 3,
+  };
+}
+
+export function panelProductHandler(details: ProductDetails, etag: string) {
+  return http.get(PANEL_PRODUCT_PATH, () =>
+    HttpResponse.json<ProductDetails>(details, { headers: { ETag: etag } }),
   );
 }

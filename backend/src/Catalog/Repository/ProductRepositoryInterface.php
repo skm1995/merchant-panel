@@ -40,4 +40,10 @@ interface ProductRepositoryInterface
      * Atomically turns reserved units into sold units, lowering both stock and reservations.
      */
     public function sellReserved(int $productId, int $quantity): bool;
+
+    /**
+     * Saves the product's price and stock and bumps its version, unless its version is no
+     * longer the expected one; returns whether it was saved.
+     */
+    public function update(Product $product, int $expectedVersion): bool;
 }

@@ -38,6 +38,8 @@ paths:
     $ref: 'payment.yaml#/paths/payment'
   /api/v1/payments/webhooks/{provider}:
     $ref: 'payment.yaml#/paths/webhook'
+  /api/v1/panel/products/{id}:
+    $ref: 'catalog.yaml#/paths/panelProduct'
   /api/v1/panel/orders:
     $ref: 'order.yaml#/paths/panelOrders'
   /api/v1/panel/reports/daily-revenue:

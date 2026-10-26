@@ -48,7 +48,109 @@ paths:
                 $ref: '#/schemas/Product'
         '404':
           $ref: 'shared.yaml#/responses/Problem'
+  panelProduct:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      operationId: getPanelProduct
+      security:
+        - sessionCookie: []
+      summary: Get a product with its stock for editing
+      responses:
+        '200':
+          $ref: '#/responses/ProductDetails'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+    patch:
+      operationId: editPanelProduct
+      security:
+        - sessionCookie: []
+        - csrfToken: []
+      summary: Change a product's price and stock
+      description: >-
+        Uses optimistic locking: send the ETag from the last read in If-Match. A missing
+        header returns 428, a stale one 412, and stock below the reserved units 422.
+        Replaces the retired /legacy/product-stock.php page, whose links now redirect to
+        the panel's product editor.
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/ProductEdit'
+      responses:
+        '200':
+          $ref: '#/responses/ProductDetails'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+        '412':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+        '428':
+          $ref: 'shared.yaml#/responses/Problem'
+responses:
+  ProductDetails:
+    description: The product as the panel edits it.
+    headers:
+      ETag:
+        description: Strong entity tag of the product version, for If-Match.
+        schema:
+          type: string
+    content:
+      application/json:
+        schema:
+          $ref: '#/schemas/ProductDetails'
 schemas:
+  ProductDetails:
+    type: object
+    additionalProperties: false
+    required: [id, sku, name, price, stock, reserved]
+    properties:
+      id:
+        type: integer
+        minimum: 1
+      sku:
+        type: string
+      name:
+        type: string
+      price:
+        $ref: 'shared.yaml#/schemas/Money'
+      stock:
+        type: integer
+        minimum: 0
+      reserved:
+        type: integer
+        minimum: 0
+  ProductEdit:
+    type: object
+    additionalProperties: false
+    required: [price, stock]
+    properties:
+      price:
+        $ref: 'shared.yaml#/schemas/Money'
+      stock:
+        type: integer
+        minimum: 0
   Product:
     type: object
     additionalProperties: false

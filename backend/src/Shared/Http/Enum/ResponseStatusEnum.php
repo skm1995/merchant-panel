@@ -10,6 +10,7 @@ enum ResponseStatusEnum: int
     case CREATED = 201;
     case ACCEPTED = 202;
     case NO_CONTENT = 204;
+    case MOVED_PERMANENTLY = 301;
     case SEE_OTHER = 303;
     case BAD_REQUEST = 400;
     case UNAUTHORIZED = 401;
@@ -28,6 +29,7 @@ enum ResponseStatusEnum: int
             self::CREATED => 'Created',
             self::ACCEPTED => 'Accepted',
             self::NO_CONTENT => 'No Content',
+            self::MOVED_PERMANENTLY => 'Moved Permanently',
             self::SEE_OTHER => 'See Other',
             self::BAD_REQUEST => 'Bad Request',
             self::UNAUTHORIZED => 'Unauthorized',

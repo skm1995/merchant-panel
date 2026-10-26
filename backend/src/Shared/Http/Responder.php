@@ -68,6 +68,15 @@ final class Responder
     }
 
     /**
+     * Sends clients of a retired URL to its replacement for good.
+     */
+    public function permanentRedirect(string $location): void
+    {
+        http_response_code(ResponseStatusEnum::MOVED_PERMANENTLY->value);
+        self::header(HeaderNameEnum::LOCATION, $location);
+    }
+
+    /**
      * Writes a status that needs no body, such as 202 Accepted or 204 No Content.
      */
     public function withoutBody(ResponseStatusEnum $status): void

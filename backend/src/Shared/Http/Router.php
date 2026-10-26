@@ -91,14 +91,20 @@ final class Router
         $middleware = [new ErrorMiddleware($this->responder)];
 
         $requiresSignIn = $method->getAttributes(RequireSignedIn::class) !== [];
+        $usesSession = !Request::isApiPath($route->path) || $requiresSignIn || $method->getAttributes(UsesSession::class) !== [];
 
-        if (!Request::isApiPath($route->path) || $requiresSignIn || $method->getAttributes(UsesSession::class) !== []) {
+        if ($usesSession) {
             $middleware[] = new SessionMiddleware($this->session);
-            $middleware[] = new CsrfMiddleware($this->csrfToken, $this->responder);
         }
 
+        // Anonymous visitors learn they must sign in (401) before CSRF is checked, because the
+        // token protects a signed-in session.
         if ($requiresSignIn) {
             $middleware[] = new SignedInMiddleware($this->user, $this->responder);
+        }
+
+        if ($usesSession) {
+            $middleware[] = new CsrfMiddleware($this->csrfToken, $this->responder);
         }
 
         foreach ($method->getAttributes(RequireApiKey::class) as $attribute) {

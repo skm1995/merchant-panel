@@ -17,5 +17,9 @@ describe('ProductsPage', () => {
     expect(within(table).getByRole('cell', { name: 'SKU-7' })).toBeInTheDocument();
     expect(within(table).getByRole('cell', { name: /^PLN\s19\.99$/ })).toBeInTheDocument();
     expect(within(table).getByRole('cell', { name: '7' })).toBeInTheDocument();
+    expect(within(table).getByRole('link', { name: 'Edit Mug' })).toHaveAttribute(
+      'href',
+      '/products/7/edit',
+    );
   });
 });

@@ -24,9 +24,7 @@ $finder = Finder::create()
         __DIR__ . $phpMigrationDirectory,
         __DIR__ . $phpToolsDirectory,
         __DIR__ . $phpBinDirectory,
-    ])
-    // Imported legacy code awaiting replacement; see public/legacy/product-stock.php.
-    ->notPath('legacy');
+    ]);
 
 $finder->append([__DIR__ . $phpMigrationConfiguration]);
 

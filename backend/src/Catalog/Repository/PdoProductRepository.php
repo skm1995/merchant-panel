@@ -34,9 +34,19 @@ final class PdoProductRepository implements ProductRepositoryInterface
     private const string QUANTITY_PARAMETER = 'quantity';
     private const string REQUIRED_QUANTITY_PARAMETER = 'required_quantity';
     private const string ID_PARAMETER = 'id';
+    private const string PRICE_AMOUNT_PARAMETER = 'price_amount';
+    private const string PRICE_CURRENCY_PARAMETER = 'price_currency';
+    private const string STOCK_PARAMETER = 'stock';
+    private const string STOCK_FLOOR_PARAMETER = 'stock_floor';
+    private const string EXPECTED_VERSION_PARAMETER = 'expected_version';
     private const string AFTER_ID_PARAMETER = 'after_id';
     private const string LIMIT_PARAMETER = 'limit';
     private const int FIRST_PAGE_AFTER_ID = 0;
+    private const string UPDATE_QUERY = <<<'SQL'
+        UPDATE products
+        SET price_amount = :price_amount, price_currency = :price_currency, stock = :stock, version = version + 1
+        WHERE id = :id AND version = :expected_version AND reserved <= :stock_floor
+        SQL;
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -96,6 +106,21 @@ final class PdoProductRepository implements ProductRepositoryInterface
             self::QUANTITY_PARAMETER => $quantity,
             self::QUANTITY_RESERVED_PARAMETER => $quantity,
             self::REQUIRED_QUANTITY_PARAMETER => $quantity,
+        ]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function update(Product $product, int $expectedVersion): bool
+    {
+        $statement = $this->pdo->prepare(self::UPDATE_QUERY);
+        $statement->execute([
+            self::ID_PARAMETER => $product->id,
+            self::PRICE_AMOUNT_PARAMETER => $product->price->getAmount(),
+            self::PRICE_CURRENCY_PARAMETER => $product->price->getCurrency()->getCode(),
+            self::STOCK_PARAMETER => $product->stock,
+            self::STOCK_FLOOR_PARAMETER => $product->stock,
+            self::EXPECTED_VERSION_PARAMETER => $expectedVersion,
         ]);
 
         return $statement->rowCount() === 1;

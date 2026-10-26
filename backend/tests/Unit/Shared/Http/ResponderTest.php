@@ -133,4 +133,11 @@ final class ResponderTest extends TestCase
         self::assertSame(ResponseStatusEnum::NO_CONTENT->value, http_response_code());
         self::assertSame(0, strlen((string) $output));
     }
+
+    public function testPermanentRedirectPointsToTheNewLocation(): void
+    {
+        $this->responder->permanentRedirect('/products/5/edit');
+
+        self::assertSame(ResponseStatusEnum::MOVED_PERMANENTLY->value, http_response_code());
+    }
 }

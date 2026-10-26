@@ -6,7 +6,7 @@ interface TextFieldProps {
   value: string;
   onChange: (value: string) => void;
   type?: 'text' | 'email' | 'password' | 'date';
-  error?: string;
+  error?: string | undefined;
   autoComplete?: string;
 }
 
