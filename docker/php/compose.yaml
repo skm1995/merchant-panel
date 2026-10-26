@@ -6,6 +6,7 @@ services:
     build:
       context: ../..
       dockerfile: docker/php/Dockerfile
+      target: dev
       args:
         PHP_VERSION: "8.5"
     working_dir: /app/backend
