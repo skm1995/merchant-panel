@@ -8,6 +8,7 @@ import {
   sessionHandler,
   signedInSession,
 } from '../test/api';
+import { ordersHandler } from '../test/panel';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
 
@@ -24,6 +25,7 @@ describe('LoginPage', () => {
 
         return HttpResponse.json(signedInSession(EMAIL));
       }),
+      ordersHandler([]),
     );
     renderApp('/login');
     const user = userEvent.setup();

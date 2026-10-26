@@ -1,22 +1,23 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { anonymousSession, SESSION_PATH, sessionHandler, signedInSession } from '../test/api';
+import { anonymousSession, SESSION_PATH, signedInSession } from '../test/api';
+import { ordersHandler } from '../test/panel';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
 
 const EMAIL = 'merchant@example.com';
 
-describe('HomePage', () => {
+describe('PanelLayout', () => {
   it('sends anonymous visitors to sign in', async () => {
-    server.use(sessionHandler(anonymousSession()));
+    server.use(http.get(SESSION_PATH, () => HttpResponse.json(anonymousSession())));
 
     renderApp('/');
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 
-  it('greets the merchant and signs out', async () => {
+  it('opens the orders, names the merchant, and signs out', async () => {
     let session = signedInSession(EMAIL);
     server.use(
       http.get(SESSION_PATH, () => HttpResponse.json(session)),
@@ -25,10 +26,13 @@ describe('HomePage', () => {
 
         return new HttpResponse(null, { status: 204 });
       }),
+      ordersHandler([]),
     );
     renderApp('/');
 
-    expect(await screen.findByText(`Signed in as ${EMAIL}`)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Orders' })).toBeInTheDocument();
+    expect(screen.getByText(`Signed in as ${EMAIL}`)).toBeInTheDocument();
+    expect(screen.getByRole('navigation')).toHaveTextContent('OrdersProductsReports');
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }));
 

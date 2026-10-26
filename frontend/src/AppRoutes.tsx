@@ -1,8 +1,11 @@
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { ConfirmEmailPage } from './auth/ConfirmEmailPage';
 import { LoginPage } from './auth/LoginPage';
 import { RegisterPage } from './auth/RegisterPage';
-import { HomePage } from './panel/HomePage';
+import { OrdersPage } from './panel/OrdersPage';
+import { PanelLayout } from './panel/PanelLayout';
+import { ProductsPage } from './panel/ProductsPage';
+import { ReportsPage } from './panel/ReportsPage';
 import { RequireSignedIn } from './session/RequireSignedIn';
 
 export function AppRoutes() {
@@ -12,7 +15,12 @@ export function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/confirm" element={<ConfirmEmailPage />} />
       <Route element={<RequireSignedIn />}>
-        <Route path="/" element={<HomePage />} />
+        <Route element={<PanelLayout />}>
+          <Route index element={<Navigate to="/orders" replace />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+        </Route>
       </Route>
     </Routes>
   );
