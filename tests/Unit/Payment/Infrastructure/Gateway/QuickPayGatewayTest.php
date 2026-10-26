@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Payment\Infrastructure\Gateway;
 
 use App\Payment\Enum\PaymentOutcomeEnum;
-use App\Payment\Enum\PaymentProviderEnum;
 use App\Payment\Exception\InvalidWebhookSignatureException;
 use App\Payment\Infrastructure\Gateway\QuickPayGateway;
 use Money\Money;
@@ -29,7 +28,6 @@ final class QuickPayGatewayTest extends TestCase
 
         $payment = $gateway->createPayment(PaymentFixtures::paymentId(), Money::PLN(2500));
 
-        self::assertSame(PaymentProviderEnum::QUICKPAY, $gateway->provider());
         self::assertMatchesRegularExpression(self::CHECKOUT_URL_PATTERN, $payment->checkoutUrl);
         self::assertTrue(str_ends_with($payment->checkoutUrl, $payment->providerPaymentId));
     }

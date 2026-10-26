@@ -6,16 +6,15 @@ namespace App\Auth\Service;
 
 use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
+use App\Auth\Exception\EmailNotVerifiedException;
+use App\Auth\Exception\InvalidCredentialsException;
+use App\Auth\Exception\InvalidEmailException;
+use App\Auth\Exception\WeakPasswordException;
 use App\Auth\Repository\UserRepositoryInterface;
-use DomainException;
 
 final class UserAuthService
 {
     private const int MINIMUM_PASSWORD_LENGTH = 8;
-    private const string INVALID_EMAIL_MESSAGE = 'Enter a valid email address.';
-    private const string INVALID_PASSWORD_MESSAGE = 'Password must contain at least 8 characters.';
-    private const string INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
-    private const string UNVERIFIED_EMAIL_MESSAGE = 'Confirm your email address before logging in.';
 
     public function __construct(private readonly UserRepositoryInterface $users)
     {
@@ -26,11 +25,11 @@ final class UserAuthService
         $normalizedEmail = self::normalizeEmail($email);
 
         if (filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL) === false) {
-            throw new DomainException(self::INVALID_EMAIL_MESSAGE);
+            throw new InvalidEmailException();
         }
 
         if (strlen($password) < self::MINIMUM_PASSWORD_LENGTH) {
-            throw new DomainException(self::INVALID_PASSWORD_MESSAGE);
+            throw new WeakPasswordException(self::MINIMUM_PASSWORD_LENGTH);
         }
 
         if ($this->users->findByEmail($normalizedEmail) !== null) {
@@ -43,10 +42,10 @@ final class UserAuthService
     public function authenticate(string $email, string $password): User
     {
         $user = $this->findWithPassword($email, $password)
-            ?? throw new DomainException(self::INVALID_CREDENTIALS_MESSAGE);
+            ?? throw new InvalidCredentialsException();
 
         if (!$user->isVerified()) {
-            throw new DomainException(self::UNVERIFIED_EMAIL_MESSAGE);
+            throw new EmailNotVerifiedException();
         }
 
         return $user;

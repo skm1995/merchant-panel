@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Auth\Exception;
 
-use DomainException;
-
-final class ResendLimitReachedException extends DomainException
+final class ResendLimitReachedException extends AuthException
 {
     private const string MESSAGE = 'You have reached the email confirmation resend limit. Try again later.';
 

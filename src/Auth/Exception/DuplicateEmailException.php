@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Auth\Exception;
 
-use DomainException;
 use Throwable;
 
-final class DuplicateEmailException extends DomainException
+final class DuplicateEmailException extends AuthException
 {
     private const string MESSAGE = 'An account with this email already exists.';
 

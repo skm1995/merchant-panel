@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Payment\Infrastructure\Gateway;
 
 use App\Payment\Enum\PaymentOutcomeEnum;
-use App\Payment\Enum\PaymentProviderEnum;
 use App\Payment\Exception\InvalidWebhookPayloadException;
 use App\Payment\Exception\InvalidWebhookSignatureException;
 use App\Payment\Infrastructure\Gateway\FakePayGateway;
@@ -29,7 +28,6 @@ final class FakePayGatewayTest extends TestCase
 
         $payment = $gateway->createPayment(PaymentFixtures::paymentId(), Money::PLN(2500));
 
-        self::assertSame(PaymentProviderEnum::FAKEPAY, $gateway->provider());
         self::assertMatchesRegularExpression(self::PROVIDER_ID_PATTERN, $payment->providerPaymentId);
         self::assertSame(
             sprintf(self::CHECKOUT_URL_FORMAT, PaymentFixtures::CHECKOUT_BASE_URL, $payment->providerPaymentId),

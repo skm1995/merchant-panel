@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Auth\Controller;
 
+use App\Auth\Exception\AuthException;
+use App\Auth\Exception\InvalidConfirmationTokenException;
 use App\Auth\Request\ConfirmationTokenRequest;
 use App\Auth\Request\CredentialsRequest;
 use App\Auth\Service\ConfirmEmailService;
@@ -14,7 +16,6 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
-use DomainException;
 
 final class AuthController
 {
@@ -98,7 +99,7 @@ final class AuthController
     {
         try {
             $this->confirmEmail->execute(ConfirmationTokenRequest::fromForm($request)->token);
-        } catch (DomainException $exception) {
+        } catch (InvalidConfirmationTokenException $exception) {
             $this->responder->render(self::CONFIRMATION_ERROR_TEMPLATE, [
                 self::ERROR_DATA_KEY => $exception->getMessage(),
             ]);
@@ -126,7 +127,7 @@ final class AuthController
 
         try {
             $action($credentials->email, $credentials->password);
-        } catch (DomainException $exception) {
+        } catch (AuthException $exception) {
             $this->responder->render($template, [
                 self::ERROR_DATA_KEY => $exception->getMessage(),
                 self::EMAIL_DATA_KEY => $credentials->email,

@@ -25,7 +25,7 @@ final readonly class DatabaseSettings
     {
         return new self(
             Environment::get(DatabaseEnvironmentEnum::HOST->value),
-            (int) Environment::get(DatabaseEnvironmentEnum::PORT->value),
+            Environment::positiveInteger(DatabaseEnvironmentEnum::PORT->value),
             Environment::get(DatabaseEnvironmentEnum::DATABASE->value),
             Environment::get(DatabaseEnvironmentEnum::USERNAME->value),
             Environment::get(DatabaseEnvironmentEnum::PASSWORD->value),

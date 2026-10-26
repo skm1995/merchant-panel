@@ -7,7 +7,7 @@ namespace App\Auth\Repository;
 use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
 use App\Shared\Database\RecordFetcher;
-use DateTimeImmutable;
+use LogicException;
 use PDO;
 use PDOException;
 
@@ -19,6 +19,7 @@ final class PdoUserRepository implements UserRepositoryInterface
     private const string PASSWORD_PARAMETER = 'password';
     private const int DRIVER_ERROR_CODE_INDEX = 1;
     private const int DUPLICATE_KEY_ERROR_CODE = 1062;
+    private const string NOT_STORED_MESSAGE = 'The created user could not be read back.';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -47,6 +48,6 @@ final class PdoUserRepository implements UserRepositoryInterface
             throw $exception;
         }
 
-        return new User($email, $passwordHash, new DateTimeImmutable());
+        return $this->findByEmail($email) ?? throw new LogicException(self::NOT_STORED_MESSAGE);
     }
 }

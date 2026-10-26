@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Shared\Database;
 
+use App\Shared\Config\Exception\InvalidEnvironmentVariableException;
 use App\Shared\Config\Exception\MissingEnvironmentVariableException;
 use App\Shared\Database\Enum\DatabaseEnvironmentEnum;
 use App\Shared\Database\DatabaseSettings;
@@ -18,6 +19,7 @@ final class DatabaseSettingsTest extends TestCase
     private const string PASSWORD = 'settings_password';
     private const string DSN = 'mysql:host=database.test;port=3307;dbname=settings_test;charset=utf8mb4';
     private const string ASSIGNMENT_FORMAT = '%s=%s';
+    private const string INVALID_PORT = 'not-a-port';
 
     /** @var array<string, string|false> */
     private array $originalEnvironment = [];
@@ -51,6 +53,17 @@ final class DatabaseSettingsTest extends TestCase
         self::assertSame((int) self::PORT, $settings->port);
         self::assertSame(self::USERNAME, $settings->username);
         self::assertSame(self::PASSWORD, $settings->password);
+    }
+
+    public function testRejectsAPortThatIsNotAPositiveInteger(): void
+    {
+        foreach (DatabaseEnvironmentEnum::cases() as $key) {
+            putenv(sprintf(self::ASSIGNMENT_FORMAT, $key->value, self::HOST));
+        }
+        putenv(sprintf(self::ASSIGNMENT_FORMAT, DatabaseEnvironmentEnum::PORT->value, self::INVALID_PORT));
+
+        $this->expectException(InvalidEnvironmentVariableException::class);
+        DatabaseSettings::fromEnvironment();
     }
 
     public function testRequiresDatabaseHostInEnvironment(): void

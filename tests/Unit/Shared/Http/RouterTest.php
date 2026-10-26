@@ -239,6 +239,29 @@ final class RouterTest extends TestCase
         self::assertSame(self::FORBIDDEN_MESSAGE, $output);
     }
 
+    public function testRejectsEveryStateChangingBrowserRequestWithoutCsrfToken(): void
+    {
+        $controller = new class () {
+            private const string PATH = '/';
+            public bool $called = false;
+
+            #[Route(HttpMethodEnum::PUT, self::PATH)]
+            public function replace(): void
+            {
+                $this->called = true;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        ob_start();
+        $router->dispatch(new Request(HttpMethodEnum::PUT->value, self::ROUTE_PATH));
+        $output = ob_get_clean();
+
+        self::assertFalse($controller->called);
+        self::assertSame(self::FORBIDDEN_MESSAGE, $output);
+    }
+
     public function testPassesRequestWithPathParametersToAction(): void
     {
         $controller = new class () {

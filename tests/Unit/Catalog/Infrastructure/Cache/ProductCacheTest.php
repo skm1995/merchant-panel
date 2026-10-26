@@ -7,7 +7,9 @@ namespace Tests\Unit\Catalog\Infrastructure\Cache;
 use App\Catalog\Entity\Product;
 use App\Catalog\Infrastructure\Cache\ProductCache;
 use App\Catalog\Message\ProductStockChangedMessage;
+use App\Shared\Cache\CacheEntry;
 use App\Shared\Cache\StampedeProtectedCache;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Support\InMemoryCacheStore;
@@ -17,6 +19,9 @@ final class ProductCacheTest extends TestCase
 {
     private const int PRODUCT_ID = 7;
     private const int MISSING_ID = 404;
+    private const string PRODUCT_KEY = 'catalog:product:7';
+    private const int ENTRY_TTL = 60;
+    private const float FAR_FUTURE = 9999999999.0;
 
     private InMemoryCacheStore $store;
     private ProductCache $cache;
@@ -59,6 +64,27 @@ final class ProductCacheTest extends TestCase
         $this->cache->remember(self::PRODUCT_ID, $this->load(...));
 
         self::assertSame(2, $this->loads);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function corruptEntries(): iterable
+    {
+        yield 'not JSON' => ['{broken'];
+        yield 'missing fields' => ['{"id": 7}'];
+        yield 'impossible stock' => ['{"id":7,"sku":"s","name":"n","price_amount":"100","price_currency":"PLN","stock":1,"reserved":5,"version":1}'];
+    }
+
+    #[DataProvider('corruptEntries')]
+    public function testTreatsACorruptEntryAsACacheMissAndRepairsIt(string $corrupt): void
+    {
+        $this->store->set(self::PRODUCT_KEY, new CacheEntry($corrupt, 0.0, self::FAR_FUTURE)->encode(), self::ENTRY_TTL);
+
+        $product = $this->cache->remember(self::PRODUCT_ID, $this->load(...));
+        $this->cache->remember(self::PRODUCT_ID, $this->load(...));
+
+        self::assertNotNull($product);
+        self::assertSame(self::PRODUCT_ID, $product->id);
+        self::assertSame(1, $this->loads);
     }
 
     private function load(int $id): ?Product

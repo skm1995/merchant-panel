@@ -6,10 +6,13 @@ namespace Tests\Unit\Auth\Service;
 
 use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
+use App\Auth\Exception\EmailNotVerifiedException;
+use App\Auth\Exception\InvalidCredentialsException;
+use App\Auth\Exception\InvalidEmailException;
+use App\Auth\Exception\WeakPasswordException;
 use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\UserAuthService;
 use DateTimeImmutable;
-use DomainException;
 use PHPUnit\Framework\TestCase;
 
 final class UserAuthServiceTest extends TestCase
@@ -44,7 +47,7 @@ final class UserAuthServiceTest extends TestCase
         $repository = $this->createMock(UserRepositoryInterface::class);
         $repository->expects(self::never())->method('create');
 
-        $this->expectException(DomainException::class);
+        $this->expectException(InvalidEmailException::class);
         $this->expectExceptionMessage(self::EMAIL_ERROR);
         new UserAuthService($repository)->register(self::INVALID_EMAIL, self::PASSWORD);
     }
@@ -54,7 +57,7 @@ final class UserAuthServiceTest extends TestCase
         $repository = $this->createMock(UserRepositoryInterface::class);
         $repository->expects(self::never())->method('create');
 
-        $this->expectException(DomainException::class);
+        $this->expectException(WeakPasswordException::class);
         $this->expectExceptionMessage(self::PASSWORD_ERROR);
         new UserAuthService($repository)->register(self::EMAIL, self::SHORT_PASSWORD);
     }
@@ -87,7 +90,7 @@ final class UserAuthServiceTest extends TestCase
         $repository = $this->createStub(UserRepositoryInterface::class);
         $repository->method('findByEmail')->willReturn(null);
 
-        $this->expectException(DomainException::class);
+        $this->expectException(InvalidCredentialsException::class);
         $this->expectExceptionMessage(self::CREDENTIALS_ERROR);
         new UserAuthService($repository)->authenticate(self::EMAIL, self::WRONG_PASSWORD);
     }
@@ -113,7 +116,7 @@ final class UserAuthServiceTest extends TestCase
         $repository = $this->createStub(UserRepositoryInterface::class);
         $repository->method('findByEmail')->willReturn($user);
 
-        $this->expectException(DomainException::class);
+        $this->expectException(EmailNotVerifiedException::class);
         $this->expectExceptionMessage(self::UNVERIFIED_EMAIL_ERROR);
         new UserAuthService($repository)->authenticate(self::EMAIL, self::PASSWORD);
     }

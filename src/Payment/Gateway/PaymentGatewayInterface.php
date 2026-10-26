@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Payment\Gateway;
 
 use App\Payment\Entity\PaymentId;
-use App\Payment\Enum\PaymentProviderEnum;
 use Money\Money;
 
 /**
@@ -13,8 +12,6 @@ use Money\Money;
  */
 interface PaymentGatewayInterface
 {
-    public function provider(): PaymentProviderEnum;
-
     public function createPayment(PaymentId $paymentId, Money $amount): GatewayPayment;
 
     /**

@@ -9,9 +9,11 @@ use App\Catalog\Message\ProductStockChangedMessage;
 use App\Shared\Cache\CacheStoreInterface;
 use App\Shared\Cache\StampedeProtectedCache;
 use App\Shared\Messaging\AsMessageHandler;
+use InvalidArgumentException;
 use JsonException;
 use Money\Currency;
 use Money\Money;
+use UnexpectedValueException;
 
 /**
  * Owns the cache keys, TTL, and serialization of products. Missing products are cached too,
@@ -23,6 +25,7 @@ final class ProductCache
     public const int TTL_SECONDS = 60;
     private const string KEY_FORMAT = 'catalog:product:%d';
     private const string MISSING = 'null';
+    private const string CORRUPT_ENTRY_MESSAGE = 'The cached product entry is corrupt.';
     private const string ID_KEY = 'id';
     private const string SKU_KEY = 'sku';
     private const string NAME_KEY = 'name';
@@ -38,16 +41,23 @@ final class ProductCache
     ) {
     }
 
-    /** @param callable(int): ?Product $load */
+    /**
+     * A corrupt entry, for example one written by an older version, is a cache miss: it is
+     * removed and the product is loaded again.
+     *
+     * @param callable(int): ?Product $load
+     */
     public function remember(int $id, callable $load): ?Product
     {
-        $encoded = $this->cache->remember(
-            self::key($id),
-            self::TTL_SECONDS,
-            static fn (): string => self::encode($load($id)),
-        );
+        $compute = static fn (): string => self::encode($load($id));
 
-        return self::decode($encoded);
+        try {
+            return self::decode($this->cache->remember(self::key($id), self::TTL_SECONDS, $compute));
+        } catch (UnexpectedValueException) {
+            $this->forget([$id]);
+
+            return self::decode($this->cache->remember(self::key($id), self::TTL_SECONDS, $compute));
+        }
     }
 
     /** @param list<int> $ids */
@@ -85,29 +95,45 @@ final class ProductCache
         ], JSON_THROW_ON_ERROR);
     }
 
+    /** @throws UnexpectedValueException when the entry is not a valid encoded product */
     private static function decode(string $encoded): ?Product
     {
+        if ($encoded === self::MISSING) {
+            return null;
+        }
+
         try {
             $data = json_decode($encoded, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            return null;
+        } catch (JsonException $exception) {
+            throw new UnexpectedValueException(self::CORRUPT_ENTRY_MESSAGE, previous: $exception);
         }
 
-        if (!is_array($data)) {
-            return null;
+        $currency = $data[self::PRICE_CURRENCY_KEY] ?? null;
+        $integers = [self::ID_KEY, self::PRICE_AMOUNT_KEY, self::STOCK_KEY, self::RESERVED_KEY, self::VERSION_KEY];
+
+        if (
+            !is_array($data)
+            || !is_string($data[self::SKU_KEY] ?? null)
+            || !is_string($data[self::NAME_KEY] ?? null)
+            || !is_string($currency)
+            || strlen($currency) === 0
+            || array_filter($integers, static fn (string $key): bool => !is_numeric($data[$key] ?? null)) !== []
+        ) {
+            throw new UnexpectedValueException(self::CORRUPT_ENTRY_MESSAGE);
         }
 
-        /** @var non-empty-string $currency */
-        $currency = (string) $data[self::PRICE_CURRENCY_KEY];
-
-        return new Product(
-            (int) $data[self::ID_KEY],
-            (string) $data[self::SKU_KEY],
-            (string) $data[self::NAME_KEY],
-            new Money((int) $data[self::PRICE_AMOUNT_KEY], new Currency($currency)),
-            (int) $data[self::STOCK_KEY],
-            (int) $data[self::RESERVED_KEY],
-            (int) $data[self::VERSION_KEY],
-        );
+        try {
+            return new Product(
+                (int) $data[self::ID_KEY],
+                $data[self::SKU_KEY],
+                $data[self::NAME_KEY],
+                new Money((int) $data[self::PRICE_AMOUNT_KEY], new Currency($currency)),
+                (int) $data[self::STOCK_KEY],
+                (int) $data[self::RESERVED_KEY],
+                (int) $data[self::VERSION_KEY],
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw new UnexpectedValueException(self::CORRUPT_ENTRY_MESSAGE, previous: $exception);
+        }
     }
 }

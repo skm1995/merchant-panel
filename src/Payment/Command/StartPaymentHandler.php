@@ -42,7 +42,7 @@ final class StartPaymentHandler
 
         $order = $this->orders->handle(new GetOrderQuery($command->orderId));
 
-        if ($order->status !== OrderStatusEnum::PENDING_PAYMENT) {
+        if (!$order->status->canTransitionTo(OrderStatusEnum::PAID)) {
             throw new OrderNotPayableException();
         }
 

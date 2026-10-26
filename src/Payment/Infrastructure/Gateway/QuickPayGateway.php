@@ -6,7 +6,6 @@ namespace App\Payment\Infrastructure\Gateway;
 
 use App\Payment\Entity\PaymentId;
 use App\Payment\Enum\PaymentOutcomeEnum;
-use App\Payment\Enum\PaymentProviderEnum;
 use App\Payment\Exception\InvalidWebhookPayloadException;
 use App\Payment\Exception\InvalidWebhookSignatureException;
 use App\Payment\Gateway\GatewayPayment;
@@ -46,11 +45,6 @@ final class QuickPayGateway implements PaymentGatewayInterface
         private readonly string $webhookSecret,
         private readonly ClockInterface $clock,
     ) {
-    }
-
-    public function provider(): PaymentProviderEnum
-    {
-        return PaymentProviderEnum::QUICKPAY;
     }
 
     public function createPayment(PaymentId $paymentId, Money $amount): GatewayPayment

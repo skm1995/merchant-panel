@@ -45,6 +45,13 @@ final class PdoUserRepositoryTest extends TestCase
         self::assertFalse($user->isVerified());
     }
 
+    public function testReturnsTheUserAsTheDatabaseStoredIt(): void
+    {
+        $created = $this->users->create($this->email, self::PASSWORD_HASH);
+
+        self::assertEquals($this->users->findByEmail($this->email), $created);
+    }
+
     public function testReturnsNullForUnknownEmail(): void
     {
         self::assertNull($this->users->findByEmail(TestUserData::uniqueEmail(self::MISSING_EMAIL_PREFIX)));

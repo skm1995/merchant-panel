@@ -137,7 +137,7 @@ final class AuthControllerTest extends TestCase
                 new FrozenClock(),
             ),
             new LoginUserService($userAuthService, $currentUser),
-            new ConfirmEmailService($tokens, new ImmediateTransactionRunner()),
+            new ConfirmEmailService($tokens, new ImmediateTransactionRunner(), new FrozenClock()),
             $currentUser,
             HttpHarness::responder($this->session),
         );

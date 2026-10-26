@@ -77,7 +77,7 @@ final class Router
         }
 
         if (
-            $request->method === HttpMethodEnum::POST->value
+            $request->method !== HttpMethodEnum::GET->value
             && !$request->isApi()
             && !$this->csrfToken->isValid($request->post(CsrfToken::FIELD_NAME))
         ) {
