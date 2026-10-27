@@ -1,5 +1,7 @@
 # Merchant Panel
 
+[![CI](https://github.com/skm1995/merchant-panel/actions/workflows/ci.yaml/badge.svg)](https://github.com/skm1995/merchant-panel/actions/workflows/ci.yaml)
+
 An e-commerce backend with a merchant panel, built without a framework: a PHP 8.5 JSON API,
 a React panel, asynchronous messaging through a transactional outbox and RabbitMQ, and a CI
 pipeline that deploys every commit that passes its tests.
@@ -10,249 +12,64 @@ pipeline that deploys every commit that passes its tests.
 merchant panel with the shared demo account `demo@example.com` / `demo-merchant-2026`. Other
 visitors use it too, so its data may change.
 
+## Highlights
+
+- **Checkout under concurrency:** stock reserved with ordered row locks and conditional
+  updates, idempotent retries, and unpaid reservations that expire on their own; a k6 load
+  test proves nothing is oversold.
+- **Reliable messaging:** emails, expiries, and cache invalidation go through a transactional
+  outbox, so a broker outage never loses work, and a request id follows each request into the
+  worker's logs.
+- **Payments:** two simulated providers whose signed webhooks are applied exactly once, even
+  when delivered concurrently.
+- **Security:** session cookies with CSRF protection, merchant-only panel access, rate limits,
+  access tokens for guest orders, a strict Content-Security-Policy, and secret scanning in CI.
+- **Framework-free foundations:** dependency injection, routing, middleware, and messaging
+  discovered from attributes, with layers enforced by Deptrac.
+- **Contract-first:** OpenAPI is the single source of truth, validated against real responses
+  and compiled into the panel's TypeScript types.
+- **Tested and delivered:** unit, functional, end-to-end, and load tests, PHPStan level 8,
+  and a deploy to Oracle Cloud after every green commit.
+
+## Quick start
+
+Requires Docker with Compose v2.
+
+```sh
+docker compose up --build -d   # the panel and API on http://localhost:8080, Mailpit on :8025
+bin/ci                         # every check that runs on GitHub
+```
+
+[Local development](docs/operations/local-development.md) lists the other addresses and
+commands.
+
+## Documentation
+
 The [documentation](docs/README.md) explains how the system works and why it is built this
-way.
+way:
+
+- [Overview](docs/overview.md) and [architecture](docs/architecture/system.md)
+- [Business flows](docs/flows/checkout.md): registration, authentication, checkout, payments,
+  the panel, and replacing legacy code
+- [Architecture decisions](docs/decisions/README.md) with the alternatives considered
+- [Operations](docs/operations/ci-cd.md), [security](docs/security.md), and the
+  [roadmap](docs/roadmap/roadmap.md)
+
+## Built with
+
+PHP 8.5, Symfony Messenger and Mailer, MySQL 8.4, RabbitMQ, Redis, React 19, TypeScript,
+Vite, Caddy, Docker Compose, GitHub Actions, OpenAPI, PHPUnit, Vitest, Playwright, and k6.
+
+Tooling: PhpStorm, Docker, GitHub Actions, Claude Code.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `backend/` | PHP JSON API: `src/`, `tests/`, migrations, worker and relay entry points |
-| `frontend/` | React application that uses the backend only through the API |
-| `openapi/` | API contract shared by both sides |
-| `docker/`, `compose.yaml` | local stack and the test infrastructure used by `bin/ci` |
-| `docs/` | patterns and architecture notes |
-
-Backend containers mount the repository at `/app` and work in `/app/backend`; map the
-project root to `/app` in your IDE for Xdebug.
-
-## Local development
-
-Copy `.env.example` to `.env`, then start the application and services.
-Application configuration (database, RabbitMQ, mailer and public URLs) is read
-only from environment variables; local defaults live in `docker/env/*.env` and
-`.env.example`, and the application fails fast when a required variable is
-missing. The `migrate` service applies database migrations before the web
-server, worker, and outbox relay start.
-
-```sh
-docker compose up --build -d
-```
-
-Set `SESSION_COOKIE_SECURE=true` when the site is served over HTTPS, including
-when TLS terminates at a reverse proxy.
-
-Open the merchant panel at `http://localhost:8080`. Caddy serves the React app from the
-Vite development server, with hot reload, and sends `/api/` and `/legacy/` to PHP, so the
-panel and the API share one origin and the session cookie needs no CORS. Regenerate the
-API types after changing `openapi/` with
-`docker compose --profile tools run --rm frontend-test npm run api:types`.
-
-`bin/ci` also runs the Playwright end-to-end tests against the test stack, which serves
-the production build of the panel on port 8081. Mailpit is available at
-`http://localhost:8025`, and RabbitMQ management is available at
-`http://localhost:15672`.
-
-## Product API
-
-The JSON API is documented in [`openapi/`](openapi/openapi.yaml): the root file lists
-the paths and each feature keeps its operations and schemas in its own file, with
-shared schemas in `shared.yaml`. Run `composer openapi-bundle` for a single-file
-`build/openapi.yaml` for tools that need one. Prices are
-returned in minor currency units as strings, and errors use RFC 9457 problem
-details:
-
-```sh
-curl 'http://localhost:8080/api/v1/products?limit=20'
-curl 'http://localhost:8080/api/v1/products/1'
-```
-
-Pages are ordered by id; pass the returned `next_cursor` as `cursor` to fetch
-the next page.
-
-The API is sessionless: carts and orders are addressed by unguessable UUIDs.
-A checkout reserves stock for 15 minutes and requires an `Idempotency-Key`
-header, so a retried request returns the same order instead of placing a second
-one:
-
-```sh
-cart=$(curl -s -X POST http://localhost:8080/api/v1/carts | sed -E 's/.*"id":"([^"]+)".*/\1/')
-curl -s -X PUT "http://localhost:8080/api/v1/carts/$cart/items/1" -d '{"quantity": 2}'
-curl -s -X POST "http://localhost:8080/api/v1/carts/$cart/checkout" -H "Idempotency-Key: $(uuidgen)"
-```
-
-## Payments
-
-`POST /api/v1/orders/{id}/payments` starts a payment at a simulated provider
-(`fakepay` or `quickpay`) and returns a `checkout_url`. Providers report the
-result to `POST /api/v1/payments/webhooks/{provider}`:
-
-- `fakepay` signs the raw body with HMAC-SHA256 in `X-Fakepay-Signature`.
-- `quickpay` sends `X-Quickpay-Signature: t=<unix time>,v1=<HMAC of "t.body">`
-  and rejects signatures older than five minutes.
-
-A successful payment marks the order paid and turns its reserved stock into
-sold stock. A payment for an order that was cancelled meanwhile becomes
-`refund_required`. Webhook secrets and checkout URLs come from the
-`FAKEPAY_*` and `QUICKPAY_*` environment variables.
-
-Unpaid orders expire after `ORDER_RESERVATION_SECONDS` (15 minutes locally):
-checkout schedules an expiry message through the outbox, RabbitMQ holds it
-until the reservation ends, and the worker marks the order `expired` and
-releases its stock unless it was paid or cancelled first.
-
-## Reports
-
-The reporting API requires the `X-Api-Key` header to match `REPORTS_API_KEY`:
-
-```sh
-curl -H 'X-Api-Key: local-reports-api-key' \
-  'http://localhost:8080/api/v1/reports/daily-revenue?from=2026-10-01&to=2026-10-31'
-curl -H 'X-Api-Key: local-reports-api-key' \
-  'http://localhost:8080/api/v1/reports/top-products?from=2026-10-01&to=2026-10-31&limit=5'
-```
-
-Both are hand-written SQL over paid orders: the daily report uses a CTE with a
-running total (`SUM ... OVER`), and the product report ranks revenue with
-`DENSE_RANK`. A functional test checks with `EXPLAIN FORMAT=JSON` that they
-range-scan the `orders_status_created_at` index.
-
-The order report page at `/legacy/order-report.php` replaced an old procedural
-script that built SQL from request parameters and printed them unescaped. It
-now runs a prepared statement, accepts only known statuses and real dates,
-escapes all output, and requires the same `X-Api-Key`. A golden master test
-recorded from the old script guarantees that its content did not change.
-
-## Product cache
-
-`GET /api/v1/products/{id}` reads products through Redis. Only one process
-recomputes a missing entry while others wait for it or keep serving the current
-value, and entries are refreshed probabilistically shortly before they expire,
-so a popular product never causes a cache stampede on MySQL. Every stock change
-records an outbox event, and the worker deletes the affected entries after the
-change is committed; entries also expire after 60 seconds.
-
-## Outbox
-
-Features store messages in the `outbox_messages` table in the same transaction
-as the data they describe. The `outbox-relay` service (`bin/outbox-relay.php`)
-leases batches with `SELECT ... FOR UPDATE SKIP LOCKED`, publishes them to
-RabbitMQ, and deletes them; messages due later are published with a delay and
-wait in RabbitMQ. Several relays can run side by side, and a message whose relay
-crashed is published again after its 30-second lease, so delivery is at least
-once and consumers are idempotent.
-
-## Production
-
-The demo runs on one Oracle Cloud Always Free ARM server, with the panel and API at
-`demo.<domain>` and Mailpit at `mail.<domain>`. Every push to `master` deploys there once CI
-passes: the `deploy` job runs `bin/deploy`, which prepares the server
-(`docker/server/provision.sh`), uploads the commit, writes the server's `.env` from GitHub
-secrets and variables, starts `compose.prod.yaml`, adds the demo catalog and the shared demo
-account (`bin/create-merchant.php`, credentials in `docker/env/demo.env`), and checks that the
-API answers over HTTPS.
-
-`compose.prod.yaml` builds images with the code inside: PHP without Xdebug and with OPcache
-that never rechecks files, and Caddy with the built React app, which obtains and renews the
-HTTPS certificates itself. Only Caddy publishes ports. Mailpit, which shows the confirmation
-emails, is behind the user `demo` and the `MAILPIT_PASSWORD` secret.
-
-Registering on the site creates an account without access to the merchant panel. Grant
-access to a confirmed account on the server:
-
-```sh
-cd ~/app && sudo docker compose -f compose.prod.yaml run --rm php php bin/grant-merchant.php <email>
-```
-
-Every night cron on the server dumps the database into `~/backups`, keeping a week of
-dumps (`docker/server/backup-database.sh`, which also shows how to restore one), and
-deletes accounts left unconfirmed for a week (`bin/purge-unconfirmed-accounts.php`). Both
-log to the system log under the `merchant-panel` tag. The dumps stay on the same server, so
-they protect against mistakes and corrupted data, not against losing the server.
-
-| GitHub setting | Kind | Purpose |
-| --- | --- | --- |
-| `DEPLOY_HOST`, `DEPLOY_USER`, `BASE_DOMAIN` | variables | server address, SSH user, the domain under which `demo.` and `mail.` live |
-| `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` | secrets | SSH key and the server's host key |
-| `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `RABBITMQ_PASSWORD` | secrets | service credentials |
-| `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET`, `REPORTS_API_KEY`, `ORDER_ACCESS_SECRET` | secrets | application secrets |
-| `MAILPIT_PASSWORD` | secret | password for the Mailpit page |
-
-## Logs and tracing
-
-Every process logs JSON lines to stderr. Each record carries `request_id`: HTTP responses
-return it in `X-Request-Id`, and the outbox, relay, and worker pass it on, so one id finds a
-request and the emails or expiries it caused.
-
-To search the logs in Kibana, start the observability stack:
-
-```sh
-docker compose --profile observability up -d
-```
-
-Vector reads the containers' logs through the Docker API and sends them to Elasticsearch,
-and Kibana opens at `http://localhost:5601` with an "Application logs" data view. Useful
-queries in Discover:
-
-- `app.extra.request_id : "<id from X-Request-Id>"` — everything one request caused
-- `app.context.status >= 500` — failed requests
-- `app.level_name : "ERROR"` — errors, with their stack traces in `app.context.exception`
-- `app.message : "Message handled"` — worker activity with `app.context.duration_ms`
-
-## Load test
-
-`bin/loadtest` simulates Black Friday against the test stack: shoppers browse the catalog
-while others check out, pay, and receive provider webhooks twice. Products get less stock
-than the demand, so they sell out under contention. k6 fails the run when more than 1% of
-requests fail unexpectedly or p95 exceeds 800 ms; afterwards the script waits for unpaid
-reservations to expire and checks in MySQL that nothing was oversold and exactly the paid
-quantities were sold. Start the observability stack first to watch the run in Kibana.
-
-## Services
-
-There is no service configuration file. `ContainerFactory` autowires classes from
-their constructor types and discovers the rest in `src/`:
-
-- an application interface with a single implementation is bound to it;
-- `#[DefaultImplementation]` chooses among several implementations;
-- a `#[ServiceFactory]` method builds the service its return type names, which is
-  how vendor services such as `PDO`, the mailer, and the clock are provided;
-- `#[Env('NAME')]` injects an environment variable into a constructor parameter.
-
-Controllers are found by their `#[Route]` methods, messages by
-`#[Message(transport: ...)]`, and handlers by `#[AsMessageHandler]`. The discovery
-result is cached in the system temporary directory and rebuilt when any file in
-`src/` changes. To see every binding and where it comes from, run:
-
-```sh
-docker compose exec php php bin/container-debug.php
-```
-
-## Failed messages
-
-After the worker exhausts its configured retries, messages are stored in the
-`failed_messages` RabbitMQ queue. Inspect that queue and the worker logs before
-retrying. To requeue all available failed messages to the queues they are routed to, run:
-
-```sh
-docker compose exec php php bin/retry-failed-messages.php
-```
-
-The command acknowledges a failed message only after it has been dispatched to
-their normal queue. If dispatch fails, that message remains in the failed
-queue. The command retries every message currently available in that queue.
-Messages that can no longer be decoded, for example after a message class was
-renamed, are left in the failure queue and reported so they can be inspected
-in the RabbitMQ management UI.
-
-An unverified account can request at most five resend attempts in each
-24-hour window. The initial confirmation email is not counted as a resend.
-
-## Verification
-
-Run the complete CI verification locally before pushing. GitHub Actions runs
-the same script against the same Docker Compose stack:
-
-```sh
-bin/ci
-```
+| [`backend/`](backend) | PHP JSON API: `src/` by feature, tests, migrations, and commands |
+| [`frontend/`](frontend) | React merchant panel and its end-to-end tests |
+| [`openapi/`](openapi) | API contract shared by both sides |
+| [`docker/`](docker), [`compose.yaml`](compose.yaml), [`compose.prod.yaml`](compose.prod.yaml) | Containers for development, tests, and production |
+| [`bin/`](bin) | `ci`, `deploy`, and `loadtest` |
+| [`loadtest/`](loadtest) | The "Black Friday" k6 scenario |
+| [`docs/`](docs) | Documentation |

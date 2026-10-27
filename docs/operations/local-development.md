@@ -47,6 +47,28 @@ docker compose exec php php bin/grant-merchant.php you@example.com
 | Load test | `bin/loadtest` |
 | See the container's service bindings | `docker compose exec php php bin/container-debug.php` |
 
+## Try the API
+
+The API is described in [`openapi/`](../../openapi/openapi.yaml);
+`docker compose --profile test run --rm --no-deps php-test composer openapi-bundle` writes a
+single-file `build/openapi.yaml` for tools that need one. A guest checkout from the command
+line:
+
+```sh
+api=http://localhost:8080/api/v1
+curl -s "$api/products?limit=5"
+cart=$(curl -s -X POST "$api/carts" | sed -E 's/.*"id":"([^"]+)".*/\1/')
+curl -s -X PUT "$api/carts/$cart/items/1" -H 'Content-Type: application/json' -d '{"quantity": 2}'
+curl -s -D - -X POST "$api/carts/$cart/checkout" -H "Idempotency-Key: $(uuidgen)"
+```
+
+The checkout response carries the order's `X-Order-Token`, which reading, cancelling, and
+paying for the order need. The reports API takes the development key:
+
+```sh
+curl -H 'X-Api-Key: local-reports-api-key' "$api/reports/daily-revenue?from=2026-10-01&to=2026-10-31"
+```
+
 ## Database changes
 
 The schema changes only through Phinx migrations in

@@ -58,8 +58,9 @@ in [`PdoReportReadRepository`](../../backend/src/Report/Repository/PdoReportRead
 
 A period may cover at most 366 days, and amounts are summed in one currency (PLN by default).
 [`ReportQueryPlanTest`](../../backend/tests/Functional/Report/ReportQueryPlanTest.php) runs
-`EXPLAIN` on both queries and fails if they stop using the reporting index, so a change that
-would make them scan the whole orders table is caught in CI.
+`EXPLAIN` on both queries and fails if they stop range-scanning the
+`orders_status_created_at` index, so a change that would make them scan the whole orders
+table is caught in CI.
 
 Integrations read the same reports at `/api/v1/reports/…` with the `X-Api-Key` header instead
 of a session; one controller serves both, so the two cannot drift apart.
