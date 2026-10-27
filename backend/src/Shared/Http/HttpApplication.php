@@ -13,7 +13,7 @@ use Psr\Container\ContainerInterface;
 /**
  * Web entry point: registers every discovered controller and handles the request through
  * the policies every request shares (request id, access log, unexpected errors) and the
- * router. Controllers are built through the container.
+ * router. Controllers are built through the container, and only for the matched route.
  */
 final readonly class HttpApplication
 {
@@ -29,7 +29,7 @@ final readonly class HttpApplication
     public function run(Request $request): void
     {
         foreach (ControllerDiscovery::findInSource() as $controller) {
-            $this->router->registerController($this->container->get($controller));
+            $this->router->registerController($controller, fn (): object => $this->container->get($controller));
         }
 
         new MiddlewarePipeline([$this->requestId, $this->accessLog, $this->unhandledError], $this->router)->handle($request);

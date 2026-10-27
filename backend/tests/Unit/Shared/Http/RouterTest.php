@@ -91,7 +91,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
         ob_start();
 
         $router->handle(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
@@ -143,7 +143,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH));
 
@@ -164,7 +164,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         ob_start();
         $router->handle(new Request(HttpMethodEnum::GET->value, self::PANEL_PATH));
@@ -188,7 +188,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         ob_start();
         $router->handle(new Request(HttpMethodEnum::POST->value, self::SESSION_API_PATH));
@@ -200,6 +200,42 @@ final class RouterTest extends TestCase
         ob_end_clean();
 
         self::assertSame(1, $controller->calls);
+    }
+
+    public function testBuildsOnlyTheControllerOfTheMatchedRoute(): void
+    {
+        $built = [];
+        $products = new class () {
+            public const string PATH = '/api/v1/products';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function list(): void
+            {
+            }
+        };
+        $reports = new class () {
+            public const string PATH = '/api/v1/reports';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(): void
+            {
+            }
+        };
+        $router = $this->router();
+        $router->registerController($products::class, static function () use ($products, &$built): object {
+            $built[] = $products::PATH;
+
+            return $products;
+        });
+        $router->registerController($reports::class, static function () use ($reports, &$built): object {
+            $built[] = $reports::PATH;
+
+            return $reports;
+        });
+
+        $router->handle(new Request(HttpMethodEnum::GET->value, $products::PATH));
+
+        self::assertSame([$products::PATH], $built, 'Controllers of other routes, and their database or cache connections, are never built.');
     }
 
     public function testRateLimitedRouteAnswersTooManyRequestsOnceAClientExceedsItsLimit(): void
@@ -217,7 +253,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         try {
             $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::CLIENT));
@@ -250,7 +286,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         try {
             foreach ([[], ['x-api-key' => 'wrong-key']] as $headers) {
@@ -286,7 +322,7 @@ final class RouterTest extends TestCase
             headers: [self::CSRF_HEADER => $this->csrfToken->create()],
         );
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
         ob_start();
 
         $router->handle($request);
@@ -313,7 +349,7 @@ final class RouterTest extends TestCase
         $router = $this->router();
 
         $this->expectException(LogicException::class);
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
     }
 
     public function testRejectsPostRequestsWithoutCsrfToken(): void
@@ -329,7 +365,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         ob_start();
         $router->handle(new Request(HttpMethodEnum::POST->value, self::ROUTE_PATH));
@@ -353,7 +389,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         ob_start();
         $router->handle(new Request(HttpMethodEnum::PUT->value, self::ROUTE_PATH));
@@ -376,7 +412,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         $router->handle(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
 
@@ -394,7 +430,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
         ob_start();
 
         $router->handle(new Request(HttpMethodEnum::GET->value, self::NESTED_PRODUCT_PATH));
@@ -415,7 +451,7 @@ final class RouterTest extends TestCase
         };
 
         $this->expectException(LogicException::class);
-        $this->router()->registerController($controller);
+        $this->router()->registerController($controller::class, static fn (): object => $controller);
     }
 
     public function testPathParameterConstraintRejectsNonMatchingSegment(): void
@@ -431,7 +467,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
         ob_start();
 
         $router->handle(new Request(HttpMethodEnum::GET->value, self::NON_NUMERIC_PRODUCT_PATH));
@@ -454,7 +490,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         $router->handle(new Request(HttpMethodEnum::GET->value, '/codes/ab-123'));
 
@@ -528,7 +564,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
         ob_start();
 
         $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH));
@@ -550,7 +586,7 @@ final class RouterTest extends TestCase
             }
         };
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
 
         $this->expectException(DomainException::class);
         $router->handle(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
@@ -560,7 +596,7 @@ final class RouterTest extends TestCase
     private function problemFrom(object $controller, string $path = self::ROUTE_PATH): array
     {
         $router = $this->router();
-        $router->registerController($controller);
+        $router->registerController($controller::class, static fn (): object => $controller);
         ob_start();
         $router->handle(new Request(HttpMethodEnum::GET->value, $path));
         $output = ob_get_clean();

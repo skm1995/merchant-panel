@@ -36,7 +36,7 @@ final class HttpHarness
         );
 
         foreach ($controllers as $controller) {
-            $router->registerController($controller);
+            $router->registerController($controller::class, static fn (): object => $controller);
         }
 
         ob_start();

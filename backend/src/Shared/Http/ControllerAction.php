@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Http;
 
 use App\Shared\Http\Middleware\RequestHandlerInterface;
+use Closure;
 use ReflectionMethod;
 
 /**
@@ -12,12 +13,13 @@ use ReflectionMethod;
  */
 final readonly class ControllerAction implements RequestHandlerInterface
 {
-    public function __construct(private object $controller, private ReflectionMethod $method)
+    /** @param Closure(): object $resolve builds or returns the controller */
+    public function __construct(private Closure $resolve, private ReflectionMethod $method)
     {
     }
 
     public function handle(Request $request): void
     {
-        $this->method->invoke($this->controller, $request);
+        $this->method->invoke(($this->resolve)(), $request);
     }
 }

@@ -14,6 +14,7 @@ use App\Shared\Http\Middleware\MiddlewarePipeline;
 use App\Shared\Http\Middleware\RateLimitMiddleware;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Middleware\SessionMiddleware;
+use Closure;
 use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
@@ -46,9 +47,16 @@ final class Router implements RequestHandlerInterface
     ) {
     }
 
-    public function registerController(object $controller): void
+    /**
+     * Registers the routes a controller class declares. The controller is resolved only when
+     * one of its routes matches, so a request builds no other controller or its connections.
+     *
+     * @param class-string $class
+     * @param Closure(): object $resolve
+     */
+    public function registerController(string $class, Closure $resolve): void
     {
-        foreach (new ReflectionClass($controller)->getMethods() as $method) {
+        foreach (new ReflectionClass($class)->getMethods() as $method) {
             foreach ($method->getAttributes(Route::class) as $attribute) {
                 $route = $attribute->newInstance();
                 $key = $route->method->value;
@@ -61,7 +69,7 @@ final class Router implements RequestHandlerInterface
                     throw new LogicException(self::DUPLICATE_ROUTE_MESSAGE);
                 }
 
-                $this->routes[$key][$route->path] = $this->pipeline($route, $controller, $method);
+                $this->routes[$key][$route->path] = $this->pipeline($route, $resolve, $method);
 
                 if (str_contains($route->path, self::PATH_PARAMETER_MARKER)) {
                     $this->patterns[$key][$route->path] = self::compile($route->path);
@@ -88,7 +96,8 @@ final class Router implements RequestHandlerInterface
      * routes marked #[UsesSession] or #[RequireMerchant] get the session and CSRF protection;
      * other API routes stay sessionless.
      */
-    private function pipeline(Route $route, object $controller, ReflectionMethod $method): RequestHandlerInterface
+    /** @param Closure(): object $resolve */
+    private function pipeline(Route $route, Closure $resolve, ReflectionMethod $method): RequestHandlerInterface
     {
         $middleware = [new ErrorMiddleware($this->responder)];
 
@@ -127,7 +136,7 @@ final class Router implements RequestHandlerInterface
             $middleware[] = new ExceptionMappingMiddleware($mappings, $this->responder);
         }
 
-        return new MiddlewarePipeline($middleware, new ControllerAction($controller, $method));
+        return new MiddlewarePipeline($middleware, new ControllerAction($resolve, $method));
     }
 
     /** @return array{RequestHandlerInterface, array<string, string>}|null */
