@@ -37,7 +37,7 @@ and follow the existing implementation it names.
   link changes nothing and that the POST does, and cover token replay.
 - Sessions use strict session ID handling and HttpOnly, SameSite=Lax cookies, Secure on
   HTTPS. Regenerate the session ID after login and logout, and issue a new CSRF token on
-  login. Sessions are stored in Redis (configured in the Apache virtual host), so they
+  login. Sessions are stored in Redis (configured in the PHP-FPM pool), so they
   survive deployments and are shared by every web container.
 - When a panel request answers 401 because the session expired, the React client reloads
   the anonymous session with its new CSRF token, and the panel routes send the merchant to

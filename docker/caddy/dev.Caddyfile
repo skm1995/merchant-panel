@@ -5,7 +5,7 @@
 }
 
 :80 {
-	import /etc/caddy/backend.caddy php:80
+	import /etc/caddy/backend.caddy php:9000
 
 	handle {
 		reverse_proxy frontend:5173

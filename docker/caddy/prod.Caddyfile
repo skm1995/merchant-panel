@@ -10,7 +10,7 @@
 	log
 	import /etc/caddy/headers.caddy
 	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
-	import /etc/caddy/backend.caddy php:80
+	import /etc/caddy/backend.caddy php:9000
 
 	handle {
 		root * /srv/frontend

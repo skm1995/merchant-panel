@@ -1,8 +1,16 @@
 # Routes owned by the PHP backend, the JSON API and the legacy order report URL, plus the
-# proxy's own health check. Imported with the backend address: `import backend.caddy php:80`.
+# proxy's own health check. Imported with the PHP-FPM address: `import backend.caddy php:9000`.
+# Every backend request runs the front controller, whose path is in the PHP container, so
+# Caddy never looks for the file itself; PHP still sees the original request URI.
 @backend path /api/* /legacy/*
 handle @backend {
-	reverse_proxy {args[0]}
+	root * /app/backend/public
+	rewrite * /index.php
+	reverse_proxy {args[0]} {
+		transport fastcgi {
+			split .php
+		}
+	}
 }
 
 handle /healthz {

@@ -29,7 +29,7 @@ services:
       file: docker/php/compose.yaml
       service: app
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://localhost/api/v1/products?limit=1"]
+      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -116,7 +116,7 @@ services:
       file: docker/php/compose.yaml
       service: app
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://localhost/api/v1/products?limit=1"]
+      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
       interval: 2s
       timeout: 3s
       retries: 30
