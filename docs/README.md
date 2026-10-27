@@ -22,8 +22,10 @@ by path rather than copied, so every claim can be checked against the source.
    - [Payments and webhooks](flows/payments.md)
    - [Merchant panel and reports](flows/panel.md)
    - [Replacing legacy code](flows/legacy.md)
-4. Decisions (planned): one architecture decision record per choice, such as session cookies
-   over JWT or the transactional outbox.
+4. [Decisions](decisions/README.md): one architecture decision record per choice, such as
+   [session cookies over JWT](decisions/0005-session-cookies-not-jwt.md) or the
+   [transactional outbox](decisions/0006-transactional-outbox.md), with the alternatives that
+   were considered.
 5. Operations (planned): local development, testing, CI/CD, production, observability, and
    runbooks.
 6. Security, known limitations, roadmap, and glossary (planned).
