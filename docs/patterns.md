@@ -36,7 +36,12 @@ and follow the existing implementation it names.
   page that confirms only when the user presses its button; tests prove that opening the
   link changes nothing and that the POST does, and cover token replay.
 - Sessions use strict session ID handling and HttpOnly, SameSite=Lax cookies, Secure on
-  HTTPS. Regenerate the session ID after login and logout.
+  HTTPS. Regenerate the session ID after login and logout, and issue a new CSRF token on
+  login. Sessions are stored in Redis (configured in the Apache virtual host), so they
+  survive deployments and are shared by every web container.
+- When a panel request answers 401 because the session expired, the React client reloads
+  the anonymous session with its new CSRF token, and the panel routes send the merchant to
+  sign in.
 - The only server-rendered page left is the legacy order report; views only produce
   markup and escape output through the shared renderer's helper.
 
