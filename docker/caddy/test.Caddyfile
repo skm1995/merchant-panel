@@ -7,7 +7,7 @@
 
 :80 {
 	# Access logs show, when a test fails on a transport error, whether the request reached the proxy.
-	log
+	import /etc/caddy/access-log.caddy
 	import /etc/caddy/headers.caddy
 	import /etc/caddy/backend.caddy php-test-web:9000
 

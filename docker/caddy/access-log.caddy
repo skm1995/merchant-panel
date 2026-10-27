@@ -1,0 +1,9 @@
+# Access log that keeps secrets out: Caddy redacts cookies and Authorization on its own, but
+# not the application's own credential headers.
+log {
+	format filter {
+		request>headers>X-Api-Key replace REDACTED
+		request>headers>X-Order-Token replace REDACTED
+		request>headers>X-Csrf-Token replace REDACTED
+	}
+}
