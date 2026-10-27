@@ -26,5 +26,5 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 ## Delivery
 
 - Every push to `master` that passes CI deploys through `bin/deploy`; keep the server reproducible from `docker/server/provision.sh` and GitHub secrets, never from manual changes on it.
-- `bin/ci` verifies both sides against the Compose stack, identically locally and on GitHub; keep service configuration out of the workflow file. Run it without a local `.env` override and push only when it passes.
+- `bin/ci` scans the history for secrets with gitleaks, then verifies both sides against the Compose stack, identically locally and on GitHub; keep service configuration out of the workflow file. Run it without a local `.env` override and push only when it passes.
 - Commit messages follow scoped Conventional Commits: `<type>(<scope>): <description>` with a lowercase scope.

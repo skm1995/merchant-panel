@@ -10,6 +10,7 @@
 /backend/.phpunit.cache/
 /backend/.php-cs-fixer.cache
 /backend/.phpstan-cache/
+/backend/.deptrac.cache
 
 # Frontend
 /frontend/node_modules/

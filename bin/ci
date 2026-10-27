@@ -10,6 +10,9 @@ compose=(docker compose --profile test)
 run=("${compose[@]}" run --rm --no-deps php-test)
 node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_NOTIFIER=false frontend-test)
 
+# No secret may reach the repository; .gitleaks.toml lists the values that are public on purpose.
+docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0 git /repo --config /repo/.gitleaks.toml --no-banner --redact
+
 "${compose[@]}" build
 "${run[@]}" composer install --no-interaction --no-progress
 "${node[@]}" npm ci
@@ -28,5 +31,5 @@ node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_
 "${node[@]}" npm run lint
 "${node[@]}" npm run format:check
 "${node[@]}" npm test
-"${run[@]}" php tests/Fixture/reset-e2e-merchant.php
+"${run[@]}" php tests/Fixture/reset-demo-merchant.php
 docker compose --profile tools run --rm --no-deps e2e npx playwright test

@@ -1,0 +1,11 @@
+# Secret scanning for bin/ci: gitleaks' default rules, minus values that are public on
+# purpose because they only work locally or in tests.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Development defaults and test fixtures"
+regexes = [
+  '''local-reports-api-key''',
+  '''23a0f8a5d44eb66f9f082c737258aaf003ccf023127f695078f39fd7f57cd2e6''',
+]
