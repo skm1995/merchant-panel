@@ -2,6 +2,8 @@
 # code, command-line processes run as www-data rather than root, and only Caddy publishes
 # ports. Values come from the .env file bin/deploy writes next to this file; the variable
 # groups in docker/env/ are shared with development.
+# The Compose project keeps the repository's earlier name: its volumes, including the
+# database, are named after it, so renaming it would start production with empty volumes.
 name: vanilla-php-playground
 
 services:

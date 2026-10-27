@@ -1,4 +1,4 @@
-# Vanilla PHP Playground
+# Merchant Panel
 
 An e-commerce backend with a merchant panel, built without a framework: a PHP 8.5 JSON API,
 a React panel, asynchronous messaging through a transactional outbox and RabbitMQ, and a CI
@@ -164,7 +164,7 @@ cd ~/app && sudo docker compose -f compose.prod.yaml run --rm php php bin/grant-
 Every night cron on the server dumps the database into `~/backups`, keeping a week of
 dumps (`docker/server/backup-database.sh`, which also shows how to restore one), and
 deletes accounts left unconfirmed for a week (`bin/purge-unconfirmed-accounts.php`). Both
-log to the system log under the `vanilla-php` tag. The dumps stay on the same server, so
+log to the system log under the `merchant-panel` tag. The dumps stay on the same server, so
 they protect against mistakes and corrupted data, not against losing the server.
 
 | GitHub setting | Kind | Purpose |

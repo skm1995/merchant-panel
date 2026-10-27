@@ -1,6 +1,6 @@
 {
-    "name": "vanilla-php-playground/app",
-    "description": "Vanilla PHP application playground",
+    "name": "skm1995/merchant-panel",
+    "description": "E-commerce backend with a merchant panel, built without a framework",
     "type": "project",
     "require": {
         "php": "^8.5",

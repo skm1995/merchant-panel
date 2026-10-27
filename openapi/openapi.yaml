@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Vanilla PHP Playground API
+  title: Merchant Panel API
   version: 1.0.0
   description: >-
     Shop and merchant panel API. Shop routes are sessionless; a cart id is an

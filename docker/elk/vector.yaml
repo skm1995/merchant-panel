@@ -6,7 +6,7 @@ sources:
   containers:
     type: docker_logs
     include_labels:
-      - com.docker.compose.project=vanilla-php-playground
+      - com.docker.compose.project=merchant-panel
 
 transforms:
   application:

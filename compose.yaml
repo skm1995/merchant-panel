@@ -414,3 +414,7 @@ volumes:
   mysql_data:
   rabbitmq_data:
   elasticsearch_data:
+
+# A fixed project name keeps container, network, and volume names, and the Vector log filter,
+# independent of the directory the repository is cloned into.
+name: merchant-panel

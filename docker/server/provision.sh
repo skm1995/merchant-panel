@@ -29,11 +29,13 @@ for rule in "-p tcp -m tcp --dport 80" "-p tcp -m tcp --dport 443" "-p udp -m ud
 done
 
 # Daily maintenance: a database backup, then deleting accounts left unconfirmed for a week.
-# Output goes to the system log under the vanilla-php tag.
-cron_file=/etc/cron.d/vanilla-php-playground
+# Output goes to the system log under the merchant-panel tag. The cron file of the project's
+# earlier name is removed, so the jobs never run twice.
+sudo rm -f /etc/cron.d/vanilla-php-playground
+cron_file=/etc/cron.d/merchant-panel
 cron_jobs="SHELL=/bin/bash
-15 3 * * * ${USER} ${HOME}/app/docker/server/backup-database.sh 2>&1 | logger -t vanilla-php
-45 3 * * * ${USER} cd ${HOME}/app && sudo docker compose -f compose.prod.yaml run --rm --no-deps --user www-data php php bin/purge-unconfirmed-accounts.php 2>&1 | logger -t vanilla-php"
+15 3 * * * ${USER} ${HOME}/app/docker/server/backup-database.sh 2>&1 | logger -t merchant-panel
+45 3 * * * ${USER} cd ${HOME}/app && sudo docker compose -f compose.prod.yaml run --rm --no-deps --user www-data php php bin/purge-unconfirmed-accounts.php 2>&1 | logger -t merchant-panel"
 if [ "$(sudo cat "${cron_file}" 2>/dev/null)" != "${cron_jobs}" ]; then
     echo "${cron_jobs}" | sudo tee "${cron_file}" >/dev/null
 fi
