@@ -26,9 +26,15 @@ by path rather than copied, so every claim can be checked against the source.
    [session cookies over JWT](decisions/0005-session-cookies-not-jwt.md) or the
    [transactional outbox](decisions/0006-transactional-outbox.md), with the alternatives that
    were considered.
-5. Operations (planned): local development, testing, CI/CD, production, observability, and
-   runbooks.
-6. Security, known limitations, roadmap, and glossary (planned).
+5. Operations: running and changing the system.
+   - [Local development](operations/local-development.md)
+   - [Testing](operations/testing.md)
+   - [CI/CD](operations/ci-cd.md)
+   - [Production](operations/production.md)
+   - [Observability](operations/observability.md)
+   - [Runbooks](operations/runbooks.md)
+6. [Security](security.md): the threats the system defends against and how.
+7. Known limitations, roadmap, and glossary (planned).
 
 [Coding patterns](patterns.md) collects the rules the code follows for recurring problems:
 API actions, sessions, idempotency, locking, messaging, caching, and more. Read the matching
