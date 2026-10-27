@@ -2,6 +2,8 @@ import { createContext } from 'react';
 
 export interface Session {
   email: string | null;
+  /** Whether the account may use the merchant panel. */
+  merchant: boolean;
 }
 
 export type SignInResult = { ok: true } | { ok: false; message: string };

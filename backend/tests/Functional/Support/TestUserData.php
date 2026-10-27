@@ -13,6 +13,7 @@ final class TestUserData
     private const string EMAIL_PARAMETER = 'email';
     private const string PASSWORD_PARAMETER = 'password';
     private const string CREATE_VERIFIED_QUERY = 'INSERT INTO users (email, password, created_at, email_verified_at) VALUES (:email, :password, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
+    private const string CREATE_MERCHANT_QUERY = 'INSERT INTO users (email, password, created_at, email_verified_at, merchant_since) VALUES (:email, :password, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
     private const array CLEANUP_QUERIES = [
         'DELETE FROM email_verification_tokens WHERE email = :email',
         'DELETE FROM users WHERE email = :email',
@@ -29,6 +30,17 @@ final class TestUserData
     public static function createVerified(PDO $pdo, string $email, string $password): void
     {
         $pdo->prepare(self::CREATE_VERIFIED_QUERY)->execute([
+            self::EMAIL_PARAMETER => $email,
+            self::PASSWORD_PARAMETER => password_hash($password, PASSWORD_DEFAULT),
+        ]);
+    }
+
+    /**
+     * Creates a confirmed user with access to the merchant panel.
+     */
+    public static function createMerchant(PDO $pdo, string $email, string $password): void
+    {
+        $pdo->prepare(self::CREATE_MERCHANT_QUERY)->execute([
             self::EMAIL_PARAMETER => $email,
             self::PASSWORD_PARAMETER => password_hash($password, PASSWORD_DEFAULT),
         ]);

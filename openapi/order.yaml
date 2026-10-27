@@ -32,6 +32,8 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '401':
           $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
   checkout:
     post:
       operationId: checkoutCart

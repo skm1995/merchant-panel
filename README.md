@@ -143,6 +143,13 @@ HTTPS certificate itself. Only Caddy publishes ports. Mailpit, which shows the c
 emails, is at `https://mail.<domain>` behind the user `demo` and the `MAILPIT_PASSWORD`
 secret.
 
+Registering on the site creates an account without access to the merchant panel. Grant
+access to a confirmed account on the server:
+
+```sh
+cd ~/app && sudo docker compose -f compose.prod.yaml run --rm php php bin/grant-merchant.php <email>
+```
+
 | GitHub setting | Kind | Purpose |
 | --- | --- | --- |
 | `DEPLOY_HOST`, `DEPLOY_USER`, `APP_DOMAIN` | variables | server address, SSH user, public domain |

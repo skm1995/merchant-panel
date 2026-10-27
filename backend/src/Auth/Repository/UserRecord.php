@@ -17,6 +17,7 @@ final readonly class UserRecord implements EntityRecord
     public string $passwordHash;
     public string $createdAt;
     public ?string $emailVerifiedAt;
+    public ?string $merchantSince;
 
     public function toEntity(): User
     {
@@ -25,6 +26,7 @@ final readonly class UserRecord implements EntityRecord
             $this->passwordHash,
             new DateTimeImmutable($this->createdAt),
             $this->emailVerifiedAt === null ? null : new DateTimeImmutable($this->emailVerifiedAt),
+            $this->merchantSince === null ? null : new DateTimeImmutable($this->merchantSince),
         );
     }
 }

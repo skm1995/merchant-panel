@@ -87,7 +87,7 @@ final class PanelProductApiTest extends TestCase
 
     private function signIn(): void
     {
-        TestUserData::createVerified($this->pdo, $this->email, self::PASSWORD);
+        TestUserData::createMerchant($this->pdo, $this->email, self::PASSWORD);
         $response = $this->client->send(HttpMethodEnum::POST, self::SESSION_PATH, sprintf(self::CREDENTIALS_FORMAT, $this->email, self::PASSWORD));
         self::assertSame(ResponseStatusEnum::OK->value, $response->getStatusCode());
     }

@@ -30,4 +30,12 @@ final class UserTest extends TestCase
         self::assertTrue($user->passwordMatches(self::PASSWORD));
         self::assertFalse($user->passwordMatches(self::WRONG_PASSWORD));
     }
+
+    public function testIsAMerchantOnlyOnceAccessWasGranted(): void
+    {
+        $now = new DateTimeImmutable();
+
+        self::assertFalse(new User(self::EMAIL, self::PASSWORD, $now, $now)->isMerchant());
+        self::assertTrue(new User(self::EMAIL, self::PASSWORD, $now, $now, $now)->isMerchant());
+    }
 }

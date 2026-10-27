@@ -31,7 +31,7 @@ final class HttpHarness
             new CsrfToken(new Session()),
             new Session(),
             self::responder(),
-            new CurrentUser(new Session()),
+            new CurrentUser(new Session(), new MerchantUserRepository()),
             new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
         );
 

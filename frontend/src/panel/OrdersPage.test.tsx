@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { sessionHandler, signedInSession } from '../test/api';
+import { sessionHandler, merchantSession } from '../test/api';
 import { orderSummary, ordersHandler } from '../test/panel';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
@@ -11,7 +11,7 @@ const SECOND = '22222222-2222-4222-8222-222222222222';
 describe('OrdersPage', () => {
   it('lists orders and loads more on request', async () => {
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       ordersHandler([orderSummary(FIRST, '2026-10-25T12:00:00+00:00')], FIRST, {
         [FIRST]: { data: [orderSummary(SECOND, '2026-10-24T12:00:00+00:00')], next_cursor: null },
       }),

@@ -102,7 +102,7 @@ schemas:
   Session:
     type: object
     additionalProperties: false
-    required: [authenticated, email, csrf_token]
+    required: [authenticated, email, merchant, csrf_token]
     properties:
       authenticated:
         type: boolean
@@ -110,6 +110,11 @@ schemas:
         type: string
         format: email
         nullable: true
+      merchant:
+        type: boolean
+        description: >-
+          Whether the signed-in account may use the merchant panel. Registration gives no
+          access; an operator grants it with bin/grant-merchant.php.
       csrf_token:
         type: string
         minLength: 1

@@ -109,6 +109,6 @@ final readonly class AuthApiController
 
     private function respondWithSession(string $csrfToken): void
     {
-        $this->responder->json(new SessionResponse($this->currentUser->email(), $csrfToken));
+        $this->responder->json(new SessionResponse($this->currentUser->email(), $this->currentUser->isMerchant(), $csrfToken));
     }
 }

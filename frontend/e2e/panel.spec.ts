@@ -1,13 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { createMerchant, signIn, uniqueEmail } from './merchant';
+import { e2eMerchant, signIn } from './merchant';
 
-test('a signed-in merchant moves between orders, products, and reports', async ({
-  page,
-  request,
-}) => {
-  const email = uniqueEmail('e2e-panel');
-  await createMerchant(request, email);
-  await signIn(page, email);
+test('a signed-in merchant moves between orders, products, and reports', async ({ page }) => {
+  await signIn(page, e2eMerchant());
+  await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Products' }).click();
   await expect(page.getByRole('table', { name: 'Products' })).toBeVisible();
@@ -29,10 +25,8 @@ test('panel pages need a signed-in merchant', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
-test('old links to the retired stock page open the product editor', async ({ page, request }) => {
-  const email = uniqueEmail('e2e-legacy-link');
-  await createMerchant(request, email);
-  await signIn(page, email);
+test('old links to the retired stock page open the product editor', async ({ page }) => {
+  await signIn(page, e2eMerchant());
 
   await page.goto('/legacy/product-stock.php?id=999999');
 

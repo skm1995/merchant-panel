@@ -24,6 +24,7 @@ final class SchemaTest extends TestCase
         'payments.updated_at',
         'products.updated_at',
         'users.email_verified_at',
+        'users.merchant_since',
     ];
 
     public function testOnlyColumnsWithMeaningfulNullAreNullable(): void

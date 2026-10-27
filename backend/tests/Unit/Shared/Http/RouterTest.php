@@ -15,7 +15,7 @@ use App\Shared\Http\MapException;
 use App\Shared\Http\RateLimit;
 use App\Shared\Http\RateLimiter;
 use App\Shared\Http\RequireApiKey;
-use App\Shared\Http\RequireSignedIn;
+use App\Shared\Http\RequireMerchant;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -27,6 +27,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\InMemoryCacheStore;
+use Tests\Unit\Support\MerchantUserRepository;
 
 final class RouterTest extends TestCase
 {
@@ -149,14 +150,14 @@ final class RouterTest extends TestCase
         self::assertTrue($controller->called);
     }
 
-    public function testSignedInRoutesRejectAnonymousVisitors(): void
+    public function testMerchantRoutesRejectAnonymousVisitors(): void
     {
         $controller = new class () {
             private const string PATH = '/api/v1/panel/orders';
             public int $calls = 0;
 
             #[Route(HttpMethodEnum::GET, self::PATH)]
-            #[RequireSignedIn]
+            #[RequireMerchant]
             public function list(): void
             {
                 $this->calls++;
@@ -576,7 +577,7 @@ final class RouterTest extends TestCase
             $this->csrfToken,
             new Session(),
             new Responder(),
-            new CurrentUser(new Session()),
+            new CurrentUser(new Session(), new MerchantUserRepository()),
             new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
         );
     }

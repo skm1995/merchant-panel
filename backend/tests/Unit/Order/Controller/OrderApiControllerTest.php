@@ -33,6 +33,7 @@ use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\HttpHarness;
+use Tests\Unit\Support\MerchantUserRepository;
 use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class OrderApiControllerTest extends TestCase
@@ -79,7 +80,7 @@ final class OrderApiControllerTest extends TestCase
             $anonymous = $this->dispatch(new Request(HttpMethodEnum::GET->value, self::PANEL_ORDERS_PATH), $this->createStub(CartRepositoryInterface::class));
             self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $anonymous['status']);
 
-            new CurrentUser($session)->signIn(new User('merchant@example.com', 'hash', new DateTimeImmutable()));
+            new CurrentUser($session, new MerchantUserRepository())->signIn(new User('merchant@example.com', 'hash', new DateTimeImmutable()));
             $page = $this->dispatch(new Request(HttpMethodEnum::GET->value, self::PANEL_ORDERS_PATH), $this->createStub(CartRepositoryInterface::class));
         } finally {
             $_SESSION = $originalSession;

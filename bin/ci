@@ -28,4 +28,5 @@ node=(docker compose --profile tools run --rm --no-deps --env NPM_CONFIG_UPDATE_
 "${node[@]}" npm run lint
 "${node[@]}" npm run format:check
 "${node[@]}" npm test
+"${run[@]}" php tests/Fixture/reset-e2e-merchant.php
 docker compose --profile tools run --rm --no-deps e2e npx playwright test

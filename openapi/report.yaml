@@ -56,6 +56,8 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '401':
           $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
   panelTopProducts:
     get:
       operationId: getPanelTopProductsReport
@@ -74,6 +76,8 @@ paths:
         '400':
           $ref: 'shared.yaml#/responses/Problem'
         '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
           $ref: 'shared.yaml#/responses/Problem'
 parameters:
   From:

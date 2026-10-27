@@ -7,7 +7,7 @@ import { PanelLayout } from './panel/PanelLayout';
 import { ProductEditPage } from './panel/ProductEditPage';
 import { ProductsPage } from './panel/ProductsPage';
 import { ReportsPage } from './panel/ReportsPage';
-import { RequireSignedIn } from './session/RequireSignedIn';
+import { RequireMerchant } from './session/RequireMerchant';
 
 export function AppRoutes() {
   return (
@@ -15,7 +15,7 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/confirm" element={<ConfirmEmailPage />} />
-      <Route element={<RequireSignedIn />}>
+      <Route element={<RequireMerchant />}>
         <Route element={<PanelLayout />}>
           <Route index element={<Navigate to="/orders" replace />} />
           <Route path="/orders" element={<OrdersPage />} />

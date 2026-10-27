@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { sessionHandler, signedInSession } from '../test/api';
+import { sessionHandler, merchantSession } from '../test/api';
 import { product, productsHandler } from '../test/panel';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
@@ -7,7 +7,7 @@ import { server } from '../test/server';
 describe('ProductsPage', () => {
   it('lists products with price and availability', async () => {
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       productsHandler([product(7, 'Mug')]),
     );
     renderApp('/products');

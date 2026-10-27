@@ -14,6 +14,11 @@ interface CurrentUserInterface
 {
     public function email(): ?string;
 
+    /**
+     * Whether the signed-in account may use the merchant panel, as stored now.
+     */
+    public function isMerchant(): bool;
+
     public function signIn(User $user): void;
 
     public function signOut(): void;

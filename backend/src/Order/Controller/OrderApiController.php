@@ -32,7 +32,7 @@ use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
 use App\Shared\Http\RateLimit;
 use App\Shared\Http\Request;
-use App\Shared\Http\RequireSignedIn;
+use App\Shared\Http\RequireMerchant;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
@@ -97,7 +97,7 @@ final readonly class OrderApiController
     }
 
     #[Route(HttpMethodEnum::GET, self::PANEL_ORDERS_ROUTE_PATH)]
-    #[RequireSignedIn]
+    #[RequireMerchant]
     public function list(Request $request): void
     {
         $this->responder->json(OrderSummaryPageResponse::fromPage($this->listOrders->handle(ListOrdersRequest::toQuery($request))));

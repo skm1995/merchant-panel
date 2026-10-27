@@ -30,7 +30,7 @@ final class LoginUserServiceTest extends TestCase
         $session->start();
         $this->originalSession = $_SESSION;
         $_SESSION = [];
-        $this->currentUser = new CurrentUser($session);
+        $this->currentUser = new CurrentUser($session, $this->createStub(UserRepositoryInterface::class));
     }
 
     protected function tearDown(): void

@@ -7,7 +7,7 @@ import {
   problem,
   SESSION_PATH,
   sessionHandler,
-  signedInSession,
+  merchantSession,
 } from '../test/api';
 import { ORDERS_PATH } from '../test/panel';
 import { renderApp } from '../test/render';
@@ -58,7 +58,7 @@ function renderProbe() {
 
 describe('SessionProvider', () => {
   it('loads the current session', async () => {
-    server.use(sessionHandler(signedInSession(EMAIL)));
+    server.use(sessionHandler(merchantSession(EMAIL)));
 
     renderProbe();
 
@@ -71,7 +71,7 @@ describe('SessionProvider', () => {
     server.use(
       http.get(SESSION_PATH, () => HttpResponse.json(session)),
       http.post(SESSION_PATH, () => {
-        session = signedInSession(EMAIL);
+        session = merchantSession(EMAIL);
 
         return HttpResponse.json(session);
       }),
@@ -107,7 +107,7 @@ describe('SessionProvider', () => {
 
   it('sends the merchant to sign in when the session has expired', async () => {
     server.use(
-      http.get(SESSION_PATH, () => HttpResponse.json(signedInSession(EMAIL)), { once: true }),
+      http.get(SESSION_PATH, () => HttpResponse.json(merchantSession(EMAIL)), { once: true }),
       sessionHandler(anonymousSession()),
       http.get(ORDERS_PATH, () => problem(401, 'Sign in to continue.')),
     );

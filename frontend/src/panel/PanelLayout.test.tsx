@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { anonymousSession, SESSION_PATH, signedInSession } from '../test/api';
+import { anonymousSession, SESSION_PATH, merchantSession } from '../test/api';
 import { ordersHandler } from '../test/panel';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
@@ -18,7 +18,7 @@ describe('PanelLayout', () => {
   });
 
   it('opens the orders, names the merchant, and signs out', async () => {
-    let session = signedInSession(EMAIL);
+    let session = merchantSession(EMAIL);
     server.use(
       http.get(SESSION_PATH, () => HttpResponse.json(session)),
       http.delete(SESSION_PATH, () => {

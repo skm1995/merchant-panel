@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { problem, sessionHandler, signedInSession } from '../test/api';
+import { problem, sessionHandler, merchantSession } from '../test/api';
 import { PANEL_PRODUCT_PATH, panelProductHandler, productDetails } from '../test/panel';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
@@ -23,7 +23,7 @@ describe('ProductEditPage', () => {
   it('saves the price and stock for the version that was loaded', async () => {
     let sent: { ifMatch: string | null; body: unknown } | null = null;
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       panelProductHandler(productDetails(7), ETAG),
       http.patch(PANEL_PRODUCT_PATH, async ({ request }) => {
         sent = { ifMatch: request.headers.get('If-Match'), body: await request.json() };
@@ -48,7 +48,7 @@ describe('ProductEditPage', () => {
 
   it('explains that someone else changed the product', async () => {
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       panelProductHandler(productDetails(7), ETAG),
       http.patch(PANEL_PRODUCT_PATH, () =>
         problem(412, 'The product changed since you loaded it; reload it and try again.'),
@@ -65,7 +65,7 @@ describe('ProductEditPage', () => {
 
   it('checks the price before sending it', async () => {
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       panelProductHandler(productDetails(7), ETAG),
     );
     renderApp('/products/7/edit');

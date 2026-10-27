@@ -1,6 +1,8 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 
 const MAILPIT_URL_VARIABLE = 'E2E_MAILPIT_URL';
+const MERCHANT_EMAIL_VARIABLE = 'E2E_MERCHANT_EMAIL';
+const MERCHANT_PASSWORD_VARIABLE = 'E2E_MERCHANT_PASSWORD';
 const PASSWORD = 'e2e-merchant-password';
 const TOKEN_PATTERN = /confirm\?token=([a-f0-9]{64})/;
 const MAIL_TIMEOUT_MILLISECONDS = 15000;
@@ -13,14 +15,18 @@ interface MailpitMessage {
   Text: string;
 }
 
-function mailpitUrl(): string {
-  const value = process.env[MAILPIT_URL_VARIABLE];
+function requiredVariable(name: string): string {
+  const value = process.env[name];
 
   if (value === undefined || value.length === 0) {
-    throw new Error(`Required environment variable "${MAILPIT_URL_VARIABLE}" is not set.`);
+    throw new Error(`Required environment variable "${name}" is not set.`);
   }
 
   return value;
+}
+
+function mailpitUrl(): string {
+  return requiredVariable(MAILPIT_URL_VARIABLE);
 }
 
 export function uniqueEmail(prefix: string): string {
@@ -63,31 +69,23 @@ export async function confirmationLink(request: APIRequestContext, email: string
   return `/confirm?token=${String(token)}`;
 }
 
-export async function signIn(page: Page, email: string): Promise<void> {
-  await page.goto('/login');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+export interface Credentials {
+  email: string;
+  password: string;
 }
 
-/**
- * Registers and confirms a merchant through the API, as a shortcut for tests that start
- * signed in.
- */
-export async function createMerchant(request: APIRequestContext, email: string): Promise<void> {
-  const session = (await (await request.get('/api/v1/session')).json()) as { csrf_token: string };
-  const headers = { 'X-CSRF-Token': session.csrf_token };
+/** The merchant account bin/ci creates before the end-to-end tests run. */
+export function e2eMerchant(): Credentials {
+  return {
+    email: requiredVariable(MERCHANT_EMAIL_VARIABLE),
+    password: requiredVariable(MERCHANT_PASSWORD_VARIABLE),
+  };
+}
 
-  expect(
-    (
-      await request.post('/api/v1/registrations', { headers, data: { email, password: PASSWORD } })
-    ).status(),
-  ).toBe(202);
-  const token = new URL(await confirmationLink(request, email), 'http://e2e').searchParams.get(
-    'token',
-  );
-  expect(
-    (await request.post('/api/v1/email-confirmations', { headers, data: { token } })).status(),
-  ).toBe(204);
+export async function signIn(page: Page, { email, password }: Credentials): Promise<void> {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).not.toHaveURL(/\/login$/);
 }

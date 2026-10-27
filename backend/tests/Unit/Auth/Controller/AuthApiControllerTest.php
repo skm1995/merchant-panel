@@ -70,7 +70,7 @@ final class AuthApiControllerTest extends TestCase
         HttpHarness::dispatch(new Request(HttpMethodEnum::POST->value, self::SESSION_PATH, body: self::CREDENTIALS), $this->controller(self::verifiedUser()));
 
         self::assertSame(ResponseStatusEnum::FORBIDDEN->value, http_response_code());
-        self::assertNull(new CurrentUser($this->session)->email());
+        self::assertNull(new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->email());
     }
 
     public function testSignsInAVerifiedUserWithANewCsrfToken(): void
@@ -83,7 +83,8 @@ final class AuthApiControllerTest extends TestCase
         self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
         self::assertTrue($body['authenticated']);
         self::assertSame(self::EMAIL, $body['email']);
-        self::assertSame(self::EMAIL, new CurrentUser($this->session)->email());
+        self::assertFalse($body['merchant'], 'Signing up gives no merchant access.');
+        self::assertSame(self::EMAIL, new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->email());
         self::assertNotSame($anonymousToken, $body['csrf_token']);
         self::assertSame($this->csrfToken->get(), $body['csrf_token']);
     }
@@ -99,13 +100,13 @@ final class AuthApiControllerTest extends TestCase
 
     public function testSignsOut(): void
     {
-        new CurrentUser($this->session)->signIn(self::verifiedUser());
+        new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->signIn(self::verifiedUser());
 
         $output = HttpHarness::dispatch($this->unsafe(HttpMethodEnum::DELETE, self::SESSION_PATH), $this->controller(self::verifiedUser()));
 
         self::assertSame(ResponseStatusEnum::NO_CONTENT->value, http_response_code());
         self::assertSame(0, strlen((string) $output));
-        self::assertNull(new CurrentUser($this->session)->email());
+        self::assertNull(new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->email());
     }
 
     public function testAcceptsARegistrationAndRejectsInvalidOnes(): void
@@ -160,7 +161,7 @@ final class AuthApiControllerTest extends TestCase
         $tokens = $this->createStub(EmailVerificationTokenRepositoryInterface::class);
         $tokens->method('confirmEmail')->willReturn(false);
         $userAuthService = new UserAuthService($users);
-        $currentUser = new CurrentUser($this->session);
+        $currentUser = new CurrentUser($this->session, $users);
 
         return new AuthApiController(
             new RegisterUserService($userAuthService, $tokens, $this->createStub(OutboxInterface::class), new ImmediateTransactionRunner(), new FrozenClock()),

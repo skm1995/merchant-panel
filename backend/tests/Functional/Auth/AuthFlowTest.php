@@ -66,7 +66,7 @@ final class AuthFlowTest extends TestCase
         $session = new Session();
         $session->start();
         $this->originalSession = $_SESSION;
-        $this->currentUser = new CurrentUser($session);
+        $this->currentUser = new CurrentUser($session, new PdoUserRepository($this->pdo));
         $this->loginUser = new LoginUserService($userAuthService, $this->currentUser);
         $this->email = TestUserData::uniqueEmail(self::EMAIL_PREFIX);
     }

@@ -104,6 +104,7 @@ services:
       - docker/env/reports.env
       - docker/env/rate-limit.env
       - docker/env/rate-limit-test.env
+      - docker/env/e2e.env
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"

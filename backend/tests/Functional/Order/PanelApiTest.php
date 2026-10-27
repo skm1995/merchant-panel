@@ -68,6 +68,15 @@ final class PanelApiTest extends TestCase
         $this->assertResponse(self::TOP_PRODUCTS_PATH, ResponseStatusEnum::UNAUTHORIZED, $this->client->get(self::TOP_PRODUCTS_PATH . self::REPORT_QUERY));
     }
 
+    public function testRefusesSignedInUsersWithoutMerchantAccess(): void
+    {
+        TestUserData::createVerified($this->pdo, $this->email, self::PASSWORD);
+        $this->client->send(HttpMethodEnum::POST, self::SESSION_PATH, sprintf(self::CREDENTIALS_FORMAT, $this->email, self::PASSWORD));
+
+        $this->assertResponse(self::ORDERS_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::ORDERS_PATH));
+        $this->assertResponse(self::TOP_PRODUCTS_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::TOP_PRODUCTS_PATH . self::REPORT_QUERY));
+    }
+
     public function testPagesThroughOrdersNewestFirst(): void
     {
         $this->signIn();
@@ -96,7 +105,7 @@ final class PanelApiTest extends TestCase
 
     private function signIn(): void
     {
-        TestUserData::createVerified($this->pdo, $this->email, self::PASSWORD);
+        TestUserData::createMerchant($this->pdo, $this->email, self::PASSWORD);
         $response = $this->client->send(HttpMethodEnum::POST, self::SESSION_PATH, sprintf(self::CREDENTIALS_FORMAT, $this->email, self::PASSWORD));
         self::assertSame(ResponseStatusEnum::OK->value, $response->getStatusCode());
     }

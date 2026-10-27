@@ -6,7 +6,7 @@ import {
   problem,
   SESSION_PATH,
   sessionHandler,
-  signedInSession,
+  merchantSession,
 } from '../test/api';
 import { ordersHandler } from '../test/panel';
 import { renderApp } from '../test/render';
@@ -23,7 +23,7 @@ describe('LoginPage', () => {
       http.post(SESSION_PATH, async ({ request }) => {
         submitted = await request.json();
 
-        return HttpResponse.json(signedInSession(EMAIL));
+        return HttpResponse.json(merchantSession(EMAIL));
       }),
       ordersHandler([]),
     );

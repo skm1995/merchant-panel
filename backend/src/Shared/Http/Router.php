@@ -9,11 +9,11 @@ use App\Shared\Http\Middleware\ApiKeyMiddleware;
 use App\Shared\Http\Middleware\CsrfMiddleware;
 use App\Shared\Http\Middleware\ErrorMiddleware;
 use App\Shared\Http\Middleware\ExceptionMappingMiddleware;
+use App\Shared\Http\Middleware\MerchantMiddleware;
 use App\Shared\Http\Middleware\MiddlewarePipeline;
 use App\Shared\Http\Middleware\RateLimitMiddleware;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Middleware\SessionMiddleware;
-use App\Shared\Http\Middleware\SignedInMiddleware;
 use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
@@ -85,7 +85,7 @@ final class Router implements RequestHandlerInterface
 
     /**
      * Builds the policies a route needs from its path and attributes. Browser routes and API
-     * routes marked #[UsesSession] or #[RequireSignedIn] get the session and CSRF protection;
+     * routes marked #[UsesSession] or #[RequireMerchant] get the session and CSRF protection;
      * other API routes stay sessionless.
      */
     private function pipeline(Route $route, object $controller, ReflectionMethod $method): RequestHandlerInterface
@@ -97,17 +97,17 @@ final class Router implements RequestHandlerInterface
             $middleware[] = new RateLimitMiddleware($attribute->newInstance(), $this->rateLimiter, $this->responder);
         }
 
-        $requiresSignIn = $method->getAttributes(RequireSignedIn::class) !== [];
-        $usesSession = !Request::isApiPath($route->path) || $requiresSignIn || $method->getAttributes(UsesSession::class) !== [];
+        $requiresMerchant = $method->getAttributes(RequireMerchant::class) !== [];
+        $usesSession = !Request::isApiPath($route->path) || $requiresMerchant || $method->getAttributes(UsesSession::class) !== [];
 
         if ($usesSession) {
             $middleware[] = new SessionMiddleware($this->session);
         }
 
-        // Anonymous visitors learn they must sign in (401) before CSRF is checked, because the
-        // token protects a signed-in session.
-        if ($requiresSignIn) {
-            $middleware[] = new SignedInMiddleware($this->user, $this->responder);
+        // Visitors learn they must sign in (401) or lack access (403) before CSRF is checked,
+        // because the token protects a signed-in session.
+        if ($requiresMerchant) {
+            $middleware[] = new MerchantMiddleware($this->user, $this->responder);
         }
 
         if ($usesSession) {

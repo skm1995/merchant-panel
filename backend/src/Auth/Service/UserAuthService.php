@@ -72,7 +72,7 @@ final class UserAuthService
         return $user?->passwordMatches($password) === true ? $user : null;
     }
 
-    private static function normalizeEmail(string $email): string
+    public static function normalizeEmail(string $email): string
     {
         return $email
             |> trim(...)

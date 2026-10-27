@@ -8,11 +8,16 @@ export const CSRF_TOKEN = 'test-csrf-token';
 export const SESSION_PATH = '/api/v1/session';
 
 export function anonymousSession(): Session {
-  return { authenticated: false, email: null, csrf_token: CSRF_TOKEN };
+  return { authenticated: false, email: null, merchant: false, csrf_token: CSRF_TOKEN };
 }
 
-export function signedInSession(email: string): Session {
-  return { authenticated: true, email, csrf_token: CSRF_TOKEN };
+export function merchantSession(email: string): Session {
+  return { authenticated: true, email, merchant: true, csrf_token: CSRF_TOKEN };
+}
+
+/** A confirmed account that has not been given access to the merchant panel. */
+export function noAccessSession(email: string): Session {
+  return { authenticated: true, email, merchant: false, csrf_token: CSRF_TOKEN };
 }
 
 export function problem(status: number, detail: string): HttpResponse<Problem> {

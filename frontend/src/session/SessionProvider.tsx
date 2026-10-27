@@ -14,7 +14,7 @@ const SESSION_PATH = '/api/v1/session';
 function toSession(response: components['schemas']['Session']): Session {
   rememberCsrfToken(response.csrf_token);
 
-  return { email: response.email };
+  return { email: response.email, merchant: response.merchant };
 }
 
 async function fetchSession(): Promise<Session | null> {

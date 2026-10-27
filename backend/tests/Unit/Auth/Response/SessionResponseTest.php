@@ -15,16 +15,16 @@ final class SessionResponseTest extends TestCase
     public function testDescribesASignedInSession(): void
     {
         self::assertSame(
-            ['authenticated' => true, 'email' => self::EMAIL, 'csrf_token' => self::TOKEN],
-            new SessionResponse(self::EMAIL, self::TOKEN)->toArray(),
+            ['authenticated' => true, 'email' => self::EMAIL, 'merchant' => true, 'csrf_token' => self::TOKEN],
+            new SessionResponse(self::EMAIL, true, self::TOKEN)->toArray(),
         );
     }
 
     public function testDescribesAnAnonymousSession(): void
     {
         self::assertSame(
-            ['authenticated' => false, 'email' => null, 'csrf_token' => self::TOKEN],
-            new SessionResponse(null, self::TOKEN)->toArray(),
+            ['authenticated' => false, 'email' => null, 'merchant' => false, 'csrf_token' => self::TOKEN],
+            new SessionResponse(null, false, self::TOKEN)->toArray(),
         );
     }
 }

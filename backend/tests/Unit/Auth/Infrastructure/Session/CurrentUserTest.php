@@ -6,6 +6,7 @@ namespace Tests\Unit\Auth\Infrastructure\Session;
 
 use App\Auth\Entity\User;
 use App\Auth\Infrastructure\Session\CurrentUser;
+use App\Auth\Repository\UserRepositoryInterface;
 use App\Shared\Http\Session;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
@@ -18,6 +19,7 @@ final class CurrentUserTest extends TestCase
     /** @var array<string, mixed> */
     private array $originalSession;
     private CurrentUser $currentUser;
+    private ?User $storedUser = null;
 
     protected function setUp(): void
     {
@@ -25,7 +27,9 @@ final class CurrentUserTest extends TestCase
         $session->start();
         $this->originalSession = $_SESSION;
         $_SESSION = [];
-        $this->currentUser = new CurrentUser($session);
+        $users = $this->createStub(UserRepositoryInterface::class);
+        $users->method('findByEmail')->willReturnCallback(fn (): ?User => $this->storedUser);
+        $this->currentUser = new CurrentUser($session, $users);
     }
 
     protected function tearDown(): void
@@ -56,5 +60,18 @@ final class CurrentUserTest extends TestCase
         $this->currentUser->signIn(new User('merchant@example.com', 'hash', new DateTimeImmutable()));
 
         self::assertTrue($this->currentUser->isSignedIn());
+    }
+
+    public function testIsAMerchantOnlyWhileSignedInToAnAccountWithMerchantAccess(): void
+    {
+        $now = new DateTimeImmutable();
+        self::assertFalse($this->currentUser->isMerchant());
+
+        $this->storedUser = new User(self::EMAIL, self::PASSWORD_HASH, $now, $now);
+        $this->currentUser->signIn($this->storedUser);
+        self::assertFalse($this->currentUser->isMerchant());
+
+        $this->storedUser = new User(self::EMAIL, self::PASSWORD_HASH, $now, $now, $now);
+        self::assertTrue($this->currentUser->isMerchant(), 'Access granted after sign-in applies to the next request.');
     }
 }

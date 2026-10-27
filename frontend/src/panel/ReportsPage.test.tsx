@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import type { components } from '../api/schema';
-import { problem, sessionHandler, signedInSession } from '../test/api';
+import { problem, sessionHandler, merchantSession } from '../test/api';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
 
@@ -55,7 +55,7 @@ describe('ReportsPage', () => {
   it('shows revenue and top products for the chosen period', async () => {
     const requested: string[] = [];
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       http.get(DAILY_REVENUE_PATH, ({ request }) => {
         requested.push(new URL(request.url).search);
 
@@ -75,7 +75,7 @@ describe('ReportsPage', () => {
 
   it('explains an invalid period', async () => {
     server.use(
-      sessionHandler(signedInSession('merchant@example.com')),
+      sessionHandler(merchantSession('merchant@example.com')),
       http.get(DAILY_REVENUE_PATH, () =>
         problem(400, 'The report period must cover 1 to 366 days.'),
       ),

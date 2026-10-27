@@ -13,12 +13,18 @@ final readonly class User
         public string $passwordHash,
         public DateTimeImmutable $createdAt,
         public ?DateTimeImmutable $emailVerifiedAt = null,
+        public ?DateTimeImmutable $merchantSince = null,
     ) {
     }
 
     public function isVerified(): bool
     {
         return $this->emailVerifiedAt !== null;
+    }
+
+    public function isMerchant(): bool
+    {
+        return $this->merchantSince !== null;
     }
 
     public function passwordMatches(string $password): bool

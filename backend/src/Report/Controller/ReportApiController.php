@@ -13,7 +13,7 @@ use App\Report\Service\ReportService;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Request;
 use App\Shared\Http\RequireApiKey;
-use App\Shared\Http\RequireSignedIn;
+use App\Shared\Http\RequireMerchant;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
@@ -49,14 +49,14 @@ final readonly class ReportApiController
     }
 
     #[Route(HttpMethodEnum::GET, self::PANEL_DAILY_REVENUE_ROUTE_PATH)]
-    #[RequireSignedIn]
+    #[RequireMerchant]
     public function panelDailyRevenue(Request $request): void
     {
         $this->respondWithDailyRevenue($request);
     }
 
     #[Route(HttpMethodEnum::GET, self::PANEL_TOP_PRODUCTS_ROUTE_PATH)]
-    #[RequireSignedIn]
+    #[RequireMerchant]
     public function panelTopProducts(Request $request): void
     {
         $this->respondWithTopProducts($request);

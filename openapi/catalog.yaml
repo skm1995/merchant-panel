@@ -66,6 +66,8 @@ paths:
           $ref: '#/responses/ProductDetails'
         '401':
           $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
         '404':
           $ref: 'shared.yaml#/responses/Problem'
     patch:

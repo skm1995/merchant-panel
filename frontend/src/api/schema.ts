@@ -393,6 +393,8 @@ export interface components {
             authenticated: boolean;
             /** Format: email */
             email: string | null;
+            /** @description Whether the signed-in account may use the merchant panel. Registration gives no access; an operator grants it with bin/grant-merchant.php. */
+            merchant: boolean;
             csrf_token: string;
         };
         Credentials: {
@@ -1035,6 +1037,7 @@ export interface operations {
         responses: {
             200: components["responses"]["ProductDetails"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
         };
     };
@@ -1089,6 +1092,7 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getPanelDailyRevenueReport: {
@@ -1107,6 +1111,7 @@ export interface operations {
             200: components["responses"]["DailyRevenue"];
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getPanelTopProductsReport: {
@@ -1126,6 +1131,7 @@ export interface operations {
             200: components["responses"]["TopProducts"];
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
         };
     };
     getDailyRevenueReport: {

@@ -21,7 +21,7 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
-use App\Shared\Http\RequireSignedIn;
+use App\Shared\Http\RequireMerchant;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
@@ -59,7 +59,7 @@ final readonly class ProductApiController
     }
 
     #[Route(HttpMethodEnum::GET, self::PANEL_PRODUCT_ROUTE_PATH)]
-    #[RequireSignedIn]
+    #[RequireMerchant]
     #[MapException(ProductNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     public function showForEditing(Request $request): void
     {
@@ -67,7 +67,7 @@ final readonly class ProductApiController
     }
 
     #[Route(HttpMethodEnum::PATCH, self::PANEL_PRODUCT_ROUTE_PATH)]
-    #[RequireSignedIn]
+    #[RequireMerchant]
     #[MapException(ProductNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     #[MapException(ProductVersionMismatchException::class, ResponseStatusEnum::PRECONDITION_FAILED)]
     #[MapException(StockBelowReservationsException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
