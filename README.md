@@ -1,5 +1,15 @@
 # Vanilla PHP Playground
 
+An e-commerce backend with a merchant panel, built without a framework: a PHP 8.5 JSON API,
+a React panel, asynchronous messaging through a transactional outbox and RabbitMQ, and a CI
+pipeline that deploys every commit that passes its tests.
+
+## Live demo
+
+The demo is linked from [skm1995.github.io](https://skm1995.github.io). Sign in to the
+merchant panel with the shared demo account `demo@example.com` / `demo-merchant-2026`; other
+visitors use it too, so its data may change.
+
 ## Repository layout
 
 | Path | Contents |
@@ -131,17 +141,18 @@ once and consumers are idempotent.
 
 ## Production
 
-The demo runs at `https://92-5-154-24.sslip.io` on one Oracle Cloud Always Free ARM server.
-Every push to `master` deploys there once CI passes: the `deploy` job runs `bin/deploy`,
-which prepares the server (`docker/server/provision.sh`), uploads the commit, writes the
-server's `.env` from GitHub secrets and variables, starts `compose.prod.yaml`, adds the demo
-catalog, and checks that the API answers over HTTPS.
+The demo runs on one Oracle Cloud Always Free ARM server, with the panel and API at
+`demo.<domain>` and Mailpit at `mail.<domain>`. Every push to `master` deploys there once CI
+passes: the `deploy` job runs `bin/deploy`, which prepares the server
+(`docker/server/provision.sh`), uploads the commit, writes the server's `.env` from GitHub
+secrets and variables, starts `compose.prod.yaml`, adds the demo catalog and the shared demo
+account (`bin/create-merchant.php`, credentials in `docker/env/demo.env`), and checks that the
+API answers over HTTPS.
 
 `compose.prod.yaml` builds images with the code inside: PHP without Xdebug and with OPcache
 that never rechecks files, and Caddy with the built React app, which obtains and renews the
-HTTPS certificate itself. Only Caddy publishes ports. Mailpit, which shows the confirmation
-emails, is at `https://mail.<domain>` behind the user `demo` and the `MAILPIT_PASSWORD`
-secret.
+HTTPS certificates itself. Only Caddy publishes ports. Mailpit, which shows the confirmation
+emails, is behind the user `demo` and the `MAILPIT_PASSWORD` secret.
 
 Registering on the site creates an account without access to the merchant panel. Grant
 access to a confirmed account on the server:
@@ -158,7 +169,7 @@ they protect against mistakes and corrupted data, not against losing the server.
 
 | GitHub setting | Kind | Purpose |
 | --- | --- | --- |
-| `DEPLOY_HOST`, `DEPLOY_USER`, `APP_DOMAIN` | variables | server address, SSH user, public domain |
+| `DEPLOY_HOST`, `DEPLOY_USER`, `BASE_DOMAIN` | variables | server address, SSH user, the domain under which `demo.` and `mail.` live |
 | `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` | secrets | SSH key and the server's host key |
 | `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `RABBITMQ_PASSWORD` | secrets | service credentials |
 | `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET`, `REPORTS_API_KEY`, `ORDER_ACCESS_SECRET` | secrets | application secrets |

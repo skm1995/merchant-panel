@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { e2eMerchant, signIn } from './merchant';
+import { demoMerchant, signIn } from './merchant';
 
 test('a signed-in merchant moves between orders, products, and reports', async ({ page }) => {
-  await signIn(page, e2eMerchant());
+  await signIn(page, demoMerchant());
   await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Products' }).click();
@@ -26,7 +26,7 @@ test('panel pages need a signed-in merchant', async ({ page }) => {
 });
 
 test('old links to the retired stock page open the product editor', async ({ page }) => {
-  await signIn(page, e2eMerchant());
+  await signIn(page, demoMerchant());
 
   await page.goto('/legacy/product-stock.php?id=999999');
 

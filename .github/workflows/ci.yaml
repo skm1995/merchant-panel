@@ -37,7 +37,7 @@ jobs:
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}

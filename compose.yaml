@@ -106,7 +106,7 @@ services:
       - docker/env/order-access.env
       - docker/env/rate-limit.env
       - docker/env/rate-limit-test.env
-      - docker/env/e2e.env
+      - docker/env/demo.env
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
@@ -279,6 +279,7 @@ services:
       - tools
     env_file:
       - docker/env/e2e.env
+      - docker/env/demo.env
 
   # Load test runner for bin/loadtest; it targets the test stack behind caddy-test.
   k6:

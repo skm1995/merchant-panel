@@ -1,6 +1,5 @@
-# Production: HTTPS for the application domain with certificates Caddy obtains and renews
-# itself, and Mailpit behind a password on the mail subdomain, so demo visitors can read
-# their confirmation emails.
+# Production: the panel and API on the application domain, and Mailpit behind a password on
+# the mail domain, both with HTTPS certificates Caddy obtains and renews itself.
 {
 	admin off
 }
@@ -19,7 +18,7 @@
 	}
 }
 
-mail.{$APP_DOMAIN} {
+{$MAIL_DOMAIN} {
 	basic_auth {
 		demo {$MAILPIT_PASSWORD_HASH}
 	}

@@ -1,8 +1,9 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { requiredVariable } from './environment';
 
 const MAILPIT_URL_VARIABLE = 'E2E_MAILPIT_URL';
-const MERCHANT_EMAIL_VARIABLE = 'E2E_MERCHANT_EMAIL';
-const MERCHANT_PASSWORD_VARIABLE = 'E2E_MERCHANT_PASSWORD';
+const MERCHANT_EMAIL_VARIABLE = 'DEMO_MERCHANT_EMAIL';
+const MERCHANT_PASSWORD_VARIABLE = 'DEMO_MERCHANT_PASSWORD';
 const PASSWORD = 'e2e-merchant-password';
 const TOKEN_PATTERN = /confirm\?token=([a-f0-9]{64})/;
 const MAIL_TIMEOUT_MILLISECONDS = 15000;
@@ -13,16 +14,6 @@ interface MailpitSearch {
 
 interface MailpitMessage {
   Text: string;
-}
-
-function requiredVariable(name: string): string {
-  const value = process.env[name];
-
-  if (value === undefined || value.length === 0) {
-    throw new Error(`Required environment variable "${name}" is not set.`);
-  }
-
-  return value;
 }
 
 function mailpitUrl(): string {
@@ -74,8 +65,8 @@ export interface Credentials {
   password: string;
 }
 
-/** The merchant account bin/ci creates before the end-to-end tests run. */
-export function e2eMerchant(): Credentials {
+/** The shared demo merchant account, which bin/ci recreates before the end-to-end tests run. */
+export function demoMerchant(): Credentials {
   return {
     email: requiredVariable(MERCHANT_EMAIL_VARIABLE),
     password: requiredVariable(MERCHANT_PASSWORD_VARIABLE),

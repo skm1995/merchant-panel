@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 required=(
-    DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS APP_DOMAIN
+    DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS BASE_DOMAIN
     MYSQL_PASSWORD MYSQL_ROOT_PASSWORD RABBITMQ_PASSWORD
     FAKEPAY_WEBHOOK_SECRET QUICKPAY_WEBHOOK_SECRET REPORTS_API_KEY ORDER_ACCESS_SECRET MAILPIT_PASSWORD
 )
@@ -21,6 +21,8 @@ for name in "${required[@]}"; do
 done
 
 caddy_image=caddy:2.10.2-alpine
+app_domain="demo.${BASE_DOMAIN}"
+mail_domain="mail.${BASE_DOMAIN}"
 smoke_test_attempts=30
 workdir=$(mktemp -d)
 trap 'rm -rf "${workdir}"' EXIT
@@ -32,17 +34,18 @@ ssh=(ssh -i "${workdir}/key" -o UserKnownHostsFile="${workdir}/known_hosts" -o S
 
 install -m 600 /dev/null "${workdir}/.env"
 cat > "${workdir}/.env" <<ENV
-APP_DOMAIN=${APP_DOMAIN}
+APP_DOMAIN=${app_domain}
+MAIL_DOMAIN=${mail_domain}
 MYSQL_DATABASE=app
 MYSQL_USER=app
 MYSQL_PASSWORD=${MYSQL_PASSWORD}
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 RABBITMQ_USER=app
 RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-MAILER_FROM=no-reply@${APP_DOMAIN}
-FAKEPAY_CHECKOUT_URL=https://${APP_DOMAIN}/fakepay
+MAILER_FROM=no-reply@${BASE_DOMAIN}
+FAKEPAY_CHECKOUT_URL=https://${app_domain}/fakepay
 FAKEPAY_WEBHOOK_SECRET=${FAKEPAY_WEBHOOK_SECRET}
-QUICKPAY_CHECKOUT_URL=https://${APP_DOMAIN}/quickpay
+QUICKPAY_CHECKOUT_URL=https://${app_domain}/quickpay
 QUICKPAY_WEBHOOK_SECRET=${QUICKPAY_WEBHOOK_SECRET}
 REPORTS_API_KEY=${REPORTS_API_KEY}
 ORDER_ACCESS_SECRET=${ORDER_ACCESS_SECRET}
@@ -67,17 +70,23 @@ hash=$(sudo docker run --rm "${CADDY_IMAGE}" caddy hash-password --plaintext "${
 echo "MAILPIT_PASSWORD_HASH='${hash}'" >> .env
 sudo docker compose -f compose.prod.yaml up --detach --build --remove-orphans --wait
 sudo docker compose -f compose.prod.yaml run --rm -T seed-demo < /dev/null
+# The shared demo account; status 3 means it already exists, so a redeploy keeps its data.
+set -a && . docker/env/demo.env && set +a
+status=0
+sudo docker compose -f compose.prod.yaml run --rm -T --no-deps --user www-data -e "MERCHANT_PASSWORD=${DEMO_MERCHANT_PASSWORD}" \
+    php php bin/create-merchant.php "${DEMO_MERCHANT_EMAIL}" < /dev/null || status=$?
+[ "${status}" -eq 0 ] || [ "${status}" -eq 3 ]
 sudo docker image prune --force >/dev/null
 REMOTE
 
-echo "Checking https://${APP_DOMAIN}..."
+echo "Checking https://${app_domain}..."
 for _ in $(seq 1 "${smoke_test_attempts}"); do
-    if curl --fail --silent --output /dev/null "https://${APP_DOMAIN}/api/v1/products?limit=1"; then
-        echo "Deployed: https://${APP_DOMAIN}"
+    if curl --fail --silent --output /dev/null "https://${app_domain}/api/v1/products?limit=1"; then
+        echo "Deployed: https://${app_domain}"
         exit 0
     fi
     sleep 2
 done
 
-echo "https://${APP_DOMAIN} does not answer." >&2
+echo "https://${app_domain} does not answer." >&2
 exit 1
