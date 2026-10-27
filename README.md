@@ -6,9 +6,12 @@ pipeline that deploys every commit that passes its tests.
 
 ## Live demo
 
-The demo is linked from [skm1995.github.io](https://skm1995.github.io). Sign in to the
-merchant panel with the shared demo account `demo@example.com` / `demo-merchant-2026`; other
+**[demo.szymonkozlowski.is-a.dev](https://demo.szymonkozlowski.is-a.dev)**: sign in to the
+merchant panel with the shared demo account `demo@example.com` / `demo-merchant-2026`. Other
 visitors use it too, so its data may change.
+
+The [documentation](docs/README.md) explains how the system works and why it is built this
+way.
 
 ## Repository layout
 
