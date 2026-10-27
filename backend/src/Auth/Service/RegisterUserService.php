@@ -7,6 +7,7 @@ namespace App\Auth\Service;
 use App\Auth\Entity\User;
 use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Exception\ResendLimitReachedException;
+use App\Auth\Message\AccountExistsEmailMessage;
 use App\Auth\Message\ConfirmationEmailMessage;
 use App\Auth\Repository\EmailVerificationTokenRepositoryInterface;
 use App\Shared\Database\Enum\IsolationLevelEnum;
@@ -16,9 +17,10 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 
 /**
- * Registers a user, or resends the confirmation to an unverified user who repeats the
- * registration. The user, the token, and the email message are stored in one transaction
- * through the outbox, so a broker outage never leaves an account without its email.
+ * Registers a user, resends the confirmation to an unverified user who repeats the
+ * registration, or tells the owner of an existing account about the attempt. The user, the
+ * token, and the email message are stored in one transaction through the outbox, so a broker
+ * outage never leaves an account without its email.
  */
 final readonly class RegisterUserService
 {
@@ -41,16 +43,32 @@ final readonly class RegisterUserService
         $this->transactions->run(function () use ($email, $password): void {
             try {
                 $user = $this->authService->register($email, $password);
-            } catch (DuplicateEmailException $exception) {
-                $this->resendConfirmation(
-                    $this->authService->findUnverifiedForResend($email, $password) ?? throw $exception,
-                );
+            } catch (DuplicateEmailException) {
+                $this->answerRepeatedRegistration($email, $password);
 
                 return;
             }
 
             $this->sendInitialConfirmation($user);
         }, IsolationLevelEnum::READ_COMMITTED);
+    }
+
+    /**
+     * The owner of an unverified account who repeats the registration with its password gets
+     * the confirmation again; anyone else's attempt only notifies the owner, so the response
+     * never reveals whether the address has an account.
+     */
+    private function answerRepeatedRegistration(string $email, string $password): void
+    {
+        $unverified = $this->authService->findUnverifiedForResend($email, $password);
+
+        if ($unverified !== null) {
+            $this->resendConfirmation($unverified);
+
+            return;
+        }
+
+        $this->outbox->add(new AccountExistsEmailMessage(UserAuthService::normalizeEmail($email)), $this->clock->now());
     }
 
     private function sendInitialConfirmation(User $user): void

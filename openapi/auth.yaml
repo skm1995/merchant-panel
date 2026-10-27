@@ -54,8 +54,11 @@ paths:
       operationId: register
       summary: Create an account and send the email confirmation
       description: >-
-        Repeating the registration of an unverified account with its password sends the
-        confirmation again, within a resend limit.
+        Answers 202 whether or not the address already has an account, so it never reveals
+        which addresses are registered: a new address gets the confirmation email, the
+        owner of an unverified account who repeats the registration with its password gets
+        it again within a resend limit, and the owner of any other existing account gets a
+        notice to sign in instead.
       security:
         - csrfToken: []
       requestBody:
@@ -70,8 +73,6 @@ paths:
         '400':
           $ref: 'shared.yaml#/responses/Problem'
         '403':
-          $ref: 'shared.yaml#/responses/Problem'
-        '409':
           $ref: 'shared.yaml#/responses/Problem'
         '422':
           $ref: 'shared.yaml#/responses/Problem'

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Auth\Controller;
 
 use App\Auth\Enum\AuthRateLimitEnum;
-use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Exception\EmailNotVerifiedException;
 use App\Auth\Exception\InvalidConfirmationTokenException;
 use App\Auth\Exception\InvalidCredentialsException;
@@ -87,7 +86,6 @@ final readonly class AuthApiController
     #[MapException(InvalidEmailException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     #[MapException(WeakPasswordException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     #[MapException(UnsupportedPasswordException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
-    #[MapException(DuplicateEmailException::class, ResponseStatusEnum::CONFLICT)]
     #[MapException(ResendLimitReachedException::class, ResponseStatusEnum::TOO_MANY_REQUESTS)]
     public function register(Request $request): void
     {

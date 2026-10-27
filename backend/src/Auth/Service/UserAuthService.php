@@ -17,6 +17,7 @@ final class UserAuthService
 {
     private const int MINIMUM_PASSWORD_LENGTH = 8;
     private const int MAXIMUM_PASSWORD_BYTES = 72;
+    private const string UNKNOWN_ACCOUNT_PASSWORD_HASH = '$2y$12$TLCFeM4OGbtb46XOa2M5nO0IDcB17iF2etw2mYX5/pAQ75EmDLRb6';
     private const string NUL_CHARACTER = "\0";
 
     public function __construct(private readonly UserRepositoryInterface $users)
@@ -69,7 +70,15 @@ final class UserAuthService
     {
         $user = self::normalizeEmail($email) |> $this->users->findByEmail(...);
 
-        return $user?->passwordMatches($password) === true ? $user : null;
+        if ($user === null) {
+            // Checking against a hash of an unknown password makes an unknown address take as
+            // long as a wrong password, so response times do not reveal which accounts exist.
+            password_verify($password, self::UNKNOWN_ACCOUNT_PASSWORD_HASH);
+
+            return null;
+        }
+
+        return $user->passwordMatches($password) ? $user : null;
     }
 
     public static function normalizeEmail(string $email): string

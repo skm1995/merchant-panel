@@ -139,6 +139,19 @@ final class UserAuthServiceTest extends TestCase
         new UserAuthService($repository)->authenticate(self::EMAIL, self::WRONG_PASSWORD);
     }
 
+    public function testSpendsAsLongOnAnUnknownEmailAsOnAWrongPassword(): void
+    {
+        $known = $this->createStub(UserRepositoryInterface::class);
+        $known->method('findByEmail')->willReturn(new User(self::EMAIL, password_hash(self::PASSWORD, PASSWORD_DEFAULT), new DateTimeImmutable(), new DateTimeImmutable()));
+        $unknown = $this->createStub(UserRepositoryInterface::class);
+        $unknown->method('findByEmail')->willReturn(null);
+
+        $wrongPassword = self::secondsToRefuse(new UserAuthService($known));
+        $unknownEmail = self::secondsToRefuse(new UserAuthService($unknown));
+
+        self::assertGreaterThan($wrongPassword / 2, $unknownEmail, 'Response time must not tell which addresses have accounts.');
+    }
+
     public function testFindsOnlyUnverifiedUserWithMatchingPasswordForResend(): void
     {
         $passwordHash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
@@ -163,5 +176,18 @@ final class UserAuthServiceTest extends TestCase
         $this->expectException(EmailNotVerifiedException::class);
         $this->expectExceptionMessage(self::UNVERIFIED_EMAIL_ERROR);
         new UserAuthService($repository)->authenticate(self::EMAIL, self::PASSWORD);
+    }
+
+    private static function secondsToRefuse(UserAuthService $service): float
+    {
+        $start = hrtime(true);
+
+        try {
+            $service->authenticate(self::EMAIL, self::WRONG_PASSWORD);
+        } catch (InvalidCredentialsException) {
+            return (hrtime(true) - $start) / 1e9;
+        }
+
+        self::fail('The credentials should have been refused.');
     }
 }

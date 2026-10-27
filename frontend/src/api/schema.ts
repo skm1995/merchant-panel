@@ -37,7 +37,7 @@ export interface paths {
         put?: never;
         /**
          * Create an account and send the email confirmation
-         * @description Repeating the registration of an unverified account with its password sends the confirmation again, within a resend limit.
+         * @description Answers 202 whether or not the address already has an account, so it never reveals which addresses are registered: a new address gets the confirmation email, the owner of an unverified account who repeats the registration with its password gets it again within a resend limit, and the owner of any other existing account gets a notice to sign in instead.
          */
         post: operations["register"];
         delete?: never;
@@ -690,7 +690,6 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
-            409: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
             429: components["responses"]["TooManyRequests"];
         };

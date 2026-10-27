@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Auth\Service;
 
 use App\Auth\Entity\User;
-use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Exception\ResendLimitReachedException;
+use App\Auth\Message\AccountExistsEmailMessage;
 use App\Auth\Message\ConfirmationEmailMessage;
 use App\Auth\Repository\EmailVerificationTokenRepositoryInterface;
 use App\Auth\Repository\UserRepositoryInterface;
@@ -98,16 +98,16 @@ final class RegisterUserServiceTest extends TestCase
         $this->service($users, $tokens, $queue)->execute(self::EMAIL, self::PASSWORD);
     }
 
-    public function testRejectsDuplicateEmailWhenPasswordDoesNotMatchUnverifiedUser(): void
+    public function testTellsTheOwnerOfAnExistingAccountInsteadOfRevealingItToTheCaller(): void
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findByEmail')->willReturn(self::existingUser());
+        $tokens = $this->createMock(EmailVerificationTokenRepositoryInterface::class);
+        $tokens->expects(self::never())->method('storeWithinResendLimit');
         $queue = $this->createMock(OutboxInterface::class);
-        $queue->expects(self::never())->method('add');
-        $service = $this->service($users, $this->createStub(EmailVerificationTokenRepositoryInterface::class), $queue);
+        $queue->expects(self::once())->method('add')->with(new AccountExistsEmailMessage(self::EMAIL));
 
-        $this->expectException(DuplicateEmailException::class);
-        $service->execute(self::EMAIL, self::WRONG_PASSWORD);
+        $this->service($users, $tokens, $queue)->execute(self::EMAIL, self::WRONG_PASSWORD);
     }
 
     public function testStopsWhenTheConfirmationResendLimitIsReached(): void
