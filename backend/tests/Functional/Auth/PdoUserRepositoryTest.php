@@ -17,6 +17,8 @@ final class PdoUserRepositoryTest extends TestCase
     private const string EMAIL_PREFIX = 'user-repository-';
     private const string PASSWORD_HASH = 'password-hash';
     private const string MISSING_EMAIL_PREFIX = 'missing-user-';
+    private const string BACKDATE_QUERY = "UPDATE users SET created_at = '2026-01-01 00:00:00' WHERE email = :email";
+    private const string CUTOFF = '2026-02-01 00:00:00';
     private const string VERIFY_QUERY = 'UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = :email';
 
     private PDO $pdo;
@@ -64,6 +66,28 @@ final class PdoUserRepositoryTest extends TestCase
         $this->users->grantMerchantAccess($this->email, new DateTimeImmutable());
 
         self::assertTrue($this->users->findByEmail($this->email)?->isMerchant() ?? false);
+    }
+
+    public function testDeletesOnlyAccountsLeftUnconfirmedSinceBeforeTheCutoff(): void
+    {
+        $recent = TestUserData::uniqueEmail(self::EMAIL_PREFIX);
+        $confirmed = TestUserData::uniqueEmail(self::EMAIL_PREFIX);
+        $this->users->create($this->email, self::PASSWORD_HASH);
+        $this->users->create($recent, self::PASSWORD_HASH);
+        TestUserData::createVerified($this->pdo, $confirmed, self::PASSWORD_HASH);
+        $this->pdo->prepare(self::BACKDATE_QUERY)->execute(['email' => $this->email]);
+        $this->pdo->prepare(self::BACKDATE_QUERY)->execute(['email' => $confirmed]);
+
+        try {
+            $this->users->deleteUnverifiedCreatedBefore(new DateTimeImmutable(self::CUTOFF));
+
+            self::assertNull($this->users->findByEmail($this->email));
+            self::assertNotNull($this->users->findByEmail($recent));
+            self::assertNotNull($this->users->findByEmail($confirmed));
+        } finally {
+            TestUserData::delete($this->pdo, $recent);
+            TestUserData::delete($this->pdo, $confirmed);
+        }
     }
 
     public function testReturnsNullForUnknownEmail(): void

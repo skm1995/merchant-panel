@@ -18,4 +18,10 @@ interface UserRepositoryInterface
      * that already has access stay as they are.
      */
     public function grantMerchantAccess(string $email, DateTimeImmutable $grantedAt): void;
+
+    /**
+     * Deletes accounts whose email address was never confirmed and that were created before
+     * the cutoff, with their confirmation tokens; returns how many were deleted.
+     */
+    public function deleteUnverifiedCreatedBefore(DateTimeImmutable $cutoff): int;
 }

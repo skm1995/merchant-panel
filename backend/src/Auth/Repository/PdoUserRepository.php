@@ -19,6 +19,8 @@ final class PdoUserRepository implements UserRepositoryInterface
     private const string INSERT_QUERY = 'INSERT INTO users (email, password, created_at) VALUES (:email, :password, CURRENT_TIMESTAMP)';
     private const string GRANT_MERCHANT_QUERY = 'UPDATE users SET merchant_since = :granted_at WHERE email = :email AND email_verified_at IS NOT NULL AND merchant_since IS NULL';
     private const string GRANTED_AT_PARAMETER = 'granted_at';
+    private const string DELETE_UNVERIFIED_QUERY = 'DELETE FROM users WHERE email_verified_at IS NULL AND created_at < :cutoff';
+    private const string CUTOFF_PARAMETER = 'cutoff';
     private const string DATE_TIME_FORMAT = 'Y-m-d H:i:s';
     private const string EMAIL_PARAMETER = 'email';
     private const string PASSWORD_PARAMETER = 'password';
@@ -60,5 +62,13 @@ final class PdoUserRepository implements UserRepositoryInterface
             self::GRANTED_AT_PARAMETER => $grantedAt->format(self::DATE_TIME_FORMAT),
             self::EMAIL_PARAMETER => $email,
         ]);
+    }
+
+    public function deleteUnverifiedCreatedBefore(DateTimeImmutable $cutoff): int
+    {
+        $statement = $this->pdo->prepare(self::DELETE_UNVERIFIED_QUERY);
+        $statement->execute([self::CUTOFF_PARAMETER => $cutoff->format(self::DATE_TIME_FORMAT)]);
+
+        return $statement->rowCount();
     }
 }

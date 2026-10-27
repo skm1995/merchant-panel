@@ -27,3 +27,13 @@ for rule in "-p tcp -m tcp --dport 80" "-p tcp -m tcp --dport 443" "-p udp -m ud
         sudo sed -i "0,/^-A INPUT -j REJECT/s//-A INPUT ${rule} -j ACCEPT\n&/" "${rules_file}"
     fi
 done
+
+# Daily maintenance: a database backup, then deleting accounts left unconfirmed for a week.
+# Output goes to the system log under the vanilla-php tag.
+cron_file=/etc/cron.d/vanilla-php-playground
+cron_jobs="SHELL=/bin/bash
+15 3 * * * ${USER} ${HOME}/app/docker/server/backup-database.sh 2>&1 | logger -t vanilla-php
+45 3 * * * ${USER} cd ${HOME}/app && sudo docker compose -f compose.prod.yaml run --rm --no-deps --user www-data php php bin/purge-unconfirmed-accounts.php 2>&1 | logger -t vanilla-php"
+if [ "$(sudo cat "${cron_file}" 2>/dev/null)" != "${cron_jobs}" ]; then
+    echo "${cron_jobs}" | sudo tee "${cron_file}" >/dev/null
+fi

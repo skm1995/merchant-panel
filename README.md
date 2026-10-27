@@ -150,6 +150,12 @@ access to a confirmed account on the server:
 cd ~/app && sudo docker compose -f compose.prod.yaml run --rm php php bin/grant-merchant.php <email>
 ```
 
+Every night cron on the server dumps the database into `~/backups`, keeping a week of
+dumps (`docker/server/backup-database.sh`, which also shows how to restore one), and
+deletes accounts left unconfirmed for a week (`bin/purge-unconfirmed-accounts.php`). Both
+log to the system log under the `vanilla-php` tag. The dumps stay on the same server, so
+they protect against mistakes and corrupted data, not against losing the server.
+
 | GitHub setting | Kind | Purpose |
 | --- | --- | --- |
 | `DEPLOY_HOST`, `DEPLOY_USER`, `APP_DOMAIN` | variables | server address, SSH user, public domain |

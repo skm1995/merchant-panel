@@ -34,4 +34,9 @@ final class MerchantUserRepository implements UserRepositoryInterface
     {
         throw new LogicException(self::READ_ONLY_MESSAGE);
     }
+
+    public function deleteUnverifiedCreatedBefore(DateTimeImmutable $cutoff): int
+    {
+        throw new LogicException(self::READ_ONLY_MESSAGE);
+    }
 }
