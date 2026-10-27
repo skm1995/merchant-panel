@@ -13,6 +13,7 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 - Follow TDD on both sides: write a failing test, make the smallest change that passes it, then refactor with the tests green. Test behavior, including failure paths, not implementation details or declarations.
 - Test security and recovery paths explicitly: GET without side effects, rejected CSRF tokens, and behavior when infrastructure such as the broker fails.
 - Balance DRY and KISS: give each piece of knowledge one owner, but avoid generic frameworks and indirection that obscure a simple flow.
+- Keep `docs/` true to the code in the same commit that changes it: update the architecture, flow, or operations page a change affects, record a new or reversed decision as an ADR in `docs/decisions/`, and move items between the known limitations and the roadmap when a change removes or adds one. Link code by path rather than copying it, so pages stay short and do not drift.
 - Name every function and method after the single thing it does; never combine actions in a name such as `getOrCreate()` or hide a second action behind a simple name.
 
 ## Infrastructure and configuration
