@@ -255,10 +255,6 @@ services:
       file: docker/node/compose.yaml
       service: node
     command: sh -c "[ -d node_modules ] || npm ci; npm run dev"
-    ports:
-      - "127.0.0.1:5173:5173"
-    env_file:
-      - docker/env/frontend.env
     depends_on:
       php:
         condition: service_healthy

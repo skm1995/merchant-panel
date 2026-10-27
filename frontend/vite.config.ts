@@ -2,30 +2,13 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-const API_PREFIX = '/api';
-const API_PROXY_TARGET_VARIABLE = 'API_PROXY_TARGET';
-const TEST_MODE = 'test';
-
 /**
- * The development server forwards API calls to the PHP backend, so the browser sees one
- * origin and the session cookie and CSRF protection work without CORS.
+ * In development Caddy serves the app on one origin: /api/ goes to PHP-FPM and everything
+ * else to this dev server, so the session cookie and CSRF protection work without CORS.
  */
-function apiProxyTarget(): string {
-  const target = process.env[API_PROXY_TARGET_VARIABLE];
-
-  if (target === undefined || target.length === 0) {
-    throw new Error(`Required environment variable "${API_PROXY_TARGET_VARIABLE}" is not set.`);
-  }
-
-  return target;
-}
-
-export default defineConfig(({ command, mode }) => ({
+export default defineConfig({
   plugins: [react()],
-  server:
-    command === 'serve' && mode !== TEST_MODE
-      ? { port: 5173, strictPort: true, proxy: { [API_PREFIX]: apiProxyTarget() } }
-      : {},
+  server: { port: 5173, strictPort: true },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -33,4 +16,4 @@ export default defineConfig(({ command, mode }) => ({
     include: ['src/**/*.test.{ts,tsx}'],
     css: true,
   },
-}));
+});
