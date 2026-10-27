@@ -15,8 +15,13 @@ by path rather than copied, so every claim can be checked against the source.
      typed API client.
    - [Request lifecycle](architecture/request-lifecycle.md): one request followed from the
      browser to the database and back.
-3. Flows (planned): registration, authentication, checkout, payments, the panel, and the
-   legacy replacement, each as a sequence diagram with links to the code.
+3. Flows: what happens, step by step, in each business process.
+   - [Registration and email confirmation](flows/registration.md)
+   - [Authentication and access](flows/authentication.md)
+   - [Cart, checkout, and order expiry](flows/checkout.md)
+   - [Payments and webhooks](flows/payments.md)
+   - [Merchant panel and reports](flows/panel.md)
+   - [Replacing legacy code](flows/legacy.md)
 4. Decisions (planned): one architecture decision record per choice, such as session cookies
    over JWT or the transactional outbox.
 5. Operations (planned): local development, testing, CI/CD, production, observability, and
