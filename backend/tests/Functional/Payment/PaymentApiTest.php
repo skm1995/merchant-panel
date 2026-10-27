@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Tests\Functional\Support\ApiClient;
 use Tests\Functional\Support\TestCartData;
+use Tests\Functional\Support\TestCheckout;
 use Tests\Functional\Support\TestProductData;
 use Tests\Functional\Support\WebhookSigner;
 
@@ -23,9 +24,6 @@ final class PaymentApiTest extends TestCase
     private const string SKU_PREFIX = 'payment-';
     private const string KEY_PREFIX = 'payment-key-';
     private const string EVENT_PREFIX = 'evt-';
-    private const string CARTS_PATH = '/api/v1/carts';
-    private const string ITEM_PATH_FORMAT = '/api/v1/carts/%s/items/%d';
-    private const string CHECKOUT_PATH_FORMAT = '/api/v1/carts/%s/checkout';
     private const string ORDER_PATH_FORMAT = '/api/v1/orders/%s';
     private const string CANCEL_PATH_FORMAT = '/api/v1/orders/%s/cancel';
     private const string PAYMENTS_PATH_FORMAT = '/api/v1/orders/%s/payments';
@@ -33,7 +31,8 @@ final class PaymentApiTest extends TestCase
     private const string WEBHOOK_PATH_FORMAT = '/api/v1/payments/webhooks/%s';
     private const string START_SPECIFICATION_PATH = '/api/v1/orders/{id}/payments';
     private const string WEBHOOK_SPECIFICATION_PATH = '/api/v1/payments/webhooks/{provider}';
-    private const string IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
+    private const string PAYMENT_SPECIFICATION_PATH = '/api/v1/payments/{id}';
+    private const string WRONG_TOKEN = '0000000000000000000000000000000000000000000000000000000000000000';
     private const string FAKEPAY = 'fakepay';
     private const string QUICKPAY = 'quickpay';
     private const string FIRST_VERSION_TAG = '"1"';
@@ -65,11 +64,11 @@ final class PaymentApiTest extends TestCase
 
     public function testStartsPaymentOnceForRepeatedRequests(): void
     {
-        $orderId = $this->placeOrder();
+        $order = $this->placeOrder();
         $key = uniqid(self::KEY_PREFIX, true);
 
-        $first = $this->startPayment($orderId, self::FAKEPAY, $key);
-        $repeated = $this->startPayment($orderId, self::FAKEPAY, $key);
+        $first = $this->startPayment($order, self::FAKEPAY, $key);
+        $repeated = $this->startPayment($order, self::FAKEPAY, $key);
         $payment = ApiClient::json($first);
 
         self::assertSame(ResponseStatusEnum::CREATED->value, $first->getStatusCode());
@@ -80,15 +79,30 @@ final class PaymentApiTest extends TestCase
         self::assertSame($payment['id'], ApiClient::json($repeated)['id']);
     }
 
+    public function testOnlyTheOrderAccessTokenOpensPaymentsOfTheOrder(): void
+    {
+        $order = $this->placeOrder();
+        $payment = ApiClient::json($this->startPayment($order, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
+        $paymentPath = sprintf(self::PAYMENT_PATH_FORMAT, $payment['id']);
+
+        $withoutToken = ApiClient::send(HttpMethodEnum::POST, sprintf(self::PAYMENTS_PATH_FORMAT, $order->orderId), ['provider' => self::FAKEPAY], [
+            HeaderNameEnum::IDEMPOTENCY_KEY->value => uniqid(self::KEY_PREFIX, true),
+        ]);
+        $wrongToken = ApiClient::sendWithQuery($paymentPath, [], [HeaderNameEnum::ORDER_TOKEN->value => self::WRONG_TOKEN]);
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $withoutToken->getStatusCode());
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $wrongToken->getStatusCode());
+        ApiClient::assertMatchesSpecification(self::START_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $withoutToken);
+        ApiClient::assertMatchesSpecification(self::PAYMENT_SPECIFICATION_PATH, HttpMethodEnum::GET->value, $wrongToken);
+    }
+
     public function testRejectsUnknownProviderAndOrdersThatCannotBePaid(): void
     {
-        $orderId = $this->placeOrder();
-        ApiClient::send(HttpMethodEnum::POST, sprintf(self::CANCEL_PATH_FORMAT, $orderId), headers: [
-            HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG,
-        ]);
+        $order = $this->placeOrder();
+        $this->cancel($order);
 
-        $unknownProvider = $this->startPayment($orderId, 'cash', uniqid(self::KEY_PREFIX, true));
-        $cancelledOrder = $this->startPayment($orderId, self::FAKEPAY, uniqid(self::KEY_PREFIX, true));
+        $unknownProvider = $this->startPayment($order, 'cash', uniqid(self::KEY_PREFIX, true));
+        $cancelledOrder = $this->startPayment($order, self::FAKEPAY, uniqid(self::KEY_PREFIX, true));
 
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $unknownProvider->getStatusCode());
         self::assertSame(ResponseStatusEnum::CONFLICT->value, $cancelledOrder->getStatusCode());
@@ -96,8 +110,8 @@ final class PaymentApiTest extends TestCase
 
     public function testSignedWebhookPaysTheOrderAndSellsTheReservedStockOnce(): void
     {
-        $orderId = $this->placeOrder();
-        $payment = ApiClient::json($this->startPayment($orderId, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
+        $order = $this->placeOrder();
+        $payment = ApiClient::json($this->startPayment($order, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
         $payload = $this->fakepayPayload($payment, 'succeeded');
 
         $processed = $this->deliverFakepay($payload);
@@ -106,8 +120,8 @@ final class PaymentApiTest extends TestCase
         ApiClient::assertMatchesSpecification(self::WEBHOOK_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $processed);
         self::assertSame(['status' => 'processed'], ApiClient::json($processed));
         self::assertSame(['status' => 'duplicate'], ApiClient::json($duplicate));
-        self::assertSame('paid', ApiClient::json(ApiClient::get(sprintf(self::ORDER_PATH_FORMAT, $orderId)))['status']);
-        self::assertSame('succeeded', ApiClient::json(ApiClient::get(sprintf(self::PAYMENT_PATH_FORMAT, $payment['id'])))['status']);
+        self::assertSame('paid', $this->show(self::ORDER_PATH_FORMAT, $order->orderId, $order)['status']);
+        self::assertSame('succeeded', $this->show(self::PAYMENT_PATH_FORMAT, (string) $payment['id'], $order)['status']);
         $product = $this->products->findById($this->productId);
         self::assertNotNull($product);
         self::assertSame(self::STOCK - self::QUANTITY, $product->stock);
@@ -116,8 +130,8 @@ final class PaymentApiTest extends TestCase
 
     public function testConcurrentDeliveriesOfOneWebhookAreAppliedOnce(): void
     {
-        $orderId = $this->placeOrder();
-        $payment = ApiClient::json($this->startPayment($orderId, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
+        $order = $this->placeOrder();
+        $payment = ApiClient::json($this->startPayment($order, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
         $payload = $this->fakepayPayload($payment, 'succeeded');
         $delivery = [HttpMethodEnum::POST, sprintf(self::WEBHOOK_PATH_FORMAT, self::FAKEPAY), WebhookSigner::fakepay($payload), $payload];
 
@@ -134,26 +148,24 @@ final class PaymentApiTest extends TestCase
 
     public function testRejectsForgedOrMismatchedWebhooksWithoutChanges(): void
     {
-        $orderId = $this->placeOrder();
-        $payment = ApiClient::json($this->startPayment($orderId, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
+        $order = $this->placeOrder();
+        $payment = ApiClient::json($this->startPayment($order, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
         $payload = $this->fakepayPayload($payment, 'succeeded');
-        $tampered = str_replace('"amount":' . ApiClient::json(ApiClient::get(sprintf(self::PAYMENT_PATH_FORMAT, $payment['id'])))['amount']['amount'], '"amount":1', $payload);
+        $tampered = str_replace('"amount":' . $this->show(self::PAYMENT_PATH_FORMAT, (string) $payment['id'], $order)['amount']['amount'], '"amount":1', $payload);
 
         $forged = ApiClient::sendRaw(HttpMethodEnum::POST, sprintf(self::WEBHOOK_PATH_FORMAT, self::FAKEPAY), $tampered, WebhookSigner::fakepay($payload));
         $mismatched = $this->deliverFakepay($tampered);
 
         self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $forged->getStatusCode());
         self::assertSame(ResponseStatusEnum::UNPROCESSABLE_CONTENT->value, $mismatched->getStatusCode());
-        self::assertSame('pending_payment', ApiClient::json(ApiClient::get(sprintf(self::ORDER_PATH_FORMAT, $orderId)))['status']);
+        self::assertSame('pending_payment', $this->show(self::ORDER_PATH_FORMAT, $order->orderId, $order)['status']);
     }
 
     public function testPaymentForACancelledOrderRequiresARefund(): void
     {
-        $orderId = $this->placeOrder();
-        $payment = ApiClient::json($this->startPayment($orderId, self::QUICKPAY, uniqid(self::KEY_PREFIX, true)));
-        ApiClient::send(HttpMethodEnum::POST, sprintf(self::CANCEL_PATH_FORMAT, $orderId), headers: [
-            HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG,
-        ]);
+        $order = $this->placeOrder();
+        $payment = ApiClient::json($this->startPayment($order, self::QUICKPAY, uniqid(self::KEY_PREFIX, true)));
+        $this->cancel($order);
         $payload = json_encode([
             'event' => ['id' => uniqid(self::EVENT_PREFIX, true)],
             'transaction' => [
@@ -166,34 +178,39 @@ final class PaymentApiTest extends TestCase
         $response = ApiClient::sendRaw(HttpMethodEnum::POST, sprintf(self::WEBHOOK_PATH_FORMAT, self::QUICKPAY), $payload, WebhookSigner::quickpay($payload));
 
         self::assertSame(['status' => 'processed'], ApiClient::json($response));
-        self::assertSame('refund_required', ApiClient::json(ApiClient::get(sprintf(self::PAYMENT_PATH_FORMAT, $payment['id'])))['status']);
+        self::assertSame('refund_required', $this->show(self::PAYMENT_PATH_FORMAT, (string) $payment['id'], $order)['status']);
         self::assertSame(self::STOCK, $this->products->findById($this->productId)?->availableQuantity());
     }
 
-    private function placeOrder(): string
+    private function placeOrder(): TestCheckout
     {
-        $cartId = ApiClient::json(ApiClient::send(HttpMethodEnum::POST, self::CARTS_PATH))['id'];
-        self::assertIsString($cartId);
-        $this->cartIds[] = CartId::fromString($cartId);
-        ApiClient::send(HttpMethodEnum::PUT, sprintf(self::ITEM_PATH_FORMAT, $cartId, $this->productId), ['quantity' => self::QUANTITY]);
-        $orderId = ApiClient::json(ApiClient::send(
-            HttpMethodEnum::POST,
-            sprintf(self::CHECKOUT_PATH_FORMAT, $cartId),
-            headers: [self::IDEMPOTENCY_KEY_HEADER => uniqid(self::KEY_PREFIX, true)],
-        ))['id'];
-        self::assertIsString($orderId);
+        $order = TestCheckout::place($this->productId, self::QUANTITY);
+        $this->cartIds[] = $order->cartId;
 
-        return $orderId;
+        return $order;
     }
 
-    private function startPayment(string $orderId, string $provider, string $key): ResponseInterface
+    private function startPayment(TestCheckout $order, string $provider, string $key): ResponseInterface
     {
         return ApiClient::send(
             HttpMethodEnum::POST,
-            sprintf(self::PAYMENTS_PATH_FORMAT, $orderId),
+            sprintf(self::PAYMENTS_PATH_FORMAT, $order->orderId),
             ['provider' => $provider],
-            [self::IDEMPOTENCY_KEY_HEADER => $key],
+            $order->headers([HeaderNameEnum::IDEMPOTENCY_KEY->value => $key]),
         );
+    }
+
+    /** @return array<string, mixed> */
+    private function show(string $pathFormat, string $id, TestCheckout $order): array
+    {
+        return ApiClient::json(ApiClient::sendWithQuery(sprintf($pathFormat, $id), [], $order->headers()));
+    }
+
+    private function cancel(TestCheckout $order): void
+    {
+        ApiClient::send(HttpMethodEnum::POST, sprintf(self::CANCEL_PATH_FORMAT, $order->orderId), headers: $order->headers([
+            HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG,
+        ]));
     }
 
     /** @param array<string, mixed> $payment */

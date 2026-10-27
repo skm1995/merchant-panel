@@ -235,7 +235,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a payment */
+        /**
+         * Get a payment
+         * @description Needs the access token of the order the payment belongs to.
+         */
         get: operations["getPayment"];
         put?: never;
         post?: never;
@@ -585,6 +588,8 @@ export interface components {
     };
     parameters: {
         CartId: string;
+        /** @description The access token that checkout returned in its X-Order-Token header. The order id alone opens nothing; a wrong token answers 404 as for an unknown order. */
+        OrderToken: string;
         From: string;
         To: string;
         Currency: string;
@@ -860,6 +865,8 @@ export interface operations {
                 headers: {
                     /** @description URL of the order. */
                     Location?: string;
+                    /** @description Access token for the order; send it in X-Order-Token to see, cancel, or pay for it. A repeated checkout returns the same token. */
+                    "X-Order-Token"?: string;
                     /** @description Strong entity tag of the order version, for If-Match. */
                     ETag?: string;
                     [name: string]: unknown;
@@ -879,6 +886,8 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                /** @description The access token that checkout returned in its X-Order-Token header. The order id alone opens nothing; a wrong token answers 404 as for an unknown order. */
+                "X-Order-Token": components["parameters"]["OrderToken"];
                 "If-Match": string;
             };
             path: {
@@ -909,7 +918,10 @@ export interface operations {
     getOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description The access token that checkout returned in its X-Order-Token header. The order id alone opens nothing; a wrong token answers 404 as for an unknown order. */
+                "X-Order-Token": components["parameters"]["OrderToken"];
+            };
             path: {
                 id: string;
             };
@@ -928,6 +940,7 @@ export interface operations {
                     "application/json": components["schemas"]["Order"];
                 };
             };
+            400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
         };
     };
@@ -935,6 +948,8 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                /** @description The access token that checkout returned in its X-Order-Token header. The order id alone opens nothing; a wrong token answers 404 as for an unknown order. */
+                "X-Order-Token": components["parameters"]["OrderToken"];
                 "Idempotency-Key": string;
             };
             path: {
@@ -971,7 +986,10 @@ export interface operations {
     getPayment: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description The access token that checkout returned in its X-Order-Token header. The order id alone opens nothing; a wrong token answers 404 as for an unknown order. */
+                "X-Order-Token": components["parameters"]["OrderToken"];
+            };
             path: {
                 id: string;
             };
@@ -988,6 +1006,7 @@ export interface operations {
                     "application/json": components["schemas"]["Payment"];
                 };
             };
+            400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
         };
     };

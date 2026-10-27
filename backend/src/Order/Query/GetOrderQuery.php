@@ -8,7 +8,7 @@ use App\Order\Entity\OrderId;
 
 final readonly class GetOrderQuery
 {
-    public function __construct(public OrderId $orderId)
+    public function __construct(public OrderId $orderId, public string $accessToken)
     {
     }
 }

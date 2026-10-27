@@ -45,6 +45,17 @@ and follow the existing implementation it names.
 - The only server-rendered page left is the legacy order report; views only produce
   markup and escape output through the shared renderer's helper.
 
+## Guest order access
+
+- Guests have no accounts, so checkout returns an access token in the `X-Order-Token`
+  response header, and reading, cancelling, or paying for the order, and reading its
+  payments, require it in the same request header. The order id alone, which the panel,
+  logs, and URLs show, opens nothing.
+- `OrderAccess` derives the token as an HMAC of the order id with `ORDER_ACCESS_SECRET`,
+  so a repeated checkout returns the same token without storing it. Handlers verify it
+  before anything else; a wrong token answers 404 like an unknown order, and a missing one
+  400.
+
 ## Rate limits
 
 - Routes that attackers can repeat cheaply, such as sign-in, registration, cart creation, and

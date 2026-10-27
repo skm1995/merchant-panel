@@ -9,6 +9,7 @@ use App\Payment\Query\GetPaymentHandler;
 use App\Payment\Query\GetPaymentQuery;
 use App\Payment\Repository\PaymentReadRepositoryInterface;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Payment\PaymentFixtures;
 
 final class GetPaymentHandlerTest extends TestCase
@@ -20,7 +21,7 @@ final class GetPaymentHandlerTest extends TestCase
 
         self::assertSame(
             PaymentFixtures::PAYMENT_ID,
-            new GetPaymentHandler($payments)->handle(new GetPaymentQuery(PaymentFixtures::paymentId()))->id->value,
+            new GetPaymentHandler($payments, OrderFixtures::access())->handle(new GetPaymentQuery(PaymentFixtures::paymentId(), OrderFixtures::accessToken()))->id->value,
         );
     }
 
@@ -30,6 +31,15 @@ final class GetPaymentHandlerTest extends TestCase
         $payments->method('find')->willReturn(null);
 
         $this->expectException(PaymentNotFoundException::class);
-        new GetPaymentHandler($payments)->handle(new GetPaymentQuery(PaymentFixtures::paymentId()));
+        new GetPaymentHandler($payments, OrderFixtures::access())->handle(new GetPaymentQuery(PaymentFixtures::paymentId(), OrderFixtures::accessToken()));
+    }
+
+    public function testHidesThePaymentFromAWrongOrderAccessToken(): void
+    {
+        $payments = $this->createStub(PaymentReadRepositoryInterface::class);
+        $payments->method('find')->willReturn(PaymentFixtures::view());
+
+        $this->expectException(PaymentNotFoundException::class);
+        new GetPaymentHandler($payments, OrderFixtures::access())->handle(new GetPaymentQuery(PaymentFixtures::paymentId(), OrderFixtures::WRONG_ACCESS_TOKEN));
     }
 }

@@ -14,6 +14,7 @@ paths:
           schema:
             type: string
             format: uuid
+        - $ref: 'order.yaml#/parameters/OrderToken'
         - name: Idempotency-Key
           in: header
           required: true
@@ -57,6 +58,7 @@ paths:
     get:
       operationId: getPayment
       summary: Get a payment
+      description: Needs the access token of the order the payment belongs to.
       parameters:
         - name: id
           in: path
@@ -64,6 +66,7 @@ paths:
           schema:
             type: string
             format: uuid
+        - $ref: 'order.yaml#/parameters/OrderToken'
       responses:
         '200':
           description: The payment.
@@ -71,6 +74,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/schemas/Payment'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
         '404':
           $ref: 'shared.yaml#/responses/Problem'
   webhook:

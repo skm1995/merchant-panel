@@ -22,6 +22,7 @@ final class StartPaymentRequestTest extends TestCase
         $command = StartPaymentRequest::toCommand(self::request('{"provider":"quickpay"}', true));
 
         self::assertSame(OrderFixtures::ORDER_ID, $command->orderId->value);
+        self::assertSame(OrderFixtures::accessToken(), $command->orderAccessToken);
         self::assertSame(PaymentProviderEnum::QUICKPAY, $command->provider);
         self::assertSame(PaymentFixtures::IDEMPOTENCY_KEY, $command->idempotencyKey);
     }
@@ -45,7 +46,10 @@ final class StartPaymentRequestTest extends TestCase
         return new Request(
             HttpMethodEnum::POST->value,
             self::PATH,
-            headers: $withKey ? ['idempotency-key' => PaymentFixtures::IDEMPOTENCY_KEY] : [],
+            headers: [
+                'x-order-token' => OrderFixtures::accessToken(),
+                ...($withKey ? ['idempotency-key' => PaymentFixtures::IDEMPOTENCY_KEY] : []),
+            ],
             body: $body,
         )->withRouteParameters(['id' => OrderFixtures::ORDER_ID]);
     }

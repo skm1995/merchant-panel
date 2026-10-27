@@ -25,6 +25,7 @@ final class CheckoutApiTest extends TestCase
     private const string ITEM_PATH_FORMAT = '/api/v1/carts/%s/items/%d';
     private const string CHECKOUT_PATH_FORMAT = '/api/v1/carts/%s/checkout';
     private const string ORDER_PATH_FORMAT = '/api/v1/orders/%s';
+    private const string WRONG_TOKEN = '0000000000000000000000000000000000000000000000000000000000000000';
     private const string CHECKOUT_SPECIFICATION_PATH = '/api/v1/carts/{id}/checkout';
     private const string ORDER_SPECIFICATION_PATH = '/api/v1/orders/{id}';
     private const string IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
@@ -57,12 +58,20 @@ final class CheckoutApiTest extends TestCase
 
         $response = $this->checkout($cartId, self::uniqueKey());
         $order = ApiClient::json($response);
-        $shown = ApiClient::get(sprintf(self::ORDER_PATH_FORMAT, $order['id']));
+        $token = $response->getHeaderLine(HeaderNameEnum::ORDER_TOKEN->value);
+        $shown = ApiClient::sendWithQuery(sprintf(self::ORDER_PATH_FORMAT, $order['id']), [], [HeaderNameEnum::ORDER_TOKEN->value => $token]);
+        $withoutToken = ApiClient::get(sprintf(self::ORDER_PATH_FORMAT, $order['id']));
+        $wrongToken = ApiClient::sendWithQuery(sprintf(self::ORDER_PATH_FORMAT, $order['id']), [], [HeaderNameEnum::ORDER_TOKEN->value => self::WRONG_TOKEN]);
 
         self::assertSame(ResponseStatusEnum::CREATED->value, $response->getStatusCode());
         self::assertSame(sprintf(self::ORDER_PATH_FORMAT, $order['id']), $response->getHeaderLine(HeaderNameEnum::LOCATION->value));
         ApiClient::assertMatchesSpecification(self::CHECKOUT_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $response);
         ApiClient::assertMatchesSpecification(self::ORDER_SPECIFICATION_PATH, HttpMethodEnum::GET->value, $shown);
+        self::assertSame(ResponseStatusEnum::OK->value, $shown->getStatusCode());
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $withoutToken->getStatusCode(), 'The order id alone opens nothing.');
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $wrongToken->getStatusCode());
+        ApiClient::assertMatchesSpecification(self::ORDER_SPECIFICATION_PATH, HttpMethodEnum::GET->value, $withoutToken);
+        ApiClient::assertMatchesSpecification(self::ORDER_SPECIFICATION_PATH, HttpMethodEnum::GET->value, $wrongToken);
         self::assertSame(['amount' => (string) (2 * self::PRICE_IN_GROSZE), 'currency' => 'PLN'], $order['total']);
         self::assertSame(3, $this->products->findById($productId)?->availableQuantity());
     }
@@ -73,11 +82,13 @@ final class CheckoutApiTest extends TestCase
         $cartId = $this->cartWith([$productId => 1]);
         $key = self::uniqueKey();
 
-        $first = ApiClient::json($this->checkout($cartId, $key));
+        $firstResponse = $this->checkout($cartId, $key);
+        $first = ApiClient::json($firstResponse);
         $repeated = $this->checkout($cartId, $key);
 
         self::assertSame(ResponseStatusEnum::CREATED->value, $repeated->getStatusCode());
         self::assertSame($first['id'], ApiClient::json($repeated)['id']);
+        self::assertSame($firstResponse->getHeaderLine(HeaderNameEnum::ORDER_TOKEN->value), $repeated->getHeaderLine(HeaderNameEnum::ORDER_TOKEN->value));
         self::assertSame(4, $this->products->findById($productId)?->availableQuantity());
     }
 

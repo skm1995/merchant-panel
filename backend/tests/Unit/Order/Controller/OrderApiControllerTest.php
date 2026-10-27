@@ -42,6 +42,7 @@ final class OrderApiControllerTest extends TestCase
     private const string ORDER_PATH = '/api/v1/orders/' . OrderFixtures::ORDER_ID;
     private const int RESERVATION_SECONDS = 900;
     private const string PANEL_ORDERS_PATH = '/api/v1/panel/orders';
+    private const string ORDER_TOKEN_HEADER = 'x-order-token';
 
     protected function tearDown(): void
     {
@@ -59,14 +60,31 @@ final class OrderApiControllerTest extends TestCase
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $body['status']);
     }
 
-    public function testShowsOrder(): void
+    public function testShowsOrderToTheHolderOfItsAccessToken(): void
     {
         $body = $this->dispatch(
-            new Request(HttpMethodEnum::GET->value, self::ORDER_PATH),
+            new Request(HttpMethodEnum::GET->value, self::ORDER_PATH, headers: [self::ORDER_TOKEN_HEADER => OrderFixtures::accessToken()]),
             $this->createStub(CartRepositoryInterface::class),
         );
 
         self::assertSame(OrderFixtures::ORDER_ID, $body['id']);
+    }
+
+    public function testHidesOrderFromAWrongAccessToken(): void
+    {
+        $body = $this->dispatch(
+            new Request(HttpMethodEnum::GET->value, self::ORDER_PATH, headers: [self::ORDER_TOKEN_HEADER => OrderFixtures::WRONG_ACCESS_TOKEN]),
+            $this->createStub(CartRepositoryInterface::class),
+        );
+
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $body['status']);
+    }
+
+    public function testShowingAnOrderWithoutItsAccessTokenIsBadRequest(): void
+    {
+        $body = $this->dispatch(new Request(HttpMethodEnum::GET->value, self::ORDER_PATH), $this->createStub(CartRepositoryInterface::class));
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $body['status']);
     }
 
     public function testListsOrdersOnlyForSignedInMerchants(): void
@@ -112,10 +130,11 @@ final class OrderApiControllerTest extends TestCase
                 $this->createStub(OutboxInterface::class),
                 $transactions,
                 new FrozenClock(),
+                OrderFixtures::access(),
                 self::RESERVATION_SECONDS,
             ),
-            new GetOrderHandler($readOrders),
-            new CancelOrderHandler($orders, new OrderStatusChange($orders, $stock), $transactions),
+            new GetOrderHandler($readOrders, OrderFixtures::access()),
+            new CancelOrderHandler($orders, new OrderStatusChange($orders, $stock), $transactions, OrderFixtures::access()),
             new ListOrdersHandler($readOrders),
             HttpHarness::responder(),
         ));

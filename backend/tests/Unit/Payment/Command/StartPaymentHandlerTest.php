@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Payment\Command;
 
 use App\Order\Enum\OrderStatusEnum;
+use App\Order\Exception\OrderNotFoundException;
 use App\Order\Query\GetOrderHandler;
 use App\Order\ReadModel\OrderView;
 use App\Order\Repository\OrderReadRepositoryInterface;
@@ -85,9 +86,22 @@ final class StartPaymentHandlerTest extends TestCase
         $this->handler($payments, $gateway, OrderStatusEnum::CANCELLED)->handle(self::command());
     }
 
+    public function testRefusesAWrongOrderAccessTokenEvenForARepeatedKey(): void
+    {
+        $payments = $this->createMock(PaymentRepositoryInterface::class);
+        $payments->expects(self::never())->method('findStart');
+        $gateway = $this->createMock(PaymentGatewayInterface::class);
+        $gateway->expects(self::never())->method('createPayment');
+
+        $this->expectException(OrderNotFoundException::class);
+        $this->handler($payments, $gateway)->handle(
+            new StartPaymentCommand(OrderFixtures::orderId(), OrderFixtures::WRONG_ACCESS_TOKEN, PaymentProviderEnum::FAKEPAY, PaymentFixtures::IDEMPOTENCY_KEY),
+        );
+    }
+
     private static function command(): StartPaymentCommand
     {
-        return new StartPaymentCommand(OrderFixtures::orderId(), PaymentProviderEnum::FAKEPAY, PaymentFixtures::IDEMPOTENCY_KEY);
+        return new StartPaymentCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), PaymentProviderEnum::FAKEPAY, PaymentFixtures::IDEMPOTENCY_KEY);
     }
 
     private function handler(
@@ -109,6 +123,6 @@ final class StartPaymentHandlerTest extends TestCase
         $gateways = $this->createStub(PaymentGatewayFactoryInterface::class);
         $gateways->method('create')->willReturn($gateway);
 
-        return new StartPaymentHandler($payments, new GetOrderHandler($orders), $gateways);
+        return new StartPaymentHandler($payments, new GetOrderHandler($orders, OrderFixtures::access()), $gateways, OrderFixtures::access());
     }
 }

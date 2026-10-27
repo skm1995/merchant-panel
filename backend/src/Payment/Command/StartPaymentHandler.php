@@ -7,6 +7,7 @@ namespace App\Payment\Command;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\Query\GetOrderHandler;
 use App\Order\Query\GetOrderQuery;
+use App\Order\Service\OrderAccess;
 use App\Payment\Entity\Payment;
 use App\Payment\Entity\PaymentId;
 use App\Payment\Entity\PaymentStart;
@@ -29,18 +30,21 @@ final readonly class StartPaymentHandler
         private PaymentRepositoryInterface $payments,
         private GetOrderHandler $orders,
         private PaymentGatewayFactoryInterface $gateways,
+        private OrderAccess $access,
     ) {
     }
 
     public function handle(StartPaymentCommand $command): PaymentId
     {
+        $this->access->verify($command->orderId, $command->orderAccessToken);
+
         $existing = $this->payments->findStart($command->idempotencyKey);
 
         if ($existing !== null) {
             return self::replay($existing, $command);
         }
 
-        $order = $this->orders->handle(new GetOrderQuery($command->orderId));
+        $order = $this->orders->handle(new GetOrderQuery($command->orderId, $command->orderAccessToken));
 
         if (!$order->status->canTransitionTo(OrderStatusEnum::PAID)) {
             throw new OrderNotPayableException();

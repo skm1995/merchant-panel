@@ -84,12 +84,12 @@ export function checkout() {
     return;
   }
 
-  pay(order.json());
+  pay(order.json(), order.headers['X-Order-Token']);
 }
 
-function pay(order) {
+function pay(order, accessToken) {
   const payment = http.post(`${BASE_URL}/api/v1/orders/${order.id}/payments`, JSON.stringify({ provider: 'fakepay' }), {
-    headers: { ...JSON_HEADERS, 'Idempotency-Key': `${order.id}-payment` },
+    headers: { ...JSON_HEADERS, 'Idempotency-Key': `${order.id}-payment`, 'X-Order-Token': accessToken },
     tags: { name: 'start payment' },
   });
 

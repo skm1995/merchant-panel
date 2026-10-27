@@ -35,7 +35,7 @@ final class CancelOrderHandlerTest extends TestCase
         $products = $this->createMock(ProductRepositoryInterface::class);
         $products->expects(self::once())->method('release')->with(5, 2)->willReturn(true);
 
-        $this->handler($orders, $products)->handle(new CancelOrderCommand(OrderFixtures::orderId(), self::VERSION));
+        $this->handler($orders, $products)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), self::VERSION));
     }
 
     public function testStaleVersionIsRejectedBeforeAnyChange(): void
@@ -45,7 +45,7 @@ final class CancelOrderHandlerTest extends TestCase
         $orders->expects(self::never())->method('transition');
 
         $this->expectException(OrderVersionMismatchException::class);
-        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), self::VERSION - 1));
+        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), self::VERSION - 1));
     }
 
     public function testLosingTheConditionalUpdateRaceIsAVersionMismatch(): void
@@ -57,7 +57,7 @@ final class CancelOrderHandlerTest extends TestCase
         $products->expects(self::never())->method('release');
 
         $this->expectException(OrderVersionMismatchException::class);
-        $this->handler($orders, $products)->handle(new CancelOrderCommand(OrderFixtures::orderId(), self::VERSION));
+        $this->handler($orders, $products)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), self::VERSION));
     }
 
     public function testPaidOrderCannotBeCancelled(): void
@@ -66,7 +66,16 @@ final class CancelOrderHandlerTest extends TestCase
         $orders->method('findState')->willReturn(self::state(OrderStatusEnum::PAID));
 
         $this->expectException(InvalidOrderTransitionException::class);
-        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), self::VERSION));
+        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), self::VERSION));
+    }
+
+    public function testRefusesAWrongAccessTokenBeforeLookingTheOrderUp(): void
+    {
+        $orders = $this->createMock(OrderRepositoryInterface::class);
+        $orders->expects(self::never())->method('findState');
+
+        $this->expectException(OrderNotFoundException::class);
+        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::WRONG_ACCESS_TOKEN, self::VERSION));
     }
 
     public function testReportsMissingOrder(): void
@@ -75,7 +84,7 @@ final class CancelOrderHandlerTest extends TestCase
         $orders->method('findState')->willReturn(null);
 
         $this->expectException(OrderNotFoundException::class);
-        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), self::VERSION));
+        $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), self::VERSION));
     }
 
     private static function state(OrderStatusEnum $status): OrderState
@@ -92,6 +101,7 @@ final class CancelOrderHandlerTest extends TestCase
                 new StockReservation($products ?? $this->createStub(ProductRepositoryInterface::class), $this->createStub(OutboxInterface::class), new FrozenClock()),
             ),
             new ImmediateTransactionRunner(),
+            OrderFixtures::access(),
         );
     }
 }

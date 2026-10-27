@@ -8,7 +8,7 @@ use App\Payment\Entity\PaymentId;
 
 final readonly class GetPaymentQuery
 {
-    public function __construct(public PaymentId $paymentId)
+    public function __construct(public PaymentId $paymentId, public string $orderAccessToken)
     {
     }
 }

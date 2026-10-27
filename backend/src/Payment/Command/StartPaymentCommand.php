@@ -11,6 +11,7 @@ final readonly class StartPaymentCommand
 {
     public function __construct(
         public OrderId $orderId,
+        public string $orderAccessToken,
         public PaymentProviderEnum $provider,
         public string $idempotencyKey,
     ) {

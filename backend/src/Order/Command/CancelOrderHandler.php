@@ -9,6 +9,7 @@ use App\Order\Exception\InvalidOrderTransitionException;
 use App\Order\Exception\OrderNotFoundException;
 use App\Order\Exception\OrderVersionMismatchException;
 use App\Order\Repository\OrderRepositoryInterface;
+use App\Order\Service\OrderAccess;
 use App\Order\Service\OrderStatusChange;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
@@ -23,11 +24,14 @@ final readonly class CancelOrderHandler
         private OrderRepositoryInterface $orders,
         private OrderStatusChange $statusChange,
         private TransactionRunnerInterface $transactions,
+        private OrderAccess $access,
     ) {
     }
 
     public function handle(CancelOrderCommand $command): void
     {
+        $this->access->verify($command->orderId, $command->accessToken);
+
         $this->transactions->run(function () use ($command): void {
             $order = $this->orders->findState($command->orderId) ?? throw new OrderNotFoundException();
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Payment\Request;
 
 use App\Order\Entity\OrderId;
+use App\Order\Request\OrderAccessTokenHeader;
 use App\Payment\Command\StartPaymentCommand;
 use App\Payment\Enum\PaymentProviderEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
@@ -23,6 +24,7 @@ final class StartPaymentRequest
 
         return new StartPaymentCommand(
             OrderId::fromString($request->routeParameter(self::ORDER_ID_PARAMETER)),
+            OrderAccessTokenHeader::read($request),
             (is_string($provider) ? PaymentProviderEnum::tryFrom($provider) : null)
                 ?? throw new InvalidRequestException(self::INVALID_PROVIDER_MESSAGE),
             IdempotencyKey::parse($request),

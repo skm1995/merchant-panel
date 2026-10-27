@@ -12,23 +12,21 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use PDO;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
 use Tests\Functional\Support\ApiClient;
 use Tests\Functional\Support\TestCartData;
+use Tests\Functional\Support\TestCheckout;
 use Tests\Functional\Support\TestProductData;
 
 final class OrderCancellationApiTest extends TestCase
 {
     private const string SKU_PREFIX = 'cancel-';
-    private const string KEY_PREFIX = 'cancel-key-';
-    private const string CARTS_PATH = '/api/v1/carts';
-    private const string ITEM_PATH_FORMAT = '/api/v1/carts/%s/items/%d';
-    private const string CHECKOUT_PATH_FORMAT = '/api/v1/carts/%s/checkout';
     private const string ORDER_PATH_FORMAT = '/api/v1/orders/%s';
     private const string CANCEL_PATH_FORMAT = '/api/v1/orders/%s/cancel';
     private const string CANCEL_SPECIFICATION_PATH = '/api/v1/orders/{id}/cancel';
     private const string FIRST_VERSION_TAG = '"1"';
     private const string SECOND_VERSION_TAG = '"2"';
-    private const string IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
+    private const string WRONG_TOKEN = '0000000000000000000000000000000000000000000000000000000000000000';
     private const int PRICE_IN_GROSZE = 1000;
     private const int STOCK = 5;
     private const int QUANTITY = 2;
@@ -55,14 +53,14 @@ final class OrderCancellationApiTest extends TestCase
     public function testCancellationRequiresTheCurrentEntityTagAndReleasesStock(): void
     {
         [$productId] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, self::STOCK);
-        $orderId = $this->placeOrder($productId);
-        $cancelPath = sprintf(self::CANCEL_PATH_FORMAT, $orderId);
+        $order = $this->placeOrder($productId);
+        $cancelPath = sprintf(self::CANCEL_PATH_FORMAT, $order->orderId);
 
-        $shown = ApiClient::get(sprintf(self::ORDER_PATH_FORMAT, $orderId));
-        $withoutPrecondition = ApiClient::send(HttpMethodEnum::POST, $cancelPath);
-        $stale = $this->cancel($cancelPath, self::SECOND_VERSION_TAG);
-        $cancelled = $this->cancel($cancelPath, self::FIRST_VERSION_TAG);
-        $again = $this->cancel($cancelPath, self::SECOND_VERSION_TAG);
+        $shown = ApiClient::sendWithQuery(sprintf(self::ORDER_PATH_FORMAT, $order->orderId), [], $order->headers());
+        $withoutPrecondition = ApiClient::send(HttpMethodEnum::POST, $cancelPath, headers: $order->headers());
+        $stale = $this->cancel($order, self::SECOND_VERSION_TAG);
+        $cancelled = $this->cancel($order, self::FIRST_VERSION_TAG);
+        $again = $this->cancel($order, self::SECOND_VERSION_TAG);
 
         self::assertSame(self::FIRST_VERSION_TAG, $shown->getHeaderLine(HeaderNameEnum::ETAG->value));
         self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, $withoutPrecondition->getStatusCode());
@@ -80,8 +78,8 @@ final class OrderCancellationApiTest extends TestCase
     public function testConcurrentCancellationsWithTheSameTagChangeTheOrderOnce(): void
     {
         [$productId] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, self::STOCK);
-        $cancelPath = sprintf(self::CANCEL_PATH_FORMAT, $this->placeOrder($productId));
-        $request = [HttpMethodEnum::POST, $cancelPath, [HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG]];
+        $order = $this->placeOrder($productId);
+        $request = [HttpMethodEnum::POST, sprintf(self::CANCEL_PATH_FORMAT, $order->orderId), $order->headers([HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG])];
 
         $statuses = array_count_values(array_map(
             static fn ($response): int => $response->getStatusCode(),
@@ -93,24 +91,40 @@ final class OrderCancellationApiTest extends TestCase
         self::assertSame(0, $this->products->findById($productId)?->reserved);
     }
 
-    private function placeOrder(int $productId): string
+    public function testTheOrderIdAloneCannotCancelTheOrder(): void
     {
-        $cartId = ApiClient::json(ApiClient::send(HttpMethodEnum::POST, self::CARTS_PATH))['id'];
-        self::assertIsString($cartId);
-        $this->cartIds[] = CartId::fromString($cartId);
-        ApiClient::send(HttpMethodEnum::PUT, sprintf(self::ITEM_PATH_FORMAT, $cartId, $productId), ['quantity' => self::QUANTITY]);
-        $orderId = ApiClient::json(ApiClient::send(
-            HttpMethodEnum::POST,
-            sprintf(self::CHECKOUT_PATH_FORMAT, $cartId),
-            headers: [self::IDEMPOTENCY_KEY_HEADER => uniqid(self::KEY_PREFIX, true)],
-        ))['id'];
-        self::assertIsString($orderId);
+        [$productId] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, self::STOCK);
+        $order = $this->placeOrder($productId);
+        $cancelPath = sprintf(self::CANCEL_PATH_FORMAT, $order->orderId);
 
-        return $orderId;
+        $withoutToken = ApiClient::send(HttpMethodEnum::POST, $cancelPath, headers: [HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG]);
+        $wrongToken = ApiClient::send(HttpMethodEnum::POST, $cancelPath, headers: [
+            HeaderNameEnum::IF_MATCH->value => self::FIRST_VERSION_TAG,
+            HeaderNameEnum::ORDER_TOKEN->value => self::WRONG_TOKEN,
+        ]);
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $withoutToken->getStatusCode());
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $wrongToken->getStatusCode());
+        self::assertSame(self::STOCK - self::QUANTITY, $this->products->findById($productId)?->availableQuantity());
+        foreach ([$withoutToken, $wrongToken] as $response) {
+            ApiClient::assertMatchesSpecification(self::CANCEL_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $response);
+        }
     }
 
-    private function cancel(string $path, string $entityTag): \Psr\Http\Message\ResponseInterface
+    private function placeOrder(int $productId): TestCheckout
     {
-        return ApiClient::send(HttpMethodEnum::POST, $path, headers: [HeaderNameEnum::IF_MATCH->value => $entityTag]);
+        $order = TestCheckout::place($productId, self::QUANTITY);
+        $this->cartIds[] = $order->cartId;
+
+        return $order;
+    }
+
+    private function cancel(TestCheckout $order, string $entityTag): ResponseInterface
+    {
+        return ApiClient::send(
+            HttpMethodEnum::POST,
+            sprintf(self::CANCEL_PATH_FORMAT, $order->orderId),
+            headers: $order->headers([HeaderNameEnum::IF_MATCH->value => $entityTag]),
+        );
     }
 }

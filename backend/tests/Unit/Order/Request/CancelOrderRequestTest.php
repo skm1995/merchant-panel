@@ -6,6 +6,7 @@ namespace Tests\Unit\Order\Request;
 
 use App\Order\Request\CancelOrderRequest;
 use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\Request;
 use PHPUnit\Framework\TestCase;
@@ -17,9 +18,10 @@ final class CancelOrderRequestTest extends TestCase
 
     public function testReadsOrderIdAndExpectedVersion(): void
     {
-        $command = CancelOrderRequest::toCommand(self::request(['if-match' => '"4"']));
+        $command = CancelOrderRequest::toCommand(self::request(['if-match' => '"4"', 'x-order-token' => OrderFixtures::accessToken()]));
 
         self::assertSame(OrderFixtures::ORDER_ID, $command->orderId->value);
+        self::assertSame(OrderFixtures::accessToken(), $command->accessToken);
         self::assertSame(4, $command->expectedVersion);
     }
 
@@ -27,7 +29,14 @@ final class CancelOrderRequestTest extends TestCase
     {
         $this->expectException(PreconditionRequiredException::class);
 
-        CancelOrderRequest::toCommand(self::request([]));
+        CancelOrderRequest::toCommand(self::request(['x-order-token' => OrderFixtures::accessToken()]));
+    }
+
+    public function testRequiresTheOrderAccessToken(): void
+    {
+        $this->expectException(InvalidRequestException::class);
+
+        CancelOrderRequest::toCommand(self::request(['if-match' => '"4"']));
     }
 
     /** @param array<string, string> $headers */

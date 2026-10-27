@@ -55,11 +55,11 @@ final class PlaceOrderHandlerTest extends TestCase
         $products = $this->createMock(ProductRepositoryInterface::class);
         $products->method('lockForUpdate')->willReturn([ProductFactory::create(self::PRODUCT_ID)]);
         $products->expects(self::once())->method('reserve')->with(self::PRODUCT_ID, self::QUANTITY)->willReturn(true);
-        $placed = null;
+        $stored = null;
         $orders = $this->createMock(OrderRepositoryInterface::class);
         $orders->method('findPlacement')->willReturn(null);
-        $orders->expects(self::once())->method('add')->willReturnCallback(static function (Order $order) use (&$placed): void {
-            $placed = $order;
+        $orders->expects(self::once())->method('add')->willReturnCallback(static function (Order $order) use (&$stored): void {
+            $stored = $order;
         });
 
         $scheduled = [];
@@ -70,15 +70,16 @@ final class PlaceOrderHandlerTest extends TestCase
             },
         );
 
-        $orderId = $this->handler($carts, $products, $orders, $outbox)->handle(self::command());
+        $placed = $this->handler($carts, $products, $orders, $outbox)->handle(self::command());
 
         $expiresAt = new DateTimeImmutable(self::NOW)->modify(sprintf('+%d seconds', self::RESERVATION_SECONDS));
-        self::assertInstanceOf(Order::class, $placed);
-        self::assertSame($orderId->value, $placed->id->value);
-        self::assertTrue(Money::PLN(2 * 1999)->equals($placed->total()));
-        self::assertEquals($expiresAt, $placed->reservationExpiresAt);
+        self::assertInstanceOf(Order::class, $stored);
+        self::assertSame($placed->orderId->value, $stored->id->value);
+        self::assertSame(OrderFixtures::access()->tokenFor($stored->id), $placed->accessToken);
+        self::assertTrue(Money::PLN(2 * 1999)->equals($stored->total()));
+        self::assertEquals($expiresAt, $stored->reservationExpiresAt);
         self::assertInstanceOf(ExpireOrderReservationCommand::class, $scheduled[0]);
-        self::assertSame($orderId->value, $scheduled[0]->orderId->value);
+        self::assertSame($placed->orderId->value, $scheduled[0]->orderId->value);
         self::assertEquals($expiresAt, $scheduled[1]);
         self::assertSame(IsolationLevelEnum::READ_COMMITTED, $this->transactions->lastIsolationLevel);
     }
@@ -93,9 +94,10 @@ final class PlaceOrderHandlerTest extends TestCase
             ->willReturn(new OrderPlacement(OrderFixtures::orderId(), CartFixtures::cartId()));
         $orders->expects(self::never())->method('add');
 
-        $orderId = $this->handler($carts, $products, $orders)->handle(self::command());
+        $placed = $this->handler($carts, $products, $orders)->handle(self::command());
 
-        self::assertSame(OrderFixtures::ORDER_ID, $orderId->value);
+        self::assertSame(OrderFixtures::ORDER_ID, $placed->orderId->value);
+        self::assertSame(OrderFixtures::accessToken(), $placed->accessToken, 'A repeated checkout gets the same token again.');
     }
 
     public function testKeyUsedForAnotherCartIsRejected(): void
@@ -174,6 +176,7 @@ final class PlaceOrderHandlerTest extends TestCase
             $outbox ?? $this->createStub(OutboxInterface::class),
             $this->transactions,
             new FrozenClock(self::NOW),
+            OrderFixtures::access(),
             self::RESERVATION_SECONDS,
         );
     }

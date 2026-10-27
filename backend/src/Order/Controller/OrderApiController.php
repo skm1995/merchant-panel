@@ -23,10 +23,12 @@ use App\Order\Query\ListOrdersHandler;
 use App\Order\ReadModel\OrderView;
 use App\Order\Request\CancelOrderRequest;
 use App\Order\Request\ListOrdersRequest;
+use App\Order\Request\OrderAccessTokenHeader;
 use App\Order\Request\PlaceOrderRequest;
 use App\Order\Response\OrderResponse;
 use App\Order\Response\OrderSummaryPageResponse;
 use App\Shared\Http\EntityTag;
+use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
@@ -63,12 +65,13 @@ final readonly class OrderApiController
     #[MapException(IdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function checkout(Request $request): void
     {
-        $orderId = $this->placeOrder->handle(PlaceOrderRequest::toCommand($request));
-        $order = $this->getOrder->handle(new GetOrderQuery($orderId));
+        $placed = $this->placeOrder->handle(PlaceOrderRequest::toCommand($request));
+        $order = $this->getOrder->handle(new GetOrderQuery($placed->orderId, $placed->accessToken));
 
+        $this->responder->sendHeader(HeaderNameEnum::ORDER_TOKEN, $placed->accessToken);
         $this->responder->created(
             OrderResponse::fromView($order),
-            sprintf(self::ORDER_LOCATION_FORMAT, $orderId->value),
+            sprintf(self::ORDER_LOCATION_FORMAT, $placed->orderId->value),
             self::entityTag($order),
         );
     }
@@ -78,7 +81,7 @@ final readonly class OrderApiController
     public function show(Request $request): void
     {
         $orderId = OrderId::fromString($request->routeParameter(self::ID_PARAMETER));
-        $order = $this->getOrder->handle(new GetOrderQuery($orderId));
+        $order = $this->getOrder->handle(new GetOrderQuery($orderId, OrderAccessTokenHeader::read($request)));
 
         $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
     }
@@ -91,7 +94,7 @@ final readonly class OrderApiController
     {
         $command = CancelOrderRequest::toCommand($request);
         $this->cancelOrder->handle($command);
-        $order = $this->getOrder->handle(new GetOrderQuery($command->orderId));
+        $order = $this->getOrder->handle(new GetOrderQuery($command->orderId, $command->accessToken));
 
         $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
     }

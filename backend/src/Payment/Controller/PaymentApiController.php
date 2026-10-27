@@ -6,6 +6,7 @@ namespace App\Payment\Controller;
 
 use App\Order\Entity\OrderId;
 use App\Order\Exception\OrderNotFoundException;
+use App\Order\Request\OrderAccessTokenHeader;
 use App\Payment\Command\HandlePaymentWebhookHandler;
 use App\Payment\Command\StartPaymentHandler;
 use App\Payment\Entity\PaymentId;
@@ -51,8 +52,9 @@ final readonly class PaymentApiController
     #[MapException(PaymentIdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function start(Request $request): void
     {
-        $paymentId = $this->startPayment->handle(StartPaymentRequest::toCommand($request));
-        $payment = $this->getPayment->handle(new GetPaymentQuery($paymentId));
+        $command = StartPaymentRequest::toCommand($request);
+        $paymentId = $this->startPayment->handle($command);
+        $payment = $this->getPayment->handle(new GetPaymentQuery($paymentId, $command->orderAccessToken));
 
         $this->responder->created(PaymentResponse::fromView($payment), sprintf(self::PAYMENT_LOCATION_FORMAT, $paymentId->value));
     }
@@ -63,7 +65,7 @@ final readonly class PaymentApiController
     {
         $paymentId = PaymentId::fromString($request->routeParameter(self::ID_PARAMETER));
 
-        $this->responder->json(PaymentResponse::fromView($this->getPayment->handle(new GetPaymentQuery($paymentId))));
+        $this->responder->json(PaymentResponse::fromView($this->getPayment->handle(new GetPaymentQuery($paymentId, OrderAccessTokenHeader::read($request)))));
     }
 
     #[Route(HttpMethodEnum::POST, self::WEBHOOK_ROUTE_PATH)]

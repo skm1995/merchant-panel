@@ -12,6 +12,7 @@ use App\Order\Entity\OrderId;
 use App\Order\Entity\OrderLine;
 use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Order\Repository\OrderRepositoryInterface;
+use App\Order\Service\OrderAccess;
 use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
 use App\Shared\DependencyInjection\Env;
@@ -37,16 +38,19 @@ final readonly class PlaceOrderHandler
         private OutboxInterface $outbox,
         private TransactionRunnerInterface $transactions,
         private ClockInterface $clock,
+        private OrderAccess $access,
         #[Env('ORDER_RESERVATION_SECONDS')] private readonly int $reservationSeconds,
     ) {
     }
 
-    public function handle(PlaceOrderCommand $command): OrderId
+    public function handle(PlaceOrderCommand $command): PlacedOrder
     {
-        return $this->transactions->run(
+        $orderId = $this->transactions->run(
             fn (): OrderId => $this->place($command),
             IsolationLevelEnum::READ_COMMITTED,
         );
+
+        return new PlacedOrder($orderId, $this->access->tokenFor($orderId));
     }
 
     private function place(PlaceOrderCommand $command): OrderId

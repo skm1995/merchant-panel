@@ -23,6 +23,7 @@ final class CancelOrderRequest
 
         return new CancelOrderCommand(
             OrderId::fromString($request->routeParameter(self::ORDER_ID_PARAMETER)),
+            OrderAccessTokenHeader::read($request),
             EntityTag::fromHeader($ifMatch)->version,
         );
     }

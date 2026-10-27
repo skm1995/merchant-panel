@@ -8,7 +8,7 @@ use App\Order\Entity\OrderId;
 
 final readonly class CancelOrderCommand
 {
-    public function __construct(public OrderId $orderId, public int $expectedVersion)
+    public function __construct(public OrderId $orderId, public string $accessToken, public int $expectedVersion)
     {
     }
 }

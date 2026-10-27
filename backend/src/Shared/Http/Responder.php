@@ -118,6 +118,14 @@ final class Responder
         return htmlspecialchars($value, ENT_QUOTES, CharacterEncodingEnum::UTF8->value);
     }
 
+    /**
+     * Adds a response header that the other methods do not write, before the body is written.
+     */
+    public function sendHeader(HeaderNameEnum $name, string $value): void
+    {
+        self::header($name, $value);
+    }
+
     private static function header(HeaderNameEnum $name, string $value): void
     {
         header(sprintf(self::HEADER_FORMAT, $name->value, $value));

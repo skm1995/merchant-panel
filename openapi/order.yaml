@@ -59,6 +59,13 @@ paths:
               description: URL of the order.
               schema:
                 type: string
+            X-Order-Token:
+              description: >-
+                Access token for the order; send it in X-Order-Token to see, cancel, or pay
+                for it. A repeated checkout returns the same token.
+              schema:
+                type: string
+                pattern: '^[0-9a-f]{64}$'
             ETag:
               description: Strong entity tag of the order version, for If-Match.
               schema:
@@ -88,6 +95,7 @@ paths:
           schema:
             type: string
             format: uuid
+        - $ref: '#/parameters/OrderToken'
       responses:
         '200':
           description: The order.
@@ -100,6 +108,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/schemas/Order'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
         '404':
           $ref: 'shared.yaml#/responses/Problem'
   orderCancellation:
@@ -116,6 +126,7 @@ paths:
           schema:
             type: string
             format: uuid
+        - $ref: '#/parameters/OrderToken'
         - name: If-Match
           in: header
           required: true
@@ -143,6 +154,17 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '428':
           $ref: 'shared.yaml#/responses/Problem'
+parameters:
+  OrderToken:
+    name: X-Order-Token
+    in: header
+    required: true
+    description: >-
+      The access token that checkout returned in its X-Order-Token header. The order id
+      alone opens nothing; a wrong token answers 404 as for an unknown order.
+    schema:
+      type: string
+      pattern: '^[0-9a-f]{64}$'
 schemas:
   OrderSummaryPage:
     type: object

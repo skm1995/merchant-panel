@@ -7,11 +7,11 @@ namespace Tests\Functional\Order;
 use App\Cart\Entity\CartId;
 use App\Catalog\Repository\PdoProductRepository;
 use App\Shared\Database\DatabaseConnection;
-use App\Shared\Http\Enum\HttpMethodEnum;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use Tests\Functional\Support\ApiClient;
 use Tests\Functional\Support\TestCartData;
+use Tests\Functional\Support\TestCheckout;
 use Tests\Functional\Support\TestProductData;
 
 /**
@@ -21,12 +21,7 @@ use Tests\Functional\Support\TestProductData;
 final class OrderExpiryTest extends TestCase
 {
     private const string SKU_PREFIX = 'expiry-';
-    private const string KEY_PREFIX = 'expiry-key-';
-    private const string CARTS_PATH = '/api/v1/carts';
-    private const string ITEM_PATH_FORMAT = '/api/v1/carts/%s/items/%d';
-    private const string CHECKOUT_PATH_FORMAT = '/api/v1/carts/%s/checkout';
     private const string ORDER_PATH_FORMAT = '/api/v1/orders/%s';
-    private const string IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
     private const string EXPIRED = 'expired';
     private const int PRICE_IN_GROSZE = 1000;
     private const int STOCK = 4;
@@ -54,25 +49,26 @@ final class OrderExpiryTest extends TestCase
     public function testUnpaidOrderExpiresAndReleasesItsStock(): void
     {
         [$productId] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, self::STOCK);
-        $orderId = $this->placeOrder($productId);
+        $order = TestCheckout::place($productId, self::QUANTITY);
+        $this->cartIds[] = $order->cartId;
         $products = new PdoProductRepository($this->pdo);
         $reserved = $products->findById($productId);
         self::assertNotNull($reserved);
         self::assertSame(self::STOCK - self::QUANTITY, $reserved->availableQuantity());
 
-        $status = $this->waitForStatus($orderId, self::EXPIRED);
+        $status = $this->waitForStatus($order, self::EXPIRED);
         $released = new PdoProductRepository($this->pdo)->findById($productId);
 
         self::assertSame(self::EXPIRED, $status);
         self::assertSame(self::STOCK, $released?->availableQuantity());
     }
 
-    private function waitForStatus(string $orderId, string $expected): ?string
+    private function waitForStatus(TestCheckout $order, string $expected): ?string
     {
         $deadline = microtime(true) + self::WAIT_TIMEOUT_SECONDS;
 
         do {
-            $status = ApiClient::json(ApiClient::get(sprintf(self::ORDER_PATH_FORMAT, $orderId)))['status'] ?? null;
+            $status = ApiClient::json(ApiClient::sendWithQuery(sprintf(self::ORDER_PATH_FORMAT, $order->orderId), [], $order->headers()))['status'] ?? null;
 
             if ($status === $expected) {
                 return $status;
@@ -84,19 +80,4 @@ final class OrderExpiryTest extends TestCase
         return is_string($status) ? $status : null;
     }
 
-    private function placeOrder(int $productId): string
-    {
-        $cartId = ApiClient::json(ApiClient::send(HttpMethodEnum::POST, self::CARTS_PATH))['id'];
-        self::assertIsString($cartId);
-        $this->cartIds[] = CartId::fromString($cartId);
-        ApiClient::send(HttpMethodEnum::PUT, sprintf(self::ITEM_PATH_FORMAT, $cartId, $productId), ['quantity' => self::QUANTITY]);
-        $orderId = ApiClient::json(ApiClient::send(
-            HttpMethodEnum::POST,
-            sprintf(self::CHECKOUT_PATH_FORMAT, $cartId),
-            headers: [self::IDEMPOTENCY_KEY_HEADER => uniqid(self::KEY_PREFIX, true)],
-        ))['id'];
-        self::assertIsString($orderId);
-
-        return $orderId;
-    }
 }

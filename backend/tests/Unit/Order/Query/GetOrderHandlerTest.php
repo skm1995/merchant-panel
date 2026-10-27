@@ -18,7 +18,7 @@ final class GetOrderHandlerTest extends TestCase
         $orders = $this->createStub(OrderReadRepositoryInterface::class);
         $orders->method('find')->willReturn(OrderFixtures::view());
 
-        $view = new GetOrderHandler($orders)->handle(new GetOrderQuery(OrderFixtures::orderId()));
+        $view = new GetOrderHandler($orders, OrderFixtures::access())->handle(new GetOrderQuery(OrderFixtures::orderId(), OrderFixtures::accessToken()));
 
         self::assertSame(OrderFixtures::ORDER_ID, $view->id->value);
     }
@@ -29,6 +29,15 @@ final class GetOrderHandlerTest extends TestCase
         $orders->method('find')->willReturn(null);
 
         $this->expectException(OrderNotFoundException::class);
-        new GetOrderHandler($orders)->handle(new GetOrderQuery(OrderFixtures::orderId()));
+        new GetOrderHandler($orders, OrderFixtures::access())->handle(new GetOrderQuery(OrderFixtures::orderId(), OrderFixtures::accessToken()));
+    }
+
+    public function testHidesTheOrderFromAWrongAccessToken(): void
+    {
+        $orders = $this->createStub(OrderReadRepositoryInterface::class);
+        $orders->method('find')->willReturn(OrderFixtures::view());
+
+        $this->expectException(OrderNotFoundException::class);
+        new GetOrderHandler($orders, OrderFixtures::access())->handle(new GetOrderQuery(OrderFixtures::orderId(), OrderFixtures::WRONG_ACCESS_TOKEN));
     }
 }

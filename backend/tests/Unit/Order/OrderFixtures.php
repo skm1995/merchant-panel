@@ -9,6 +9,7 @@ use App\Order\Entity\OrderLine;
 use App\Order\Enum\OrderStatusEnum;
 use App\Order\ReadModel\OrderLineView;
 use App\Order\ReadModel\OrderView;
+use App\Order\Service\OrderAccess;
 use DateTimeImmutable;
 use Money\Money;
 
@@ -19,6 +20,18 @@ final class OrderFixtures
     public const int VERSION = 1;
     public const string CREATED_AT = '2026-10-25T12:00:00+00:00';
     public const string RESERVATION_EXPIRES_AT = '2026-10-25T12:15:00+00:00';
+    public const string ACCESS_SECRET = 'test-order-access-secret';
+    public const string WRONG_ACCESS_TOKEN = '0000000000000000000000000000000000000000000000000000000000000000';
+
+    public static function access(): OrderAccess
+    {
+        return new OrderAccess(self::ACCESS_SECRET);
+    }
+
+    public static function accessToken(): string
+    {
+        return self::access()->tokenFor(self::orderId());
+    }
 
     public static function orderId(): OrderId
     {

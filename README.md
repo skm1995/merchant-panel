@@ -155,7 +155,7 @@ cd ~/app && sudo docker compose -f compose.prod.yaml run --rm php php bin/grant-
 | `DEPLOY_HOST`, `DEPLOY_USER`, `APP_DOMAIN` | variables | server address, SSH user, public domain |
 | `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` | secrets | SSH key and the server's host key |
 | `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `RABBITMQ_PASSWORD` | secrets | service credentials |
-| `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET`, `REPORTS_API_KEY` | secrets | application secrets |
+| `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET`, `REPORTS_API_KEY`, `ORDER_ACCESS_SECRET` | secrets | application secrets |
 | `MAILPIT_PASSWORD` | secret | password for the Mailpit page |
 
 ## Logs and tracing
