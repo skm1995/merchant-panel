@@ -24,8 +24,8 @@ paths:
         - apiKey: []
       summary: Products ranked by revenue from paid orders
       description: >-
-        Requires the reporting API key. Products with equal revenue share a rank
-        (dense ranking), so the top N ranks can contain more than N products.
+        Requires the reporting API key. Returns at most `limit` products, highest
+        revenue first; products with equal revenue are ordered by product id.
       parameters:
         - $ref: '#/parameters/From'
         - $ref: '#/parameters/To'

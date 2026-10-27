@@ -377,7 +377,7 @@ export interface paths {
         };
         /**
          * Products ranked by revenue from paid orders
-         * @description Requires the reporting API key. Products with equal revenue share a rank (dense ranking), so the top N ranks can contain more than N products.
+         * @description Requires the reporting API key. Returns at most `limit` products, highest revenue first; products with equal revenue are ordered by product id.
          */
         get: operations["getTopProductsReport"];
         put?: never;

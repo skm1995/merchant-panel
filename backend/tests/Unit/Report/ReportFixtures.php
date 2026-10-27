@@ -6,6 +6,8 @@ namespace Tests\Unit\Report;
 
 use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
+use App\Report\ReadModel\DailySales;
+use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\TopProduct;
 use DateTimeImmutable;
 use Money\Currency;
@@ -25,6 +27,16 @@ final class ReportFixtures
     public static function day(string $day, int $orders, int $revenue, int $runningTotal): DailyRevenue
     {
         return new DailyRevenue(new DateTimeImmutable($day), $orders, Money::PLN($revenue), Money::PLN($runningTotal));
+    }
+
+    public static function sales(string $day, int $orders, int $revenue): DailySales
+    {
+        return new DailySales(new DateTimeImmutable($day), $orders, Money::PLN($revenue));
+    }
+
+    public static function productSales(int $productId, int $unitsSold, int $revenue): ProductSales
+    {
+        return new ProductSales($productId, 'SKU-' . $productId, 'Product ' . $productId, $unitsSold, Money::PLN($revenue));
     }
 
     public static function product(int $rank, int $productId, int $unitsSold, int $revenue): TopProduct

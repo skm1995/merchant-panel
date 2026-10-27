@@ -6,18 +6,27 @@ namespace App\Report\Repository;
 
 use App\Order\Enum\OrderStatusEnum;
 use App\Report\ValueObject\ReportPeriod;
-use App\Report\ReadModel\DailyRevenue;
+use App\Report\ReadModel\DailySales;
+use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\ReportedOrder;
-use App\Report\ReadModel\TopProduct;
 use DateTimeImmutable;
 
 interface ReportReadRepositoryInterface
 {
-    /** @return list<DailyRevenue> */
-    public function dailyRevenue(ReportPeriod $period): array;
+    /**
+     * Paid orders and their revenue per day, oldest day first; days without sales are left out.
+     *
+     * @return list<DailySales>
+     */
+    public function dailySales(ReportPeriod $period): array;
 
-    /** @return list<TopProduct> */
-    public function topProducts(ReportPeriod $period, int $limit): array;
+    /**
+     * Products with the highest revenue from paid orders, highest first; equal revenue is
+     * ordered by product id.
+     *
+     * @return list<ProductSales>
+     */
+    public function bestSellingProducts(ReportPeriod $period, int $limit): array;
 
     /**
      * Newest orders with the status placed since the given time, with their product names.

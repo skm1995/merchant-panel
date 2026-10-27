@@ -69,9 +69,9 @@ final class ReportApiTest extends TestCase
             'running_total' => $day['running_total']['amount'],
         ], $daily['days']));
         self::assertSame(
-            [[1, $mug, '3000'], [1, $bowl, '3000'], [2, $plate, '2000']],
+            [[1, $mug, '3000'], [2, $bowl, '3000']],
             array_map(static fn (array $product): array => [$product['rank'], $product['product_id'], $product['revenue']['amount']], $top['products']),
-            'Ties share a rank, so the top two ranks can hold three products.',
+            'Equal revenue is ordered by product id, so the report holds exactly the requested number of products.',
         );
     }
 

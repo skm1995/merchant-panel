@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Report\Repository;
 
-use App\Report\ReadModel\TopProduct;
+use App\Report\ReadModel\ProductSales;
 use App\Shared\Contract\EntityRecord;
 use App\Shared\Database\HydratedRecord;
 use Money\Currency;
 use Money\Money;
 
-/** @implements EntityRecord<TopProduct> */
+/** @implements EntityRecord<ProductSales> */
 #[HydratedRecord]
-final readonly class TopProductRecord implements EntityRecord
+final readonly class ProductSalesRecord implements EntityRecord
 {
-    public int $revenueRank;
     public int $productId;
     public string $sku;
     public string $name;
@@ -25,10 +24,9 @@ final readonly class TopProductRecord implements EntityRecord
     /** @var non-empty-string */
     public string $currency;
 
-    public function toEntity(): TopProduct
+    public function toEntity(): ProductSales
     {
-        return new TopProduct(
-            $this->revenueRank,
+        return new ProductSales(
             $this->productId,
             $this->sku,
             $this->name,

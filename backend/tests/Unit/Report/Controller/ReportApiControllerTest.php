@@ -39,7 +39,7 @@ final class ReportApiControllerTest extends TestCase
     public function testReportsRequireTheApiKey(): void
     {
         $reports = $this->createMock(ReportReadRepositoryInterface::class);
-        $reports->expects(self::never())->method('dailyRevenue');
+        $reports->expects(self::never())->method('dailySales');
 
         $this->dispatch(self::DAILY_REVENUE_PATH, [], $reports);
 
@@ -49,7 +49,7 @@ final class ReportApiControllerTest extends TestCase
     public function testPanelReportsRequireASignedInMerchant(): void
     {
         $reports = $this->createMock(ReportReadRepositoryInterface::class);
-        $reports->expects(self::never())->method('topProducts');
+        $reports->expects(self::never())->method('bestSellingProducts');
 
         $this->dispatch(self::PANEL_TOP_PRODUCTS_PATH, [], $reports);
 
@@ -59,8 +59,8 @@ final class ReportApiControllerTest extends TestCase
     public function testReturnsReportsForAuthorizedClients(): void
     {
         $reports = $this->createStub(ReportReadRepositoryInterface::class);
-        $reports->method('dailyRevenue')->willReturn([ReportFixtures::day(ReportFixtures::FROM, 1, 100, 100)]);
-        $reports->method('topProducts')->willReturn([ReportFixtures::product(1, 7, 1, 100)]);
+        $reports->method('dailySales')->willReturn([ReportFixtures::sales(ReportFixtures::FROM, 1, 100)]);
+        $reports->method('bestSellingProducts')->willReturn([ReportFixtures::productSales(7, 1, 100)]);
         $headers = ['x-api-key' => self::API_KEY];
 
         $daily = $this->dispatch(self::DAILY_REVENUE_PATH, $headers, $reports);

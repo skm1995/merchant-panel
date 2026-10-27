@@ -6,9 +6,9 @@ namespace App\Report\Repository;
 
 use App\Order\Enum\OrderStatusEnum;
 use App\Report\ValueObject\ReportPeriod;
-use App\Report\ReadModel\DailyRevenue;
+use App\Report\ReadModel\DailySales;
+use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\ReportedOrder;
-use App\Report\ReadModel\TopProduct;
 use App\Shared\Database\RecordFetcher;
 use App\Shared\Database\SqlDateTime;
 use DateTimeImmutable;
@@ -21,45 +21,32 @@ use PDO;
 final class PdoReportReadRepository implements ReportReadRepositoryInterface
 {
     public const string DAILY_REVENUE_QUERY = <<<'SQL'
-        WITH daily AS (
-            SELECT DATE(created_at) AS day, COUNT(*) AS orders, SUM(total_amount) AS revenue
-            FROM orders
-            WHERE status = :status
-                AND created_at >= :starts_at
-                AND created_at < :ends_before
-                AND total_currency = :currency
-            GROUP BY DATE(created_at)
-        )
-        SELECT day, orders, revenue,
-            SUM(revenue) OVER (ORDER BY day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS runningTotal,
+        SELECT DATE(created_at) AS day, COUNT(*) AS orders, SUM(total_amount) AS revenue,
             :result_currency AS currency
-        FROM daily
+        FROM orders
+        WHERE status = :status
+            AND created_at >= :starts_at
+            AND created_at < :ends_before
+            AND total_currency = :currency
+        GROUP BY DATE(created_at)
         ORDER BY day
         SQL;
     public const string TOP_PRODUCTS_QUERY = <<<'SQL'
-        WITH sales AS (
-            SELECT order_items.product_id,
-                MAX(order_items.sku) AS sku,
-                MAX(order_items.name) AS name,
-                SUM(order_items.quantity) AS units_sold,
-                SUM(order_items.quantity * order_items.unit_price_amount) AS revenue
-            FROM orders
-            JOIN order_items ON order_items.order_id = orders.id
-            WHERE orders.status = :status
-                AND orders.created_at >= :starts_at
-                AND orders.created_at < :ends_before
-                AND order_items.unit_price_currency = :currency
-            GROUP BY order_items.product_id
-        ),
-        ranked AS (
-            SELECT sales.*, DENSE_RANK() OVER (ORDER BY revenue DESC) AS revenue_rank
-            FROM sales
-        )
-        SELECT revenue_rank AS revenueRank, product_id AS productId, sku, name,
-            units_sold AS unitsSold, revenue, :result_currency AS currency
-        FROM ranked
-        WHERE revenue_rank <= :limit
-        ORDER BY revenue_rank, product_id
+        SELECT order_items.product_id AS productId,
+            MAX(order_items.sku) AS sku,
+            MAX(order_items.name) AS name,
+            SUM(order_items.quantity) AS unitsSold,
+            SUM(order_items.quantity * order_items.unit_price_amount) AS revenue,
+            :result_currency AS currency
+        FROM orders
+        JOIN order_items ON order_items.order_id = orders.id
+        WHERE orders.status = :status
+            AND orders.created_at >= :starts_at
+            AND orders.created_at < :ends_before
+            AND order_items.unit_price_currency = :currency
+        GROUP BY order_items.product_id
+        ORDER BY revenue DESC, productId
+        LIMIT :limit
         SQL;
     private const string ORDERS_BY_STATUS_QUERY = <<<'SQL'
         SELECT orders.id AS orderNumber,
@@ -86,18 +73,18 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
     {
     }
 
-    public function dailyRevenue(ReportPeriod $period): array
+    public function dailySales(ReportPeriod $period): array
     {
         $statement = $this->pdo->prepare(self::DAILY_REVENUE_QUERY);
         $statement->execute(self::periodParameters($period));
 
         return array_map(
-            static fn (DailyRevenueRecord $record): DailyRevenue => $record->toEntity(),
-            RecordFetcher::all($statement, DailyRevenueRecord::class),
+            static fn (DailySalesRecord $record): DailySales => $record->toEntity(),
+            RecordFetcher::all($statement, DailySalesRecord::class),
         );
     }
 
-    public function topProducts(ReportPeriod $period, int $limit): array
+    public function bestSellingProducts(ReportPeriod $period, int $limit): array
     {
         $statement = $this->pdo->prepare(self::TOP_PRODUCTS_QUERY);
 
@@ -109,8 +96,8 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
         $statement->execute();
 
         return array_map(
-            static fn (TopProductRecord $record): TopProduct => $record->toEntity(),
-            RecordFetcher::all($statement, TopProductRecord::class),
+            static fn (ProductSalesRecord $record): ProductSales => $record->toEntity(),
+            RecordFetcher::all($statement, ProductSalesRecord::class),
         );
     }
 

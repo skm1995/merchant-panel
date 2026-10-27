@@ -13,7 +13,8 @@ use App\Report\ValueObject\ReportPeriod;
 use DateTimeImmutable;
 
 /**
- * Read-only sales reports, computed by hand-written SQL in the read repository.
+ * Read-only sales reports. SQL in the read repository filters and adds up the orders; this
+ * service works on its small result: the running total and the ranks.
  */
 final class ReportService
 {
@@ -26,13 +27,34 @@ final class ReportService
     /** @return list<DailyRevenue> */
     public function dailyRevenue(ReportPeriod $period): array
     {
-        return $this->reports->dailyRevenue($period);
+        $days = [];
+        $runningTotal = null;
+
+        foreach ($this->reports->dailySales($period) as $sales) {
+            $runningTotal = $runningTotal?->add($sales->revenue) ?? $sales->revenue;
+            $days[] = new DailyRevenue($sales->day, $sales->orders, $sales->revenue, $runningTotal);
+        }
+
+        return $days;
     }
 
     /** @return list<TopProduct> */
     public function topProducts(ReportPeriod $period, int $limit): array
     {
-        return $this->reports->topProducts($period, $limit);
+        $products = [];
+
+        foreach ($this->reports->bestSellingProducts($period, $limit) as $sales) {
+            $products[] = new TopProduct(
+                count($products) + 1,
+                $sales->productId,
+                $sales->sku,
+                $sales->name,
+                $sales->unitsSold,
+                $sales->revenue,
+            );
+        }
+
+        return $products;
     }
 
     /** @return list<ReportedOrder> */

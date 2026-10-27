@@ -188,6 +188,11 @@ outbox events handled by the worker, and keep TTLs short as a safety net.
 Reports only read, so they use a plain `ReportService` over the read repository rather
 than CQRS query handlers.
 
+Write report SQL with plain `SELECT`, joins, `GROUP BY`, aggregates, `ORDER BY`, and `LIMIT`;
+let SQL shrink the data and compute running totals, positions, and comparisons in PHP on the
+small result, with `Money` for amounts
+([0016](decisions/0016-plain-sql-and-php-for-reports.md)).
+
 For every reporting or performance-sensitive query, add a functional test that loads a
 realistic amount of data, runs `ANALYZE TABLE`, and asserts the expected index and access
 type in `EXPLAIN FORMAT=JSON`. Filter indexed columns with half-open ranges, never by

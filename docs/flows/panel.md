@@ -48,13 +48,16 @@ layer.
 
 ## Reports
 
-The reports page asks for a period and shows two reports, both answered by hand-written SQL
-in [`PdoReportReadRepository`](../../backend/src/Report/Repository/PdoReportReadRepository.php):
+The reports page asks for a period and shows two reports. Plain SQL in
+[`PdoReportReadRepository`](../../backend/src/Report/Repository/PdoReportReadRepository.php)
+filters and adds up the orders, and
+[`ReportService`](../../backend/src/Report/Service/ReportService.php) works on that small
+result in PHP, with `Money` for amounts:
 
 | Report | Route | How it is computed |
 |---|---|---|
-| Daily revenue | `GET /api/v1/panel/reports/daily-revenue` | Paid orders grouped by day in a common table expression, with a running total from a window function: `SUM(revenue) OVER (ORDER BY day …)` |
-| Top products | `GET /api/v1/panel/reports/top-products` | Units sold and revenue per product from order lines, ranked with `DENSE_RANK() OVER (ORDER BY revenue DESC)`, so products with equal revenue share a rank; at most 50 ranks |
+| Daily revenue | `GET /api/v1/panel/reports/daily-revenue` | SQL groups paid orders by day (`GROUP BY DATE(created_at)`) and sums their totals; PHP adds each day to a running total |
+| Top products | `GET /api/v1/panel/reports/top-products` | SQL sums units and revenue per product from order lines, sorts by revenue, and cuts the list with `LIMIT` (at most 50); PHP numbers the positions. Equal revenue is ordered by product id |
 
 A period may cover at most 366 days, and amounts are summed in one currency (PLN by default).
 [`ReportQueryPlanTest`](../../backend/tests/Functional/Report/ReportQueryPlanTest.php) runs
