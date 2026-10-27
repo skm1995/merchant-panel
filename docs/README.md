@@ -34,7 +34,9 @@ by path rather than copied, so every claim can be checked against the source.
    - [Observability](operations/observability.md)
    - [Runbooks](operations/runbooks.md)
 6. [Security](security.md): the threats the system defends against and how.
-7. Known limitations, roadmap, and glossary (planned).
+7. [Known limitations](roadmap/known-limitations.md) and the [roadmap](roadmap/roadmap.md):
+   what the project leaves out on purpose and what would come next.
+8. [Glossary](glossary.md): the terms used in the code and in these pages.
 
 [Coding patterns](patterns.md) collects the rules the code follows for recurring problems:
 API actions, sessions, idempotency, locking, messaging, caching, and more. Read the matching
