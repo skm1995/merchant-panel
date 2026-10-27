@@ -30,6 +30,11 @@ final class MerchantUserRepository implements UserRepositoryInterface
         throw new LogicException(self::READ_ONLY_MESSAGE);
     }
 
+    public function markEmailConfirmed(string $email, DateTimeImmutable $confirmedAt): void
+    {
+        throw new LogicException(self::READ_ONLY_MESSAGE);
+    }
+
     public function grantMerchantAccess(string $email, DateTimeImmutable $grantedAt): void
     {
         throw new LogicException(self::READ_ONLY_MESSAGE);

@@ -17,6 +17,8 @@ interface UserRepositoryInterface
      * Gives a confirmed account access to the merchant panel; an unconfirmed account and one
      * that already has access stay as they are.
      */
+    public function markEmailConfirmed(string $email, DateTimeImmutable $confirmedAt): void;
+
     public function grantMerchantAccess(string $email, DateTimeImmutable $grantedAt): void;
 
     /**

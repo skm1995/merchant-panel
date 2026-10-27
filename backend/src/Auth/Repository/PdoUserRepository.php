@@ -19,6 +19,8 @@ final class PdoUserRepository implements UserRepositoryInterface
     private const string INSERT_QUERY = 'INSERT INTO users (email, password, created_at) VALUES (:email, :password, CURRENT_TIMESTAMP)';
     private const string GRANT_MERCHANT_QUERY = 'UPDATE users SET merchant_since = :granted_at WHERE email = :email AND email_verified_at IS NOT NULL AND merchant_since IS NULL';
     private const string GRANTED_AT_PARAMETER = 'granted_at';
+    private const string CONFIRM_EMAIL_QUERY = 'UPDATE users SET email_verified_at = :confirmed_at WHERE email = :email AND email_verified_at IS NULL';
+    private const string CONFIRMED_AT_PARAMETER = 'confirmed_at';
     private const string DELETE_UNVERIFIED_QUERY = 'DELETE FROM users WHERE email_verified_at IS NULL AND created_at < :cutoff';
     private const string CUTOFF_PARAMETER = 'cutoff';
     private const string DATE_TIME_FORMAT = 'Y-m-d H:i:s';
@@ -54,6 +56,14 @@ final class PdoUserRepository implements UserRepositoryInterface
         }
 
         return $this->findByEmail($email) ?? throw new LogicException(self::NOT_STORED_MESSAGE);
+    }
+
+    public function markEmailConfirmed(string $email, DateTimeImmutable $confirmedAt): void
+    {
+        $this->pdo->prepare(self::CONFIRM_EMAIL_QUERY)->execute([
+            self::CONFIRMED_AT_PARAMETER => $confirmedAt->format(self::DATE_TIME_FORMAT),
+            self::EMAIL_PARAMETER => $email,
+        ]);
     }
 
     public function grantMerchantAccess(string $email, DateTimeImmutable $grantedAt): void

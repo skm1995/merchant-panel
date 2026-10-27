@@ -90,6 +90,15 @@ final class PdoUserRepositoryTest extends TestCase
         }
     }
 
+    public function testMarksTheEmailAddressAsConfirmed(): void
+    {
+        $this->users->create($this->email, self::PASSWORD_HASH);
+
+        $this->users->markEmailConfirmed($this->email, new DateTimeImmutable());
+
+        self::assertTrue($this->users->findByEmail($this->email)?->isVerified() ?? false);
+    }
+
     public function testReturnsNullForUnknownEmail(): void
     {
         self::assertNull($this->users->findByEmail(TestUserData::uniqueEmail(self::MISSING_EMAIL_PREFIX)));
