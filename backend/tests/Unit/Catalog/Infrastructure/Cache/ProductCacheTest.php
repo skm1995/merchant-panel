@@ -11,6 +11,7 @@ use App\Shared\Cache\CacheEntry;
 use App\Shared\Cache\StampedeProtectedCache;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Support\InMemoryCacheStore;
 use Tests\Unit\Support\FrozenClock;
@@ -31,7 +32,7 @@ final class ProductCacheTest extends TestCase
     {
         $this->store = new InMemoryCacheStore();
         $this->cache = new ProductCache(
-            new StampedeProtectedCache($this->store, new FrozenClock(), static fn (): float => 1.0, 0),
+            new StampedeProtectedCache($this->store, new FrozenClock(), new NullLogger(), static fn (): float => 1.0, 0),
             $this->store,
         );
     }

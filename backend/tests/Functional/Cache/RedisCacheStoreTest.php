@@ -7,9 +7,10 @@ namespace Tests\Functional\Cache;
 use App\Shared\Cache\Exception\CacheUnavailableException;
 use App\Shared\Cache\RedisCacheStore;
 use App\Shared\Cache\RedisConnection;
+use App\Shared\Config\Environment;
+use Closure;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Redis;
-use RedisException;
 
 final class RedisCacheStoreTest extends TestCase
 {
@@ -18,16 +19,23 @@ final class RedisCacheStoreTest extends TestCase
     private const string FOREIGN_TOKEN = 'someone-else';
     private const int TTL = 30;
     private const int LOCK_TTL = 5000;
-    private const string UNREACHABLE_HOST = '127.0.0.1';
-    private const int UNREACHABLE_PORT = 1;
+    private const string UNREACHABLE_HOST = 'redis-that-does-not-exist';
+    private const string UNREACHABLE_PORT = '6379';
+    private const string HOST_VARIABLE = 'REDIS_HOST';
+    private const string PORT_VARIABLE = 'REDIS_PORT';
+    private const string ASSIGNMENT_FORMAT = '%s=%s';
 
     private RedisCacheStore $store;
     private string $key;
+    private string $host;
+    private string $port;
 
     protected function setUp(): void
     {
         $this->store = new RedisCacheStore(RedisConnection::createFromEnvironment());
         $this->key = uniqid(self::KEY_PREFIX, true);
+        $this->host = Environment::get(self::HOST_VARIABLE);
+        $this->port = Environment::get(self::PORT_VARIABLE);
     }
 
     protected function tearDown(): void
@@ -78,17 +86,46 @@ final class RedisCacheStoreTest extends TestCase
         self::assertLessThanOrEqual(self::TTL, RedisConnection::createFromEnvironment()->ttl($this->key));
     }
 
-    public function testReportsAnUnreachableRedisAsUnavailable(): void
+    /** @return array<string, array{Closure(RedisCacheStore, string): void}> */
+    public static function operations(): array
     {
-        $redis = new Redis();
+        return [
+            'get' => [static function (RedisCacheStore $store, string $key): void {
+                $store->get($key);
+            }],
+            'set' => [static function (RedisCacheStore $store, string $key): void {
+                $store->set($key, self::VALUE, self::TTL);
+            }],
+            'delete' => [static function (RedisCacheStore $store, string $key): void {
+                $store->delete([$key]);
+            }],
+            'increment' => [static function (RedisCacheStore $store, string $key): void {
+                $store->increment($key, self::TTL);
+            }],
+            'lock' => [static function (RedisCacheStore $store, string $key): void {
+                $store->lock($key, self::LOCK_TTL);
+            }],
+            'unlock' => [static function (RedisCacheStore $store, string $key): void {
+                $store->unlock($key, self::FOREIGN_TOKEN);
+            }],
+        ];
+    }
+
+    /** @param Closure(RedisCacheStore, string): void $operation */
+    #[DataProvider('operations')]
+    public function testReportsEveryOperationOnAnUnreachableServerAsUnavailable(Closure $operation): void
+    {
+        putenv(sprintf(self::ASSIGNMENT_FORMAT, self::HOST_VARIABLE, self::UNREACHABLE_HOST));
+        putenv(sprintf(self::ASSIGNMENT_FORMAT, self::PORT_VARIABLE, self::UNREACHABLE_PORT));
 
         try {
-            $redis->connect(self::UNREACHABLE_HOST, self::UNREACHABLE_PORT);
-        } catch (RedisException) {
-            // An unreachable server is exactly what this test needs.
+            $store = new RedisCacheStore(RedisConnection::createFromEnvironment());
+        } finally {
+            putenv(sprintf(self::ASSIGNMENT_FORMAT, self::HOST_VARIABLE, $this->host));
+            putenv(sprintf(self::ASSIGNMENT_FORMAT, self::PORT_VARIABLE, $this->port));
         }
 
         $this->expectException(CacheUnavailableException::class);
-        new RedisCacheStore($redis)->increment($this->key, self::TTL);
+        $operation($store, $this->key);
     }
 }

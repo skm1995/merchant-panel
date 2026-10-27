@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Shared\Cache;
 
 use Closure;
+use App\Shared\Cache\Exception\CacheUnavailableException;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Read-through cache that prevents cache stampedes.
@@ -23,6 +25,8 @@ final readonly class StampedeProtectedCache
     private const int MAXIMUM_WAIT_STEPS = 40;
     private const string LOCK_KEY_FORMAT = '%s:lock';
     private const string TIMESTAMP_FORMAT = 'U.u';
+    private const string UNAVAILABLE_WARNING = 'Cache unavailable; computing the value without it';
+    private const string EXCEPTION_KEY = 'exception';
 
     /** @var Closure(): float */
     private Closure $random;
@@ -33,14 +37,36 @@ final readonly class StampedeProtectedCache
     public function __construct(
         private CacheStoreInterface $store,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
         ?Closure $random = null,
         private int $waitStepMicroseconds = self::DEFAULT_WAIT_STEP_MICROSECONDS,
     ) {
         $this->random = $random ?? static fn (): float => (mt_rand() + 1) / (mt_getrandmax() + 1);
     }
 
-    /** @param callable(): string $compute */
+    /**
+     * When the cache is unavailable, the value is computed without it, at most once.
+     *
+     * @param callable(): string $compute
+     */
     public function remember(string $key, int $ttlSeconds, callable $compute): string
+    {
+        $computed = null;
+        $computeOnce = static function () use ($compute, &$computed): string {
+            return $computed = $compute();
+        };
+
+        try {
+            return $this->rememberInStore($key, $ttlSeconds, $computeOnce);
+        } catch (CacheUnavailableException $exception) {
+            $this->logger->warning(self::UNAVAILABLE_WARNING, [self::EXCEPTION_KEY => $exception]);
+
+            return $computed ?? $compute();
+        }
+    }
+
+    /** @param callable(): string $compute */
+    private function rememberInStore(string $key, int $ttlSeconds, callable $compute): string
     {
         $entry = $this->read($key);
 

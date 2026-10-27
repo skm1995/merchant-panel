@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Cache;
 
 use App\Shared\Cache\Exception\CacheUnavailableException;
+use Closure;
 use Redis;
 use RedisException;
 
@@ -28,44 +29,40 @@ final class RedisCacheStore implements CacheStoreInterface
 
     public function get(string $key): ?string
     {
-        $value = $this->redis->get($key);
+        $value = $this->command(static fn (Redis $redis): mixed => $redis->get($key));
 
         return is_string($value) ? $value : null;
     }
 
     public function set(string $key, string $value, int $ttlSeconds): void
     {
-        $this->redis->set($key, $value, [self::EXPIRE_SECONDS_OPTION => $ttlSeconds]);
+        $this->command(static fn (Redis $redis): mixed => $redis->set($key, $value, [self::EXPIRE_SECONDS_OPTION => $ttlSeconds]));
     }
 
     public function increment(string $key, int $ttlSeconds): int
     {
-        try {
-            [$count] = $this->redis->multi()
-                ->incr($key)
-                ->expire($key, $ttlSeconds, self::ONLY_IF_ABSENT_OPTION)
-                ->exec();
-        } catch (RedisException $exception) {
-            throw new CacheUnavailableException($exception);
-        }
+        $results = $this->command(static fn (Redis $redis): mixed => $redis->multi()
+            ->incr($key)
+            ->expire($key, $ttlSeconds, self::ONLY_IF_ABSENT_OPTION)
+            ->exec());
 
-        return (int) $count;
+        return is_array($results) ? (int) $results[0] : throw new CacheUnavailableException();
     }
 
     public function delete(array $keys): void
     {
         if ($keys !== []) {
-            $this->redis->del($keys);
+            $this->command(static fn (Redis $redis): mixed => $redis->del($keys));
         }
     }
 
     public function lock(string $key, int $ttlMilliseconds): ?string
     {
         $token = random_bytes(self::TOKEN_BYTES) |> bin2hex(...);
-        $acquired = $this->redis->set($key, $token, [
+        $acquired = $this->command(static fn (Redis $redis): mixed => $redis->set($key, $token, [
             self::ONLY_IF_ABSENT_OPTION,
             self::EXPIRE_MILLISECONDS_OPTION => $ttlMilliseconds,
-        ]);
+        ]));
 
         return $acquired === true ? $token : null;
     }
@@ -76,6 +73,25 @@ final class RedisCacheStore implements CacheStoreInterface
      */
     public function unlock(string $key, string $token): void
     {
-        $this->redis->eval(self::UNLOCK_SCRIPT, [$key, $token], self::SINGLE_KEY);
+        $this->command(static fn (Redis $redis): mixed => $redis->eval(self::UNLOCK_SCRIPT, [$key, $token], self::SINGLE_KEY));
+    }
+
+    /**
+     * Runs a Redis command and reports a missing connection or a failed command as an
+     * unavailable cache, which callers that can work without the cache catch.
+     *
+     * @param Closure(Redis): mixed $command
+     */
+    private function command(Closure $command): mixed
+    {
+        if (!$this->redis->isConnected()) {
+            throw new CacheUnavailableException();
+        }
+
+        try {
+            return $command($this->redis);
+        } catch (RedisException $exception) {
+            throw new CacheUnavailableException($exception);
+        }
     }
 }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Shared\Cache;
 
 use App\Shared\Cache\StampedeProtectedCache;
+use Monolog\Handler\TestHandler;
+use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Support\InMemoryCacheStore;
 use Tests\Unit\Support\FrozenClock;
@@ -17,18 +19,22 @@ final class StampedeProtectedCacheTest extends TestCase
     private const string STALE = 'stale value';
     private const string NOW = '2026-10-25 12:00:00';
     private const int TTL = 60;
+    private const string LOGGER_CHANNEL = 'test';
+    private const string UNAVAILABLE_WARNING = 'Cache unavailable; computing the value without it';
     private const float NEVER_EARLY = 1.0;
     private const float ALWAYS_EARLY = 1.0E-300;
     private const float EXPENSIVE_COMPUTATION_SECONDS = 0.5;
 
     private InMemoryCacheStore $store;
     private FrozenClock $clock;
+    private TestHandler $logs;
     private int $computations = 0;
 
     protected function setUp(): void
     {
         $this->store = new InMemoryCacheStore();
         $this->clock = new FrozenClock(self::NOW);
+        $this->logs = new TestHandler();
     }
 
     public function testComputesAndStoresOnMissThenServesFromCache(): void
@@ -100,8 +106,29 @@ final class StampedeProtectedCacheTest extends TestCase
         return self::FRESH;
     }
 
+    public function testComputesTheValueOnceWhenTheCacheIsUnavailable(): void
+    {
+        $this->store->unavailable = true;
+
+        $value = $this->cache(self::NEVER_EARLY)->remember(self::KEY, self::TTL, $this->compute(...));
+
+        self::assertSame(self::FRESH, $value);
+        self::assertSame(1, $this->computations);
+        self::assertTrue($this->logs->hasWarning(self::UNAVAILABLE_WARNING));
+    }
+
+    public function testKeepsTheComputedValueWhenStoringItFails(): void
+    {
+        $this->store->failWrites = true;
+
+        $value = $this->cache(self::NEVER_EARLY)->remember(self::KEY, self::TTL, $this->compute(...));
+
+        self::assertSame(self::FRESH, $value);
+        self::assertSame(1, $this->computations, 'A failed write must not compute the value again.');
+    }
+
     private function cache(float $random): StampedeProtectedCache
     {
-        return new StampedeProtectedCache($this->store, $this->clock, static fn (): float => $random, 0);
+        return new StampedeProtectedCache($this->store, $this->clock, new Logger(self::LOGGER_CHANNEL, [$this->logs]), static fn (): float => $random, 0);
     }
 }

@@ -9,6 +9,7 @@ use App\Catalog\Infrastructure\Cache\ProductCache;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Shared\Cache\StampedeProtectedCache;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Support\InMemoryCacheStore;
 use Tests\Unit\Support\FrozenClock;
@@ -51,7 +52,7 @@ final class CachedProductRepositoryTest extends TestCase
 
         return new CachedProductRepository(
             $products,
-            new ProductCache(new StampedeProtectedCache($store, new FrozenClock(), static fn (): float => 1.0, 0), $store),
+            new ProductCache(new StampedeProtectedCache($store, new FrozenClock(), new NullLogger(), static fn (): float => 1.0, 0), $store),
         );
     }
 }
