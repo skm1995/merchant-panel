@@ -16,6 +16,7 @@ enum ResponseStatusEnum: int
     case UNAUTHORIZED = 401;
     case FORBIDDEN = 403;
     case NOT_FOUND = 404;
+    case METHOD_NOT_ALLOWED = 405;
     case CONFLICT = 409;
     case PRECONDITION_FAILED = 412;
     case UNPROCESSABLE_CONTENT = 422;
@@ -36,6 +37,7 @@ enum ResponseStatusEnum: int
             self::UNAUTHORIZED => 'Unauthorized',
             self::FORBIDDEN => 'Forbidden',
             self::NOT_FOUND => 'Not Found',
+            self::METHOD_NOT_ALLOWED => 'Method Not Allowed',
             self::CONFLICT => 'Conflict',
             self::PRECONDITION_FAILED => 'Precondition Failed',
             self::UNPROCESSABLE_CONTENT => 'Unprocessable Content',

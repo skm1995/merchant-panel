@@ -44,6 +44,7 @@ final class RouterTest extends TestCase
     public const string MAPPED_FAILURE = 'The product does not exist.';
     public const string INVALID_INPUT = 'The limit must be a positive integer.';
     private const string MISSING_API_PATH = '/api/v1/missing';
+    private const string PRODUCT_API_PATH = '/api/v1/products/42';
     public const string API_KEY_VARIABLE = 'ROUTER_TEST_API_KEY';
     private const string API_KEY = 'router-test-key';
     public const string RATE_LIMIT_VARIABLE = 'ROUTER_TEST_RATE_LIMIT';
@@ -200,6 +201,32 @@ final class RouterTest extends TestCase
         ob_end_clean();
 
         self::assertSame(1, $controller->calls);
+    }
+
+    public function testAnswersMethodNotAllowedForAKnownPathWithAnotherMethod(): void
+    {
+        $controller = new class () {
+            public const string PATH = '/api/v1/products/{id:\\d+}';
+
+            #[Route(HttpMethodEnum::GET, self::PATH)]
+            public function show(): void
+            {
+            }
+
+            #[Route(HttpMethodEnum::PATCH, self::PATH)]
+            public function edit(): void
+            {
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller::class, static fn (): object => $controller);
+
+        ob_start();
+        $router->handle(new Request(HttpMethodEnum::DELETE->value, self::PRODUCT_API_PATH));
+        $output = (string) ob_get_clean();
+
+        self::assertSame(ResponseStatusEnum::METHOD_NOT_ALLOWED->value, http_response_code());
+        self::assertStringContainsString('This path accepts only GET, PATCH.', $output);
     }
 
     public function testBuildsOnlyTheControllerOfTheMatchedRoute(): void

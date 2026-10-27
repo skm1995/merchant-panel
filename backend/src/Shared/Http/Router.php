@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Http;
 
+use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Middleware\ApiKeyMiddleware;
 use App\Shared\Http\Middleware\CsrfMiddleware;
@@ -29,6 +30,8 @@ final class Router implements RequestHandlerInterface
     private const string DEFAULT_PARAMETER_PATTERN = '[^/]+';
     private const int NOT_CAPTURED_OFFSET = -1;
     private const string NOT_FOUND_DETAIL = 'No route matches this method and path.';
+    private const string METHOD_NOT_ALLOWED_DETAIL_FORMAT = 'This path accepts only %s.';
+    private const string METHOD_LIST_SEPARATOR = ', ';
     private const string ROUTE_PATTERN_FORMAT = '#^%s$#';
     private const string PATTERN_DELIMITER = '#';
     private const string PATH_PARAMETER_MARKER = '{';
@@ -80,10 +83,10 @@ final class Router implements RequestHandlerInterface
 
     public function handle(Request $request): void
     {
-        [$handler, $parameters] = $this->match($request) ?? [null, []];
+        [$handler, $parameters] = $this->match($request->method, $request->path) ?? [null, []];
 
         if ($handler === null) {
-            $this->responder->error($request, ResponseStatusEnum::NOT_FOUND, self::NOT_FOUND_DETAIL);
+            $this->answerUnmatched($request);
 
             return;
         }
@@ -140,21 +143,46 @@ final class Router implements RequestHandlerInterface
     }
 
     /** @return array{RequestHandlerInterface, array<string, string>}|null */
-    private function match(Request $request): ?array
+    private function match(string $method, string $path): ?array
     {
-        $routes = $this->routes[$request->method] ?? [];
+        $routes = $this->routes[$method] ?? [];
 
-        if (isset($routes[$request->path])) {
-            return [$routes[$request->path], []];
+        if (isset($routes[$path])) {
+            return [$routes[$path], []];
         }
 
-        foreach ($this->patterns[$request->method] ?? [] as $path => $pattern) {
-            if (preg_match($pattern, $request->path, $matches) === 1) {
-                return [$routes[$path], array_filter($matches, is_string(...), ARRAY_FILTER_USE_KEY)];
+        foreach ($this->patterns[$method] ?? [] as $routePath => $pattern) {
+            if (preg_match($pattern, $path, $matches) === 1) {
+                return [$routes[$routePath], array_filter($matches, is_string(...), ARRAY_FILTER_USE_KEY)];
             }
         }
 
         return null;
+    }
+
+    /**
+     * A path that other methods serve answers 405 with the methods it accepts in Allow; any
+     * other path answers 404.
+     */
+    private function answerUnmatched(Request $request): void
+    {
+        $allowed = array_values(array_filter(
+            array_keys($this->routes),
+            fn (string $method): bool => $this->match($method, $request->path) !== null,
+        ));
+
+        if ($allowed === []) {
+            $this->responder->error($request, ResponseStatusEnum::NOT_FOUND, self::NOT_FOUND_DETAIL);
+
+            return;
+        }
+
+        $this->responder->sendHeader(HeaderNameEnum::ALLOW, implode(self::METHOD_LIST_SEPARATOR, $allowed));
+        $this->responder->error(
+            $request,
+            ResponseStatusEnum::METHOD_NOT_ALLOWED,
+            sprintf(self::METHOD_NOT_ALLOWED_DETAIL_FORMAT, implode(self::METHOD_LIST_SEPARATOR, $allowed)),
+        );
     }
 
     /**
