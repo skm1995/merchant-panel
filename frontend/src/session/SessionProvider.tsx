@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { apiClient, rememberCsrfToken } from '../api/client';
+import { apiClient, onSessionExpired, rememberCsrfToken } from '../api/client';
 import { problemMessage } from '../api/problem';
 import type { components } from '../api/schema';
 import {
@@ -42,6 +42,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       mounted = false;
     };
   }, []);
+
+  // The server forgot the session, so load the anonymous one it now has, with its CSRF
+  // token; the panel routes then send the merchant to sign in again.
+  useEffect(
+    () =>
+      onSessionExpired(() => {
+        void fetchSession().then(setSession);
+      }),
+    [],
+  );
 
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
     const { data, error } = await apiClient.POST(SESSION_PATH, { body: { email, password } });

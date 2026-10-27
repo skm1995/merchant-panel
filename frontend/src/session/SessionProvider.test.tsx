@@ -9,6 +9,8 @@ import {
   sessionHandler,
   signedInSession,
 } from '../test/api';
+import { ORDERS_PATH } from '../test/panel';
+import { renderApp } from '../test/render';
 import { server } from '../test/server';
 import { SessionProvider } from './SessionProvider';
 import { useSession } from './useSession';
@@ -101,5 +103,16 @@ describe('SessionProvider', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(INVALID_CREDENTIALS);
     expect(screen.getByText('Anonymous')).toBeInTheDocument();
+  });
+
+  it('sends the merchant to sign in when the session has expired', async () => {
+    server.use(
+      http.get(SESSION_PATH, () => HttpResponse.json(signedInSession(EMAIL)), { once: true }),
+      sessionHandler(anonymousSession()),
+      http.get(ORDERS_PATH, () => problem(401, 'Sign in to continue.')),
+    );
+    renderApp('/orders');
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });

@@ -3,8 +3,11 @@ import type { paths } from './schema';
 
 const CSRF_TOKEN_HEADER = 'X-CSRF-Token';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const SESSION_PATH = '/api/v1/session';
+const UNAUTHORIZED = 401;
 
 let csrfToken: string | null = null;
+let sessionExpiredListener: (() => void) | null = null;
 
 /**
  * Keeps the session's CSRF token, which GET /api/v1/session issues, for later state changes.
@@ -12,6 +15,31 @@ let csrfToken: string | null = null;
 export function rememberCsrfToken(token: string): void {
   csrfToken = token;
 }
+
+/**
+ * Registers what to do when the server no longer knows the session, for example after it
+ * expired, and returns a function that removes the listener. A failed sign-in also answers
+ * 401, so responses from the session resource itself never count.
+ */
+export function onSessionExpired(listener: () => void): () => void {
+  sessionExpiredListener = listener;
+
+  return () => {
+    if (sessionExpiredListener === listener) {
+      sessionExpiredListener = null;
+    }
+  };
+}
+
+const sessionExpiryMiddleware: Middleware = {
+  onResponse({ request, response }) {
+    if (response.status === UNAUTHORIZED && new URL(request.url).pathname !== SESSION_PATH) {
+      sessionExpiredListener?.();
+    }
+
+    return response;
+  },
+};
 
 const csrfMiddleware: Middleware = {
   onRequest({ request }) {
@@ -35,4 +63,4 @@ export const apiClient = createClient<paths>({
   fetch: (request) => globalThis.fetch(request),
 });
 
-apiClient.use(csrfMiddleware);
+apiClient.use(csrfMiddleware, sessionExpiryMiddleware);
