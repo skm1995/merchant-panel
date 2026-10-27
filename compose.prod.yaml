@@ -140,6 +140,9 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    # The server has 24 GB of memory: an 8 GB buffer pool keeps the sales history and its
+    # indexes in memory, and a larger redo log speeds up its bulk generation.
+    command: ["--innodb-buffer-pool-size=8G", "--innodb-redo-log-capacity=2G"]
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
       MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}

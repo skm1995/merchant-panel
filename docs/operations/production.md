@@ -28,6 +28,10 @@ the Compose network. The images contain the code: PHP runs without Xdebug and wi
 that never rechecks files, and the worker, the outbox relay, and the maintenance commands run
 as `www-data`. See [System](../architecture/system.md) for every container.
 
+MySQL gets an 8 GB buffer pool, so the sales history and its indexes stay in memory, and a
+2 GB redo log for fast bulk inserts; PHP-FPM may run up to 48 requests in parallel
+([`fpm-pool.conf`](../../docker/php/fpm-pool.conf)) instead of the image's default of 5.
+
 The Compose project keeps the repository's earlier name, `vanilla-php-playground`, because
 the volumes holding the database and the other data are named after it.
 
