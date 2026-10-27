@@ -12,6 +12,7 @@ use App\Catalog\Exception\InsufficientStockException;
 use App\Order\Command\CancelOrderHandler;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Entity\OrderId;
+use App\Order\Enum\OrderRateLimitEnum;
 use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Order\Exception\InvalidOrderTransitionException;
 use App\Order\Exception\OrderNotFoundException;
@@ -29,6 +30,7 @@ use App\Shared\Http\EntityTag;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
+use App\Shared\Http\RateLimit;
 use App\Shared\Http\Request;
 use App\Shared\Http\RequireSignedIn;
 use App\Shared\Http\Responder;
@@ -53,6 +55,7 @@ final readonly class OrderApiController
     }
 
     #[Route(HttpMethodEnum::POST, self::CHECKOUT_ROUTE_PATH)]
+    #[RateLimit(OrderRateLimitEnum::CHECKOUT->value)]
     #[MapException(CartNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     #[MapException(CartNotOpenException::class, ResponseStatusEnum::CONFLICT)]
     #[MapException(InsufficientStockException::class, ResponseStatusEnum::CONFLICT)]

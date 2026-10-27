@@ -35,6 +35,7 @@ final readonly class Request
         private array $headers = [],
         private ?string $body = null,
         private array $routeParameters = [],
+        public ?string $clientAddress = null,
     ) {
     }
 
@@ -51,6 +52,7 @@ final readonly class Request
             $_POST,
             self::headersFromServer(),
             file_get_contents(self::BODY_STREAM) ?: null,
+            clientAddress: self::stringValue($_SERVER, ServerParameterEnum::REMOTE_ADDR->value),
         );
     }
 
@@ -85,6 +87,7 @@ final readonly class Request
             $this->headers,
             $this->body,
             $parameters,
+            $this->clientAddress,
         );
     }
 

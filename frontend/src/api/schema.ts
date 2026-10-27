@@ -397,7 +397,10 @@ export interface components {
         };
         Credentials: {
             email: string;
-            /** Format: password */
+            /**
+             * Format: password
+             * @description When registering, at least 8 characters and at most 72 bytes, without NUL characters, because bcrypt hashes no more.
+             */
             password: string;
         };
         Problem: {
@@ -537,6 +540,17 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description The client sent too many requests to this operation. When it went over the operation's rate limit, Retry-After says when the next attempt can succeed. */
+        TooManyRequests: {
+            headers: {
+                /** @description Seconds until the client may try again. */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description The product as the panel edits it. */
         ProductDetails: {
             headers: {
@@ -625,6 +639,7 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     signOut: {
@@ -670,7 +685,7 @@ export interface operations {
             403: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
-            429: components["responses"]["Problem"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     confirmEmail: {
@@ -766,6 +781,7 @@ export interface operations {
                     "application/json": components["schemas"]["Cart"];
                 };
             };
+            429: components["responses"]["TooManyRequests"];
         };
     };
     getCart: {
@@ -854,6 +870,7 @@ export interface operations {
             404: components["responses"]["Problem"];
             409: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     cancelOrder: {

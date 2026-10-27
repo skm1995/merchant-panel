@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Auth\Controller;
 
+use App\Auth\Enum\AuthRateLimitEnum;
 use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Exception\EmailNotVerifiedException;
 use App\Auth\Exception\InvalidConfirmationTokenException;
 use App\Auth\Exception\InvalidCredentialsException;
 use App\Auth\Exception\InvalidEmailException;
 use App\Auth\Exception\ResendLimitReachedException;
+use App\Auth\Exception\UnsupportedPasswordException;
 use App\Auth\Exception\WeakPasswordException;
 use App\Auth\Request\ConfirmationTokenRequest;
 use App\Auth\Request\CredentialsRequest;
@@ -22,6 +24,7 @@ use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
+use App\Shared\Http\RateLimit;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -56,6 +59,7 @@ final readonly class AuthApiController
 
     #[Route(HttpMethodEnum::POST, self::SESSION_ROUTE_PATH)]
     #[UsesSession]
+    #[RateLimit(AuthRateLimitEnum::SIGN_IN->value)]
     #[MapException(InvalidCredentialsException::class, ResponseStatusEnum::UNAUTHORIZED)]
     #[MapException(EmailNotVerifiedException::class, ResponseStatusEnum::FORBIDDEN)]
     public function signIn(Request $request): void
@@ -79,8 +83,10 @@ final readonly class AuthApiController
 
     #[Route(HttpMethodEnum::POST, self::REGISTRATIONS_ROUTE_PATH)]
     #[UsesSession]
+    #[RateLimit(AuthRateLimitEnum::REGISTRATION->value)]
     #[MapException(InvalidEmailException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     #[MapException(WeakPasswordException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    #[MapException(UnsupportedPasswordException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     #[MapException(DuplicateEmailException::class, ResponseStatusEnum::CONFLICT)]
     #[MapException(ResendLimitReachedException::class, ResponseStatusEnum::TOO_MANY_REQUESTS)]
     public function register(Request $request): void

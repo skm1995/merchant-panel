@@ -10,6 +10,7 @@ use App\Shared\Http\Middleware\CsrfMiddleware;
 use App\Shared\Http\Middleware\ErrorMiddleware;
 use App\Shared\Http\Middleware\ExceptionMappingMiddleware;
 use App\Shared\Http\Middleware\MiddlewarePipeline;
+use App\Shared\Http\Middleware\RateLimitMiddleware;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Middleware\SessionMiddleware;
 use App\Shared\Http\Middleware\SignedInMiddleware;
@@ -41,6 +42,7 @@ final class Router implements RequestHandlerInterface
         private readonly Session $session,
         private readonly Responder $responder,
         private readonly SessionUserInterface $user,
+        private readonly RateLimiter $rateLimiter,
     ) {
     }
 
@@ -89,6 +91,11 @@ final class Router implements RequestHandlerInterface
     private function pipeline(Route $route, object $controller, ReflectionMethod $method): RequestHandlerInterface
     {
         $middleware = [new ErrorMiddleware($this->responder)];
+
+        // Limits run first, so a client over its limit costs neither a session nor a password check.
+        foreach ($method->getAttributes(RateLimit::class) as $attribute) {
+            $middleware[] = new RateLimitMiddleware($attribute->newInstance(), $this->rateLimiter, $this->responder);
+        }
 
         $requiresSignIn = $method->getAttributes(RequireSignedIn::class) !== [];
         $usesSession = !Request::isApiPath($route->path) || $requiresSignIn || $method->getAttributes(UsesSession::class) !== [];

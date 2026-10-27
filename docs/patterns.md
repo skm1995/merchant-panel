@@ -45,6 +45,17 @@ and follow the existing implementation it names.
 - The only server-rendered page left is the legacy order report; views only produce
   markup and escape output through the shared renderer's helper.
 
+## Rate limits
+
+- Routes that attackers can repeat cheaply, such as sign-in, registration, cart creation, and
+  checkout, carry `#[RateLimit('<VARIABLE>')]`. The variable, from `docker/env/rate-limit.env`,
+  holds `<requests>/<seconds>` per client address; the router checks it before the session
+  or any password hashing and answers 429 with `Retry-After`. Name the variables in the
+  feature's `*RateLimitEnum`.
+- Counters live in Redis in fixed windows. When Redis is unreachable, requests go through
+  and a warning is logged. The test stack sets very high limits in
+  `rate-limit-test.env`, because tests and k6 send many requests from one address.
+
 ## Panel authentication
 
 - The React panel authenticates with the browser session, not tokens: `GET /api/v1/session`

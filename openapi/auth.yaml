@@ -37,6 +37,8 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '403':
           $ref: 'shared.yaml#/responses/Problem'
+        '429':
+          $ref: 'shared.yaml#/responses/TooManyRequests'
     delete:
       operationId: signOut
       summary: Sign out
@@ -74,7 +76,7 @@ paths:
         '422':
           $ref: 'shared.yaml#/responses/Problem'
         '429':
-          $ref: 'shared.yaml#/responses/Problem'
+          $ref: 'shared.yaml#/responses/TooManyRequests'
   emailConfirmations:
     post:
       operationId: confirmEmail
@@ -121,6 +123,9 @@ schemas:
       password:
         type: string
         format: password
+        description: >-
+          When registering, at least 8 characters and at most 72 bytes, without NUL
+          characters, because bcrypt hashes no more.
   EmailConfirmation:
     type: object
     additionalProperties: false

@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace App\Cart\Controller;
 
-use App\Cart\Response\CartResponse;
-use App\Cart\Request\SetCartItemQuantityRequest;
 use App\Cart\Entity\CartId;
+use App\Cart\Enum\CartRateLimitEnum;
 use App\Cart\Exception\CartNotFoundException;
 use App\Cart\Exception\CartNotOpenException;
 use App\Cart\Exception\InvalidCartQuantityException;
+use App\Cart\Request\SetCartItemQuantityRequest;
+use App\Cart\Response\CartResponse;
 use App\Cart\Service\CartService;
 use App\Catalog\Exception\ProductNotFoundException;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
+use App\Shared\Http\RateLimit;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -34,6 +36,7 @@ final readonly class CartApiController
     }
 
     #[Route(HttpMethodEnum::POST, self::CARTS_ROUTE_PATH)]
+    #[RateLimit(CartRateLimitEnum::CREATION->value)]
     public function create(): void
     {
         $cart = $this->carts->create();

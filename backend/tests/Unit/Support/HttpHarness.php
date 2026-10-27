@@ -8,9 +8,11 @@ use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
+use App\Shared\Http\RateLimiter;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
 use PHPUnit\Framework\Assert;
+use Psr\Log\NullLogger;
 
 /**
  * Dispatches requests to controllers through the real router in unit tests, so routing,
@@ -25,7 +27,13 @@ final class HttpHarness
 
     public static function dispatch(Request $request, object ...$controllers): string
     {
-        $router = new Router(new CsrfToken(new Session()), new Session(), self::responder(), new CurrentUser(new Session()));
+        $router = new Router(
+            new CsrfToken(new Session()),
+            new Session(),
+            self::responder(),
+            new CurrentUser(new Session()),
+            new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
+        );
 
         foreach ($controllers as $controller) {
             $router->registerController($controller);

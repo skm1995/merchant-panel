@@ -42,6 +42,7 @@ services:
       - docker/env/payment.env
       - docker/env/redis.env
       - docker/env/reports.env
+      - docker/env/rate-limit.env
     environment:
       ORDER_RESERVATION_SECONDS: ${ORDER_RESERVATION_SECONDS:-900}
       XDEBUG_MODE: ${XDEBUG_MODE:-debug,develop}
@@ -101,6 +102,8 @@ services:
       - docker/env/redis.env
       - docker/env/redis-test.env
       - docker/env/reports.env
+      - docker/env/rate-limit.env
+      - docker/env/rate-limit-test.env
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
@@ -130,6 +133,8 @@ services:
       - docker/env/redis.env
       - docker/env/redis-test.env
       - docker/env/reports.env
+      - docker/env/rate-limit.env
+      - docker/env/rate-limit-test.env
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"

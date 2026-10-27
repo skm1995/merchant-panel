@@ -117,6 +117,15 @@ final class AuthApiControllerTest extends TestCase
         self::assertSame(ResponseStatusEnum::UNPROCESSABLE_CONTENT->value, http_response_code());
     }
 
+    public function testRejectsARegistrationWithAPasswordBcryptCannotHashWhole(): void
+    {
+        $credentials = sprintf('{"email":"person@example.com","password":"%s"}', str_repeat('p', 73));
+
+        HttpHarness::dispatch($this->unsafe(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, $credentials), $this->controller(null));
+
+        self::assertSame(ResponseStatusEnum::UNPROCESSABLE_CONTENT->value, http_response_code());
+    }
+
     public function testRejectsAnUnknownConfirmationToken(): void
     {
         HttpHarness::dispatch($this->unsafe(HttpMethodEnum::POST, self::CONFIRMATIONS_PATH, '{"token":"unknown"}'), $this->controller(null));

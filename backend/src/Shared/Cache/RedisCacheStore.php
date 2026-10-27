@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Shared\Cache;
 
+use App\Shared\Cache\Exception\CacheUnavailableException;
 use Redis;
+use RedisException;
 
 final class RedisCacheStore implements CacheStoreInterface
 {
@@ -34,6 +36,20 @@ final class RedisCacheStore implements CacheStoreInterface
     public function set(string $key, string $value, int $ttlSeconds): void
     {
         $this->redis->set($key, $value, [self::EXPIRE_SECONDS_OPTION => $ttlSeconds]);
+    }
+
+    public function increment(string $key, int $ttlSeconds): int
+    {
+        try {
+            [$count] = $this->redis->multi()
+                ->incr($key)
+                ->expire($key, $ttlSeconds, self::ONLY_IF_ABSENT_OPTION)
+                ->exec();
+        } catch (RedisException $exception) {
+            throw new CacheUnavailableException($exception);
+        }
+
+        return (int) $count;
     }
 
     public function delete(array $keys): void

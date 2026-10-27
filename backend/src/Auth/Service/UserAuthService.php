@@ -9,12 +9,15 @@ use App\Auth\Exception\DuplicateEmailException;
 use App\Auth\Exception\EmailNotVerifiedException;
 use App\Auth\Exception\InvalidCredentialsException;
 use App\Auth\Exception\InvalidEmailException;
+use App\Auth\Exception\UnsupportedPasswordException;
 use App\Auth\Exception\WeakPasswordException;
 use App\Auth\Repository\UserRepositoryInterface;
 
 final class UserAuthService
 {
     private const int MINIMUM_PASSWORD_LENGTH = 8;
+    private const int MAXIMUM_PASSWORD_BYTES = 72;
+    private const string NUL_CHARACTER = "\0";
 
     public function __construct(private readonly UserRepositoryInterface $users)
     {
@@ -30,6 +33,10 @@ final class UserAuthService
 
         if (strlen($password) < self::MINIMUM_PASSWORD_LENGTH) {
             throw new WeakPasswordException(self::MINIMUM_PASSWORD_LENGTH);
+        }
+
+        if (strlen($password) > self::MAXIMUM_PASSWORD_BYTES || str_contains($password, self::NUL_CHARACTER)) {
+            throw new UnsupportedPasswordException(self::MAXIMUM_PASSWORD_BYTES);
         }
 
         if ($this->users->findByEmail($normalizedEmail) !== null) {

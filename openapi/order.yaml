@@ -73,6 +73,8 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '422':
           $ref: 'shared.yaml#/responses/Problem'
+        '429':
+          $ref: 'shared.yaml#/responses/TooManyRequests'
   order:
     get:
       operationId: getOrder

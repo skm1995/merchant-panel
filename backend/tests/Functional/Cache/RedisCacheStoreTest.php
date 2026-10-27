@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Cache;
 
+use App\Shared\Cache\Exception\CacheUnavailableException;
 use App\Shared\Cache\RedisCacheStore;
 use App\Shared\Cache\RedisConnection;
 use PHPUnit\Framework\TestCase;
+use Redis;
+use RedisException;
 
 final class RedisCacheStoreTest extends TestCase
 {
@@ -15,6 +18,8 @@ final class RedisCacheStoreTest extends TestCase
     private const string FOREIGN_TOKEN = 'someone-else';
     private const int TTL = 30;
     private const int LOCK_TTL = 5000;
+    private const string UNREACHABLE_HOST = '127.0.0.1';
+    private const int UNREACHABLE_PORT = 1;
 
     private RedisCacheStore $store;
     private string $key;
@@ -61,5 +66,29 @@ final class RedisCacheStoreTest extends TestCase
     private function lockKey(): string
     {
         return $this->key . ':lock';
+    }
+
+    public function testCountsUpWithAnExpiryThatTheFirstIncrementSets(): void
+    {
+        self::assertSame(1, $this->store->increment($this->key, self::TTL));
+        $firstTtl = RedisConnection::createFromEnvironment()->ttl($this->key);
+        self::assertSame(2, $this->store->increment($this->key, self::TTL * 2));
+
+        self::assertGreaterThan(0, $firstTtl);
+        self::assertLessThanOrEqual(self::TTL, RedisConnection::createFromEnvironment()->ttl($this->key));
+    }
+
+    public function testReportsAnUnreachableRedisAsUnavailable(): void
+    {
+        $redis = new Redis();
+
+        try {
+            $redis->connect(self::UNREACHABLE_HOST, self::UNREACHABLE_PORT);
+        } catch (RedisException) {
+            // An unreachable server is exactly what this test needs.
+        }
+
+        $this->expectException(CacheUnavailableException::class);
+        new RedisCacheStore($redis)->increment($this->key, self::TTL);
     }
 }

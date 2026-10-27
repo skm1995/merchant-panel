@@ -15,6 +15,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/schemas/Cart'
+        '429':
+          $ref: 'shared.yaml#/responses/TooManyRequests'
   cart:
     get:
       operationId: getCart

@@ -12,6 +12,8 @@ use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\MapException;
+use App\Shared\Http\RateLimit;
+use App\Shared\Http\RateLimiter;
 use App\Shared\Http\RequireApiKey;
 use App\Shared\Http\RequireSignedIn;
 use App\Shared\Http\Request;
@@ -22,6 +24,9 @@ use App\Shared\Http\Router;
 use App\Shared\Http\Session;
 use LogicException;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\InMemoryCacheStore;
 
 final class RouterTest extends TestCase
 {
@@ -40,6 +45,11 @@ final class RouterTest extends TestCase
     private const string MISSING_API_PATH = '/api/v1/missing';
     public const string API_KEY_VARIABLE = 'ROUTER_TEST_API_KEY';
     private const string API_KEY = 'router-test-key';
+    public const string RATE_LIMIT_VARIABLE = 'ROUTER_TEST_RATE_LIMIT';
+    private const string ONE_REQUEST_PER_MINUTE = '1/60';
+    private const string CLIENT = '192.0.2.1';
+    private const string OTHER_CLIENT = '192.0.2.2';
+    private const string RETRY_DETAIL_PREFIX = 'Too many requests. Try again in ';
     private const string POST_VALUE = 'post route dispatched';
     private const string SESSION_API_PATH = '/api/v1/session';
     private const string PANEL_PATH = '/api/v1/panel/orders';
@@ -189,6 +199,39 @@ final class RouterTest extends TestCase
         ob_end_clean();
 
         self::assertSame(1, $controller->calls);
+    }
+
+    public function testRateLimitedRouteAnswersTooManyRequestsOnceAClientExceedsItsLimit(): void
+    {
+        putenv(sprintf('%s=%s', self::RATE_LIMIT_VARIABLE, self::ONE_REQUEST_PER_MINUTE));
+        $controller = new class () {
+            public const string PATH = '/api/v1/carts';
+            public int $calls = 0;
+
+            #[Route(HttpMethodEnum::POST, self::PATH)]
+            #[RateLimit(RouterTest::RATE_LIMIT_VARIABLE)]
+            public function create(): void
+            {
+                $this->calls++;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller);
+
+        try {
+            $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::CLIENT));
+            ob_start();
+            $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::CLIENT));
+            $output = ob_get_clean();
+            self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, http_response_code());
+            $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::OTHER_CLIENT));
+        } finally {
+            putenv(self::RATE_LIMIT_VARIABLE);
+        }
+
+        self::assertIsString($output);
+        self::assertStringContainsString(self::RETRY_DETAIL_PREFIX, $output);
+        self::assertSame(2, $controller->calls);
     }
 
     public function testRouteRequiringAnApiKeyRejectsMissingOrWrongKeys(): void
@@ -529,6 +572,12 @@ final class RouterTest extends TestCase
 
     private function router(): Router
     {
-        return new Router($this->csrfToken, new Session(), new Responder(), new CurrentUser(new Session()));
+        return new Router(
+            $this->csrfToken,
+            new Session(),
+            new Responder(),
+            new CurrentUser(new Session()),
+            new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
+        );
     }
 }

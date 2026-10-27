@@ -51,6 +51,7 @@ services:
       - docker/env/payment.env
       - docker/env/redis.env
       - docker/env/reports.env
+      - docker/env/rate-limit.env
     environment:
       ORDER_RESERVATION_SECONDS: 900
       SESSION_COOKIE_SECURE: "true"
