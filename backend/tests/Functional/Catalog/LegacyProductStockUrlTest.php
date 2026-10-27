@@ -65,7 +65,7 @@ final class LegacyProductStockUrlTest extends TestCase
         ]);
 
         self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $injected->getStatusCode());
-        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $unauthenticatedWrite->getStatusCode());
+        self::assertSame(ResponseStatusEnum::METHOD_NOT_ALLOWED->value, $unauthenticatedWrite->getStatusCode(), 'The retired page only redirects; it accepts no writes.');
         self::assertSame($before, $this->stored($productId));
     }
 
