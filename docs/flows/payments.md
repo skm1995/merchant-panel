@@ -64,9 +64,10 @@ authentication. [`HandlePaymentWebhookHandler`](../../backend/src/Payment/Comman
 4. **Checks the amount and currency** against the payment, answering 422 on a mismatch.
 5. **Applies the outcome:** a failed payment is marked failed; a successful one asks
    [`OrderSettlement`](../../backend/src/Order/Service/OrderSettlement.php) to mark the order
-   paid, which turns its reserved stock into sold stock. If the order was cancelled or expired
-   in the meantime, the payment is marked `refund_required` instead, so money taken for an
-   order that no longer exists is not lost from sight.
+   paid, which turns its reserved stock into sold stock and adds an `OrderPaidMessage` to the
+   outbox; the worker then recomputes that day in the daily sales summary. If the order was
+   cancelled or expired in the meantime, the payment is marked `refund_required` instead, so
+   money taken for an order that no longer exists is not lost from sight.
 
 All of steps 2 to 5 run in one transaction, so an error leaves no trace and the provider's
 retry can succeed.

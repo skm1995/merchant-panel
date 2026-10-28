@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Analytics\Service;
 
 use App\Analytics\Exception\SalesHistoryAlreadyExists;
+use App\Analytics\Repository\DailySalesRepositoryInterface;
 use App\Analytics\Repository\SalesHistoryRepositoryInterface;
 use App\Analytics\ValueObject\SalesCalendar;
+use App\Shared\Database\Enum\IsolationLevelEnum;
 use App\Shared\Database\TransactionRunnerInterface;
 use Psr\Clock\ClockInterface;
 
 /**
- * Fills the shop with three years of sales history, a day at a time, so the reports run on
- * millions of orders. bin/generate-sales-history.php runs it on demand.
+ * Fills the shop with three years of sales history, a day at a time, and summarizes each day
+ * in the daily sales table, so the reports run on millions of orders.
+ * bin/generate-sales-history.php runs it on demand.
  */
 final readonly class GenerateSalesHistoryService
 {
@@ -22,6 +25,7 @@ final readonly class GenerateSalesHistoryService
 
     public function __construct(
         private SalesHistoryRepositoryInterface $history,
+        private DailySalesRepositoryInterface $sales,
         private SalesHistoryFactory $factory,
         private TransactionRunnerInterface $transactions,
         private ClockInterface $clock,
@@ -46,6 +50,7 @@ final readonly class GenerateSalesHistoryService
                 $this->transactions->run(fn () => $this->history->addOrders($batch));
             }
 
+            $this->transactions->run(fn () => $this->sales->refreshDay($day->date), IsolationLevelEnum::READ_COMMITTED);
             $nextNumber += $day->orders;
             $progress($nextNumber - 1, $orders);
         }

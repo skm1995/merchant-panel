@@ -18,7 +18,7 @@ dependency injection, sessions, CSRF protection, and messaging, are visible and 
 | Accounts | Registration with email confirmation, sign-in with a session cookie and CSRF token, and merchant access granted by an operator. | [`backend/src/Auth`](../backend/src/Auth) |
 | Merchant panel | Orders, product editing with optimistic locking, and daily revenue and top product reports. | [`frontend/src`](../frontend/src) |
 | Reports API | The same reports for integrations, authenticated with an API key. | [`backend/src/Report`](../backend/src/Report) |
-| Sales history | Generates three years of orders (3 million by default) with seasonal peaks, so reports run on realistic volume, and removes them again in batches. | [`backend/src/Analytics`](../backend/src/Analytics) |
+| Sales history | Generates three years of orders (3 million by default) with seasonal peaks, so reports run on realistic volume, and removes them again in batches. A daily sales summary per product, refreshed by the worker after each payment, lets long-range reports read thousands of rows instead of millions. | [`backend/src/Analytics`](../backend/src/Analytics) |
 | Legacy | A legacy page was characterized with golden-master tests and replaced; its old URL redirects to the panel. | [`backend/src/Catalog/Controller/LegacyProductStockController.php`](../backend/src/Catalog/Controller/LegacyProductStockController.php) |
 
 The API is described in OpenAPI in [`openapi/`](../openapi/openapi.yaml), which is the

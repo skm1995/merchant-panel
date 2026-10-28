@@ -129,6 +129,7 @@ Delivery is at least once, so handlers are idempotent.
 | `ConfirmationEmailMessage` | `emails` | Sends the email confirmation link |
 | `AccountExistsEmailMessage` | `emails` | Tells the owner of an address that someone tried to register it again |
 | `ExpireOrderReservationCommand` | `orders` | Expires an unpaid order and releases its stock |
+| `OrderPaidMessage` | `orders` | Recomputes the daily sales summary for the day the order was placed |
 | `ProductStockChangedMessage` | `catalog` | Removes changed products from the cache |
 
 ## Logging

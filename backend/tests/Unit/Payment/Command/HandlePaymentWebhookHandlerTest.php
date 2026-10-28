@@ -163,7 +163,12 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
             $gateways,
             $inbox,
             $payments,
-            new OrderSettlement($orders, new OrderStatusChange($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock()))),
+            new OrderSettlement(
+                $orders,
+                new OrderStatusChange($orders, new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock())),
+                $this->createStub(OutboxInterface::class),
+                new FrozenClock(),
+            ),
             $this->transactions,
         );
     }

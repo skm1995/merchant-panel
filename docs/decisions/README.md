@@ -22,3 +22,4 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0014](0014-one-server-deployed-from-ci.md) | One server, deployed from CI with Docker Compose | Accepted |
 | [0015](0015-mailpit-and-vector-for-local-tooling.md) | Mailpit and Vector for mail and log collection | Accepted |
 | [0016](0016-plain-sql-and-php-for-reports.md) | Plain SQL that reduces the data, PHP that computes on the result | Accepted |
+| [0017](0017-daily-sales-summary-recomputed-per-day.md) | A daily sales summary, recomputed a day at a time | Accepted |

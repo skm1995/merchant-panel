@@ -57,7 +57,8 @@ dc run --rm --no-deps --user www-data php php bin/generate-sales-history.php    
 dc run --rm --no-deps --user www-data php php bin/generate-sales-history.php 100000     # a sample
 ```
 
-It refuses to run while history exists. The history is marked by SKUs starting with
+It also fills the daily sales summary for every generated day. It refuses to run while
+history exists. The history is marked by SKUs starting with
 `history-` and idempotency keys starting with `history:`, so removing it never touches real
 orders. Removal deletes orders in batches, so the demo keeps running, and then rebuilds the
 tables with `OPTIMIZE TABLE` to give the disk space back (MySQL keeps the space of deleted

@@ -40,6 +40,9 @@ final class PaymentApiTest extends TestCase
     private const int STOCK = 5;
     private const int QUANTITY = 2;
     private const int CONCURRENT_DELIVERIES = 5;
+    private const int WAIT_TIMEOUT_SECONDS = 10;
+    private const int POLL_INTERVAL_MICROSECONDS = 100000;
+    private const string DAILY_UNITS_QUERY = 'SELECT units FROM daily_product_sales WHERE product_id = :product_id';
 
     private PDO $pdo;
     private PdoProductRepository $products;
@@ -128,6 +131,16 @@ final class PaymentApiTest extends TestCase
         self::assertSame(0, $product->reserved);
     }
 
+    public function testPaidOrderReachesTheDailySalesSummaryThroughTheWorker(): void
+    {
+        $order = $this->placeOrder();
+        $payment = ApiClient::json($this->startPayment($order, self::FAKEPAY, uniqid(self::KEY_PREFIX, true)));
+
+        $this->deliverFakepay($this->fakepayPayload($payment, 'succeeded'));
+
+        self::assertSame(self::QUANTITY, $this->waitForDailyUnits(), 'The worker summarizes the day after the payment commits.');
+    }
+
     public function testConcurrentDeliveriesOfOneWebhookAreAppliedOnce(): void
     {
         $order = $this->placeOrder();
@@ -180,6 +193,25 @@ final class PaymentApiTest extends TestCase
         self::assertSame(['status' => 'processed'], ApiClient::json($response));
         self::assertSame('refund_required', $this->show(self::PAYMENT_PATH_FORMAT, (string) $payment['id'], $order)['status']);
         self::assertSame(self::STOCK, $this->products->findById($this->productId)?->availableQuantity());
+    }
+
+    private function waitForDailyUnits(): ?int
+    {
+        $statement = $this->pdo->prepare(self::DAILY_UNITS_QUERY);
+        $deadline = microtime(true) + self::WAIT_TIMEOUT_SECONDS;
+
+        do {
+            $statement->execute(['product_id' => $this->productId]);
+            $units = $statement->fetchColumn();
+
+            if ($units !== false) {
+                return (int) $units;
+            }
+
+            usleep(self::POLL_INTERVAL_MICROSECONDS);
+        } while (microtime(true) < $deadline);
+
+        return null;
     }
 
     private function placeOrder(): TestCheckout

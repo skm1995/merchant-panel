@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Analytics\Service;
 
 use App\Analytics\Exception\SalesHistoryAlreadyExists;
+use App\Analytics\Repository\DailySalesRepositoryInterface;
 use App\Analytics\Service\GenerateSalesHistoryService;
 use App\Analytics\Service\SalesHistoryFactory;
+use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\ImmediateTransactionRunner;
@@ -38,6 +40,24 @@ final class GenerateSalesHistoryServiceTest extends TestCase
         self::assertSame([self::ORDERS, self::ORDERS], end($progress));
     }
 
+    public function testSummarizesEveryGeneratedDay(): void
+    {
+        $refreshed = [];
+        $sales = $this->createMock(DailySalesRepositoryInterface::class);
+        $sales->expects(self::atLeastOnce())->method('refreshDay')->willReturnCallback(
+            static function (DateTimeImmutable $day) use (&$refreshed): void {
+                $refreshed[] = $day->format('Y-m-d');
+            },
+        );
+
+        $this->service(new RecordingSalesHistoryRepository(), $sales)->execute(self::ORDERS, static function (): void {
+        });
+
+        self::assertCount(1095, array_unique($refreshed));
+        self::assertSame('2023-10-28', $refreshed[0]);
+        self::assertSame('2026-10-26', end($refreshed));
+    }
+
     public function testRefusesToGenerateASecondHistory(): void
     {
         $history = new RecordingSalesHistoryRepository();
@@ -53,8 +73,16 @@ final class GenerateSalesHistoryServiceTest extends TestCase
         }
     }
 
-    private function service(RecordingSalesHistoryRepository $history): GenerateSalesHistoryService
-    {
-        return new GenerateSalesHistoryService($history, new SalesHistoryFactory(), new ImmediateTransactionRunner(), new FrozenClock(self::NOW));
+    private function service(
+        RecordingSalesHistoryRepository $history,
+        ?DailySalesRepositoryInterface $sales = null,
+    ): GenerateSalesHistoryService {
+        return new GenerateSalesHistoryService(
+            $history,
+            $sales ?? $this->createStub(DailySalesRepositoryInterface::class),
+            new SalesHistoryFactory(),
+            new ImmediateTransactionRunner(),
+            new FrozenClock(self::NOW),
+        );
     }
 }
