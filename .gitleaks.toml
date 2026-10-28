@@ -8,4 +8,6 @@ description = "Development defaults and test fixtures"
 regexes = [
   '''local-reports-api-key''',
   '''23a0f8a5d44eb66f9f082c737258aaf003ccf023127f695078f39fd7f57cd2e6''',
+  # A load test key that only ever existed in a unit test, in commit 1df0dea.
+  '''f3a9c1d27e8b4f6a''',
 ]

@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 final class LoadTestKeyTest extends TestCase
 {
-    private const string KEY = 'f3a9c1d27e8b4f6a';
+    private const string KEY = 'test-load-test-key';
 
     #[DataProvider('internalAddresses')]
     public function testExemptsTheRightKeyFromInsideTheServer(string $address): void
