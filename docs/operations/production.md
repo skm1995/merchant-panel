@@ -70,4 +70,7 @@ Both write to the system log under the `merchant-panel` tag:
 - One server, so a hardware or account problem takes the demo down; there is no failover.
 - The backups stay on the same server; they protect against mistakes and corrupted data, not
   against losing the server.
+- The nightly dump includes the generated sales history, which makes each dump a few hundred
+  megabytes larger. Dumping it separately would need several `mysqldump` runs that do not
+  see the same moment, so the history stays in the one consistent dump.
 - Oracle may reclaim an Always Free machine that stays idle for a long time.

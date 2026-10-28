@@ -8,8 +8,9 @@ hand.
 
 ## Features and layers
 
-[`backend/src`](../../backend/src) has one directory per feature: `Auth`, `Cart`,
-`Catalog`, `Order`, `Payment`, and `Report`, plus `Shared` for code several features use.
+[`backend/src`](../../backend/src) has one directory per feature: `Analytics`, `Auth`,
+`Cart`, `Catalog`, `Order`, `Payment`, and `Report`, plus `Shared` for code several features
+use.
 Inside a feature, each directory is a layer:
 
 | Layer | Directories | Holds |

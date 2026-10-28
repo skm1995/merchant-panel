@@ -46,6 +46,27 @@ dc run --rm --no-deps --user www-data php php bin/retry-failed-messages.php
 The command acknowledges a message only after it was dispatched again, and reports messages
 it can no longer decode, for example after a message class was renamed.
 
+## Generate or remove the sales history
+
+The demo can hold three years of generated orders, so the reports run on realistic volume.
+Generating 3 million orders takes about 15–20 minutes and about 2.5 GB of disk; run it in
+`tmux` or `screen`, since it stops if the SSH session ends:
+
+```sh
+dc run --rm --no-deps --user www-data php php bin/generate-sales-history.php            # 3 million
+dc run --rm --no-deps --user www-data php php bin/generate-sales-history.php 100000     # a sample
+```
+
+It refuses to run while history exists. The history is marked by SKUs starting with
+`history-` and idempotency keys starting with `history:`, so removing it never touches real
+orders. Removal deletes orders in batches, so the demo keeps running, and then rebuilds the
+tables with `OPTIMIZE TABLE` to give the disk space back (MySQL keeps the space of deleted
+rows otherwise):
+
+```sh
+dc run --rm --no-deps --user www-data php php bin/remove-sales-history.php
+```
+
 ## A deployment failed
 
 Read the failed step in the GitHub Actions log. If the new release does not start, revert the
