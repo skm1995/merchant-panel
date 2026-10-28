@@ -43,14 +43,14 @@ final readonly class PlaceOrderHandler
     ) {
     }
 
-    public function handle(PlaceOrderCommand $command): PlacedOrder
+    public function handle(PlaceOrderCommand $command): PlaceOrderResult
     {
         $orderId = $this->transactions->run(
             fn (): OrderId => $this->place($command),
             IsolationLevelEnum::READ_COMMITTED,
         );
 
-        return new PlacedOrder($orderId, $this->access->tokenFor($orderId));
+        return new PlaceOrderResult($orderId, $this->access->tokenFor($orderId));
     }
 
     private function place(PlaceOrderCommand $command): OrderId

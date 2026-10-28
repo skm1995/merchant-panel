@@ -49,7 +49,7 @@ queries through [`QueryBusInterface`](../../backend/src/Shared/Messaging/Bus/Que
 two Symfony Messenger buses ([0023](../decisions/0023-commands-and-queries-through-messenger-buses.md)):
 
 ```php
-$placed = $this->commands->dispatch(PlaceOrderRequest::toCommand($request)); // PlacedOrder
+$placed = $this->commands->dispatch(PlaceOrderRequest::toCommand($request)); // PlaceOrderResult
 $order = $this->queries->ask(new GetOrderQuery($placed->orderId, $placed->accessToken)); // OrderView
 ```
 
@@ -58,7 +58,7 @@ $order = $this->queries->ask(new GetOrderQuery($placed->orderId, $placed->access
   the container only then. There is no registry to keep in step, and a command without a
   handler fails with the name of the class it is missing.
 - **Results are typed.** A command or query declares what its handler returns, such as
-  `@implements CommandInterface<PlacedOrder>`, and PHPStan checks every call site.
+  `@implements CommandInterface<PlaceOrderResult>`, and PHPStan checks every call site.
 - **Exceptions are not wrapped.** Messenger wraps a handler's exception in
   `HandlerFailedException`; the buses throw the original, so controllers keep mapping domain
   exceptions to HTTP statuses.

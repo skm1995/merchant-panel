@@ -7,7 +7,7 @@ namespace App\Order\Command;
 use App\Shared\Messaging\Bus\CommandInterface;
 use App\Cart\Entity\CartId;
 
-/** @implements CommandInterface<PlacedOrder> */
+/** @implements CommandInterface<PlaceOrderResult> */
 final readonly class PlaceOrderCommand implements CommandInterface
 {
     public function __construct(public CartId $cartId, public string $idempotencyKey)
