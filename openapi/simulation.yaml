@@ -1,0 +1,116 @@
+paths:
+  simulations:
+    post:
+      operationId: startSimulation
+      security:
+        - sessionCookie: []
+        - csrfToken: []
+      summary: Start a Black Friday simulation
+      description: >-
+        Resets the stock of the simulation's products and lets simulated buyers place, pay
+        for, and receive webhooks for orders through the public API for a fixed time. One
+        simulation runs at a time, and a new one can start only after a cool-down; otherwise
+        the answer is 409 with Retry-After.
+      responses:
+        '202':
+          description: The simulation was started; follow it with GET /api/v1/panel/simulations/current.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Simulation'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '409':
+          $ref: 'shared.yaml#/responses/Problem'
+  currentSimulation:
+    get:
+      operationId: getCurrentSimulation
+      security:
+        - sessionCookie: []
+      summary: The running or the last simulation
+      description: >-
+        Counters while the simulation runs, the stock of its products, and, once it has
+        finished, a check that every unit sold was paid for and no product was oversold.
+      responses:
+        '200':
+          description: The running or the last simulation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/schemas/Simulation'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '404':
+          $ref: 'shared.yaml#/responses/Problem'
+schemas:
+  Simulation:
+    type: object
+    additionalProperties: false
+    required: [id, state, started_at, ends_at, buyers, counters, products, check]
+    properties:
+      id:
+        type: string
+      state:
+        type: string
+        enum: [running, finished]
+      started_at:
+        type: string
+        format: date-time
+      ends_at:
+        type: string
+        format: date-time
+      buyers:
+        type: integer
+        description: Simulated buyers shopping at the same time.
+      counters:
+        type: object
+        additionalProperties: false
+        required: [orders_placed, orders_paid, sold_out, failed_requests]
+        properties:
+          orders_placed:
+            type: integer
+          orders_paid:
+            type: integer
+          sold_out:
+            type: integer
+            description: Checkouts refused because the stock ran out.
+          failed_requests:
+            type: integer
+            description: Requests that failed for any other reason, such as a server error.
+      products:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [product_id, sku, name, stock_at_start, stock, reserved]
+          properties:
+            product_id:
+              type: integer
+            sku:
+              type: string
+            name:
+              type: string
+            stock_at_start:
+              type: integer
+            stock:
+              type: integer
+            reserved:
+              type: integer
+      check:
+        type: object
+        nullable: true
+        description: Null while the simulation runs.
+        additionalProperties: false
+        required: [consistent, units_sold, units_paid]
+        properties:
+          consistent:
+            type: boolean
+            description: Every unit taken from stock belongs to a paid order, and no stock went below zero.
+          units_sold:
+            type: integer
+          units_paid:
+            type: integer

@@ -13,6 +13,9 @@ import { RequireMerchant } from './session/RequireMerchant';
 const ReportsPage = lazy(() =>
   import('./panel/ReportsPage').then((module) => ({ default: module.ReportsPage })),
 );
+const BlackFridayPage = lazy(() =>
+  import('./panel/BlackFridayPage').then((module) => ({ default: module.BlackFridayPage })),
+);
 const AnalyticsPage = lazy(() =>
   import('./panel/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })),
 );
@@ -38,6 +41,14 @@ export function AppRoutes() {
             element={
               <Loading>
                 <ReportsPage />
+              </Loading>
+            }
+          />
+          <Route
+            path="/black-friday"
+            element={
+              <Loading>
+                <BlackFridayPage />
               </Loading>
             }
           />

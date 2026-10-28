@@ -73,7 +73,7 @@ Production runs the same Vector, Elasticsearch, and Kibana
 - the "Application logs" data view;
 - the **Black Friday** dashboard from [`dashboards.ndjson`](../../docker/elk/dashboards.ndjson):
   requests and p95 latency over time, server errors, and commands handled and refused per type,
-  refreshed every five seconds. Its charts are Vega-Lite specifications, so they are plain text
+  refreshed every five seconds, made to watch a [Black Friday simulation](../flows/black-friday.md). Its charts are Vega-Lite specifications, so they are plain text
   in the repository; to change one, edit it in Kibana, export it under Stack Management, Saved
   objects, and replace the file.
 

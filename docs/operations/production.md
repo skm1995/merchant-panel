@@ -29,7 +29,8 @@ and Kibana 1.5 GB, so with MySQL's buffer pool the server keeps several gigabyte
 [`provision.sh`](../../docker/server/provision.sh) raises `vm.max_map_count`, which
 Elasticsearch needs. The images contain the code: PHP runs without Xdebug and with OPcache
 that never rechecks files, and the worker, the outbox relay, and the maintenance commands run
-as `www-data`. See [System](../architecture/system.md) for every container.
+as `www-data`. The `simulator` container runs the [Black Friday simulations](../flows/black-friday.md)
+started in the panel. See [System](../architecture/system.md) for every container.
 
 MySQL gets an 8 GB buffer pool, so the sales history and its indexes stay in memory, a 2 GB
 redo log for fast bulk inserts, and no binary log, which only replicas, point-in-time

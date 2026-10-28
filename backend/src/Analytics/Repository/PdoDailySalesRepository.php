@@ -30,6 +30,11 @@ final class PdoDailySalesRepository implements DailySalesRepositoryInterface
         SQL;
     private const string PLACEMENT_DAY_QUERY = 'SELECT DATE(created_at) FROM orders WHERE public_id = :public_id';
     private const string DATE_FORMAT = 'Y-m-d';
+    private const string DAY_PARAMETER = 'day';
+    private const string STATUS_PARAMETER = 'status';
+    private const string STARTS_AT_PARAMETER = 'starts_at';
+    private const string ENDS_BEFORE_PARAMETER = 'ends_before';
+    private const string PUBLIC_ID_PARAMETER = 'public_id';
     private const string NEXT_DAY = '+1 day';
 
     public function __construct(private readonly PDO $pdo)
@@ -40,19 +45,19 @@ final class PdoDailySalesRepository implements DailySalesRepositoryInterface
     {
         $date = $day->format(self::DATE_FORMAT);
 
-        $this->pdo->prepare(self::DELETE_DAY_QUERY)->execute(['day' => $date]);
+        $this->pdo->prepare(self::DELETE_DAY_QUERY)->execute([self::DAY_PARAMETER => $date]);
         $this->pdo->prepare(self::INSERT_DAY_QUERY)->execute([
-            'day' => $date,
-            'status' => OrderStatusEnum::PAID->value,
-            'starts_at' => $date,
-            'ends_before' => $day->modify(self::NEXT_DAY)->format(self::DATE_FORMAT),
+            self::DAY_PARAMETER => $date,
+            self::STATUS_PARAMETER => OrderStatusEnum::PAID->value,
+            self::STARTS_AT_PARAMETER => $date,
+            self::ENDS_BEFORE_PARAMETER => $day->modify(self::NEXT_DAY)->format(self::DATE_FORMAT),
         ]);
     }
 
     public function findPlacementDay(OrderId $orderId): ?DateTimeImmutable
     {
         $statement = $this->pdo->prepare(self::PLACEMENT_DAY_QUERY);
-        $statement->execute(['public_id' => $orderId->toBinary()]);
+        $statement->execute([self::PUBLIC_ID_PARAMETER => $orderId->toBinary()]);
         $day = $statement->fetchColumn();
 
         return is_string($day) ? new DateTimeImmutable($day) : null;

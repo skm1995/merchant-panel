@@ -9,6 +9,7 @@ const LINKS = [
   { to: '/products', label: 'Products' },
   { to: '/reports', label: 'Reports' },
   { to: '/analytics', label: 'Analytics' },
+  { to: '/black-friday', label: 'Black Friday' },
 ];
 
 export function PanelLayout() {

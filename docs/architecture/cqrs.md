@@ -118,6 +118,10 @@ order's version, and no harm when the message is delivered twice
 
 ## Where it is not used
 
+[Black Friday simulations](../flows/black-friday.md) use the same buses: a synchronous
+`StartSimulationCommand`, an asynchronous `RunSimulationCommand` delivered to the simulator,
+and a `GetCurrentSimulationQuery`.
+
 The catalog, carts, accounts, and reports are plain application services, such as
 [`CartService`](../../backend/src/Cart/Service/CartService.php) and
 [`ReportService`](../../backend/src/Report/Service/ReportService.php). Their reads and writes

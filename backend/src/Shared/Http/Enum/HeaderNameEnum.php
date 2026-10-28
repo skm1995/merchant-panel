@@ -17,4 +17,5 @@ enum HeaderNameEnum: string
     case CSRF_TOKEN = 'X-CSRF-Token';
     case REQUEST_ID = 'X-Request-Id';
     case RETRY_AFTER = 'Retry-After';
+    case LOAD_TEST_KEY = 'X-Load-Test-Key';
 }

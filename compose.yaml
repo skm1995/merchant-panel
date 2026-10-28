@@ -44,6 +44,8 @@ services:
       - docker/env/reports.env
       - docker/env/order-access.env
       - docker/env/rate-limit.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
     environment:
       ORDER_RESERVATION_SECONDS: ${ORDER_RESERVATION_SECONDS:-900}
       XDEBUG_MODE: ${XDEBUG_MODE:-debug,develop}
@@ -106,11 +108,17 @@ services:
       - docker/env/order-access.env
       - docker/env/rate-limit.env
       - docker/env/rate-limit-test.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
+      - docker/env/simulation-test.env
       - docker/env/demo.env
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       MAILPIT_API_BASE_URL: ${MAILPIT_API_BASE_URL:-http://mailpit:8025}
+      # Functional tests run the simulator's load generator against the test proxy.
+      SIMULATION_BASE_URL: http://caddy-test
+      SIMULATION_RESOLVE_HOST: caddy-test
     depends_on:
       redis:
         condition: service_healthy
@@ -139,6 +147,9 @@ services:
       - docker/env/order-access.env
       - docker/env/rate-limit.env
       - docker/env/rate-limit-test.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
+      - docker/env/simulation-test.env
     environment:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
@@ -224,6 +235,67 @@ services:
       mailpit:
         condition: service_started
 
+
+  # Runs Black Friday simulations started in the panel: consumes only the simulation queue
+  # and sends its buyers' requests through Caddy, like customers.
+  simulator:
+    extends:
+      file: docker/php/compose.yaml
+      service: app
+    command: php bin/simulator.php
+    restart: unless-stopped
+    env_file:
+      - docker/env/logging.env
+      - docker/env/database.env
+      - docker/env/messenger.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
+    environment:
+      SIMULATION_BASE_URL: http://caddy
+      SIMULATION_RESOLVE_HOST: caddy
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  simulator-test:
+    extends:
+      file: docker/php/compose.yaml
+      service: app
+    command: php bin/simulator.php
+    restart: unless-stopped
+    profiles:
+      - test
+    env_file:
+      - docker/env/logging.env
+      - docker/env/database.env
+      - docker/env/database-test.env
+      - docker/env/messenger-test.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/redis-test.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
+      - docker/env/simulation-test.env
+    environment:
+      SIMULATION_BASE_URL: http://caddy-test
+      SIMULATION_RESOLVE_HOST: caddy-test
+    depends_on:
+      migrate-test:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
   caddy:
     extends:
       file: docker/caddy/compose.yaml

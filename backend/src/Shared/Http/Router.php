@@ -47,6 +47,7 @@ final class Router implements RequestHandlerInterface
         private readonly Responder $responder,
         private readonly SessionUserInterface $user,
         private readonly RateLimiter $rateLimiter,
+        private readonly LoadTestKey $loadTestKey,
     ) {
     }
 
@@ -106,7 +107,7 @@ final class Router implements RequestHandlerInterface
 
         // Limits run first, so a client over its limit costs neither a session nor a password check.
         foreach ($method->getAttributes(RateLimit::class) as $attribute) {
-            $middleware[] = new RateLimitMiddleware($attribute->newInstance(), $this->rateLimiter, $this->responder);
+            $middleware[] = new RateLimitMiddleware($attribute->newInstance(), $this->rateLimiter, $this->responder, $this->loadTestKey);
         }
 
         $requiresMerchant = $method->getAttributes(RequireMerchant::class) !== [];

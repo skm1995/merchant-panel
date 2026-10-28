@@ -20,6 +20,10 @@ flowchart TB
         redis[(redis)]
         rabbit[[rabbitmq]]
         mailpit[mailpit]
+        simulator[simulator<br/>bin/simulator.php]
+        elastic[(elasticsearch)]
+        kibana[kibana]
+        vector[vector]
         migrate[migrate<br/>runs once]
     end
 
@@ -27,6 +31,11 @@ flowchart TB
     internet -->|mail.domain, password| caddy
     caddy -->|FastCGI: /api/, /legacy/| php
     caddy -->|HTTP| mailpit
+    caddy -->|/kibana/| kibana
+    rabbit --> simulator
+    simulator -->|HTTPS, as buyers| caddy
+    kibana --> elastic
+    vector -->|container logs| elastic
     php --> mysql
     php --> redis
     relay --> mysql
@@ -48,8 +57,10 @@ flowchart TB
 | `seed-demo` | same PHP image | Adds the demo catalog; run by `bin/deploy`, not by `up` (profile `tools`). |
 | `mysql` | `mysql:8.4` | Orders, products, users, payments, and the outbox. |
 | `redis` | `redis:7.4-alpine` | Product cache (database 0), sessions (database 2), and rate-limit counters. |
-| `rabbitmq` | `rabbitmq:4-management` | Queues `emails`, `orders`, `catalog`, and `failed_messages`. |
+| `rabbitmq` | `rabbitmq:4-management` | Queues `emails`, `orders`, `catalog`, `simulation`, and `failed_messages`. |
 | `mailpit` | `axllent/mailpit` | Catches outgoing email, so visitors of the demo can read their confirmation messages. |
+| `simulator` | same PHP image | Consumes only the `simulation` queue and runs [Black Friday simulations](../flows/black-friday.md): its buyers shop through Caddy like customers. Runs as `www-data`. |
+| `elasticsearch`, `kibana`, `vector` | Elastic 9.2 and Vector images | [Log search](../operations/observability.md#on-the-server): Vector ships the containers' logs, Elasticsearch keeps a week of them, and Kibana shows them under `/kibana/` on the mail domain. |
 
 Everything except Caddy is reachable only on the Compose network. Data lives in named
 volumes (`mysql_data`, `rabbitmq_data`, `redis_data`, and Caddy's certificates), which
@@ -67,6 +78,8 @@ project keeps the repository's earlier name.
 | Relay | RabbitMQ | AMQP through Symfony Messenger | The relay leases outbox rows, publishes them, then deletes them, so delivery is at least once. |
 | RabbitMQ | Worker | AMQP | Failed messages are retried with growing delays, then parked in `failed_messages`. |
 | Worker | Mailpit | SMTP | Production sends no real email; Mailpit shows what would have been sent. |
+| Simulator | Caddy | HTTPS to the public name, resolved to the Caddy container | Simulated buyers take the same path as customers, through the proxy, PHP-FPM, and every middleware. |
+| Vector | Docker, Elasticsearch | The Docker socket, read-only; HTTP | Collects every container's JSON logs without access to their files. |
 
 ## Development and test stacks
 

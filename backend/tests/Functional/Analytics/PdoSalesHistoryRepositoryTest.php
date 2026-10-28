@@ -38,6 +38,21 @@ final class PdoSalesHistoryRepositoryTest extends TestCase
         WHERE carts.status = 'checked_out' AND orders.id IS NULL
         SQL;
 
+    private const string SIMULATION_PRODUCT_QUERY = "INSERT INTO products (sku, name, price_amount, price_currency, stock) VALUES ('bf-removal-test', 'Simulation product', 1000, 'PLN', 5)";
+    private const string SIMULATION_CART_QUERY = "INSERT INTO carts (id, status) VALUES (:id, 'checked_out')";
+    private const string SIMULATION_ORDER_QUERY = <<<'SQL'
+        INSERT INTO orders (public_id, cart_id, idempotency_key, status, total_amount, total_currency, reservation_expires_at)
+        VALUES (:public_id, :cart_id, CONCAT('simulation:removal-test:', UUID()), 'paid', 1000, 'PLN', NOW())
+        SQL;
+    private const string SIMULATION_LINE_QUERY = <<<'SQL'
+        INSERT INTO order_items (order_id, product_id, sku, name, quantity, unit_price_amount, unit_price_currency)
+        VALUES (:order_id, :product_id, 'bf-removal-test', 'Simulation product', 1, 1000, 'PLN')
+        SQL;
+    private const string SIMULATION_PAYMENT_QUERY = <<<'SQL'
+        INSERT INTO payments (public_id, order_id, provider, provider_payment_id, checkout_url, amount, currency, status, idempotency_key)
+        VALUES (:public_id, :order_id, 'fakepay', CONCAT('fp_', UUID()), 'https://pay.example/fp', 1000, 'PLN', 'succeeded', CONCAT('simulation-payment:', UUID()))
+        SQL;
+
     private PDO $pdo;
     private PdoSalesHistoryRepository $history;
     private SalesHistoryFactory $factory;
@@ -89,6 +104,23 @@ final class PdoSalesHistoryRepositoryTest extends TestCase
         self::assertFalse($this->history->hasHistory());
         self::assertSame(0, $this->countRows(self::HISTORY_PRODUCTS_QUERY));
         self::assertSame(0, $this->countRows(self::ORPHAN_CARTS_QUERY), 'No checked-out cart is left without its order.');
+    }
+
+    public function testAlsoRemovesSimulationOrdersWithTheirPaymentsAndProducts(): void
+    {
+        $this->pdo->prepare(self::SIMULATION_PRODUCT_QUERY)->execute();
+        $productId = (int) $this->pdo->lastInsertId();
+        $cartId = random_bytes(16);
+        $this->pdo->prepare(self::SIMULATION_CART_QUERY)->execute(['id' => $cartId]);
+        $this->pdo->prepare(self::SIMULATION_ORDER_QUERY)->execute(['public_id' => random_bytes(16), 'cart_id' => $cartId]);
+        $orderId = (int) $this->pdo->lastInsertId();
+        $this->pdo->prepare(self::SIMULATION_LINE_QUERY)->execute(['order_id' => $orderId, 'product_id' => $productId]);
+        $this->pdo->prepare(self::SIMULATION_PAYMENT_QUERY)->execute(['public_id' => random_bytes(16), 'order_id' => $orderId]);
+
+        $this->removeAll();
+
+        self::assertSame(0, $this->countRows("SELECT COUNT(*) FROM orders WHERE idempotency_key LIKE 'simulation:%'"));
+        self::assertSame(0, $this->countRows("SELECT COUNT(*) FROM products WHERE sku = 'bf-removal-test'"));
     }
 
     /** @return list<HistoryOrder> */

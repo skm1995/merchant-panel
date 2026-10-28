@@ -23,6 +23,7 @@ by path rather than copied, so every claim can be checked against the source.
    - [Cart, checkout, and order expiry](flows/checkout.md)
    - [Payments and webhooks](flows/payments.md)
    - [Merchant panel and reports](flows/panel.md)
+   - [Black Friday simulation](flows/black-friday.md)
    - [Replacing legacy code](flows/legacy.md)
 4. [Decisions](decisions/README.md): one architecture decision record per choice, such as
    [session cookies over JWT](decisions/0005-session-cookies-not-jwt.md) or the

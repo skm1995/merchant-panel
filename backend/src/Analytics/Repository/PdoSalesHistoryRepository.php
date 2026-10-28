@@ -32,14 +32,21 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
         INSERT INTO order_items (order_id, product_id, sku, name, quantity, unit_price_amount, unit_price_currency)
         VALUES %s
         SQL;
-    private const string BATCH_QUERY = "SELECT id, cart_id FROM orders WHERE idempotency_key LIKE 'history:%' LIMIT :limit";
+    // Generated history and the orders of Black Friday simulations, both found by key prefix.
+    private const string BATCH_QUERY = <<<'SQL'
+        SELECT id, cart_id FROM orders
+        WHERE idempotency_key LIKE 'history:%' OR idempotency_key LIKE 'simulation:%'
+        LIMIT :limit
+        SQL;
+    private const string DELETE_PAYMENTS_QUERY_FORMAT = 'DELETE FROM payments WHERE order_id IN (%s)';
     private const string DELETE_ORDERS_QUERY_FORMAT = 'DELETE FROM orders WHERE id IN (%s)';
     private const string DELETE_CARTS_QUERY_FORMAT = 'DELETE FROM carts WHERE id IN (%s)';
     private const string DELETE_UNUSED_PRODUCTS_QUERY = <<<'SQL'
         DELETE products FROM products
         LEFT JOIN order_items ON order_items.product_id = products.id
         LEFT JOIN cart_items ON cart_items.product_id = products.id
-        WHERE products.sku LIKE 'history-%' AND order_items.product_id IS NULL AND cart_items.product_id IS NULL
+        WHERE (products.sku LIKE 'history-%' OR products.sku LIKE 'bf-%')
+            AND order_items.product_id IS NULL AND cart_items.product_id IS NULL
         SQL;
     private const string RECLAIM_SPACE_QUERY = 'OPTIMIZE TABLE order_items, orders, carts, products';
     private const string CHECKED_OUT = 'checked_out';
@@ -51,6 +58,7 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
     private const int LINE_COLUMNS = 7;
     private const int VERSION_AFTER_LAST_CHANGE = 2;
     private const string ID_KEY = 'id';
+    private const string LIMIT_PARAMETER = 'limit';
     private const string CART_ID_KEY = 'cart_id';
 
     public function __construct(private readonly PDO $pdo)
@@ -123,7 +131,7 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
     public function removeBatch(int $limit): int
     {
         $statement = $this->pdo->prepare(self::BATCH_QUERY);
-        $statement->bindValue('limit', $limit, PDO::PARAM_INT);
+        $statement->bindValue(self::LIMIT_PARAMETER, $limit, PDO::PARAM_INT);
         $statement->execute();
         $batch = $statement->fetchAll(PDO::FETCH_ASSOC);
 
@@ -132,6 +140,8 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
         }
 
         $placeholders = SqlPlaceholders::positional(count($batch));
+        // Simulated orders were paid; a payment keeps its order, so it goes first.
+        $this->pdo->prepare(sprintf(self::DELETE_PAYMENTS_QUERY_FORMAT, $placeholders))->execute(array_column($batch, self::ID_KEY));
         $this->pdo->prepare(sprintf(self::DELETE_ORDERS_QUERY_FORMAT, $placeholders))->execute(array_column($batch, self::ID_KEY));
         $this->pdo->prepare(sprintf(self::DELETE_CARTS_QUERY_FORMAT, $placeholders))->execute(array_column($batch, self::CART_ID_KEY));
 

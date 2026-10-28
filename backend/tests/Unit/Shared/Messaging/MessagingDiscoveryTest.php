@@ -7,7 +7,9 @@ namespace Tests\Unit\Shared\Messaging;
 use App\Shared\DependencyInjection\ClassFinder;
 use App\Shared\DependencyInjection\Container;
 use App\Shared\Messaging\MessagingDiscovery;
+use ArrayObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Tests\Unit\Shared\Messaging\Fixture\Discovery\ExampleDirectMessage;
 use Tests\Unit\Shared\Messaging\Fixture\Discovery\ExampleMessageHandler;
 use Tests\Unit\Shared\Messaging\Fixture\Discovery\ExampleRoutedMessage;
@@ -53,5 +55,34 @@ final class MessagingDiscoveryTest extends TestCase
         self::assertSame([ExampleRoutedMessage::class], array_keys($handlers));
         ($handlers[ExampleRoutedMessage::class][0])($message);
         self::assertSame([$message], $container->get(ExampleMessageHandler::class)->handled);
+    }
+
+    public function testBuildsAHandlerOnlyWhenItsFirstMessageArrives(): void
+    {
+        $built = new ArrayObject();
+        $lazy = new class ($built) implements ContainerInterface {
+            /** @param ArrayObject<int, string> $built */
+            public function __construct(private ArrayObject $built)
+            {
+            }
+
+            public function get(string $id): object
+            {
+                $this->built->append($id);
+
+                return new $id();
+            }
+
+            public function has(string $id): bool
+            {
+                return class_exists($id);
+            }
+        };
+
+        $handlers = $this->discovery->handlers($lazy);
+        self::assertSame([], $built->getArrayCopy(), 'Collecting the handlers builds none of them.');
+
+        ($handlers[ExampleRoutedMessage::class][0])(new ExampleRoutedMessage());
+        self::assertSame([ExampleMessageHandler::class], $built->getArrayCopy());
     }
 }

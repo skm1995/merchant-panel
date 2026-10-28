@@ -18,6 +18,7 @@ dependency injection, sessions, CSRF protection, and messaging, are visible and 
 | Accounts | Registration with email confirmation, sign-in with a session cookie and CSRF token, and merchant access granted by an operator. | [`backend/src/Auth`](../backend/src/Auth) |
 | Merchant panel | Orders, product editing with optimistic locking, and reports: daily revenue, top products, the stock outlook, an order heatmap, and monthly revenue against the year before. | [`frontend/src`](../frontend/src) |
 | Reports API | The same reports for integrations, authenticated with an API key. | [`backend/src/Report`](../backend/src/Report) |
+| Black Friday | A button in the panel lets simulated buyers shop through the public API for a minute, followed live, and checks afterwards that every unit sold was paid for. | [`backend/src/Simulation`](../backend/src/Simulation) |
 | Sales history | Generates three years of orders (3 million by default) with seasonal peaks, so reports run on realistic volume, and removes them again in batches. A daily sales summary per product, refreshed by the worker after each payment, lets long-range reports read thousands of rows instead of millions. | [`backend/src/Analytics`](../backend/src/Analytics) |
 | Legacy | A legacy page was characterized with golden-master tests and replaced; its old URL redirects to the panel. | [`backend/src/Catalog/Controller/LegacyProductStockController.php`](../backend/src/Catalog/Controller/LegacyProductStockController.php) |
 

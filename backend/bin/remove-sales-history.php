@@ -8,7 +8,7 @@ use App\Shared\DependencyInjection\ContainerFactory;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 const PROGRESS_FORMAT = "\rRemoved %d orders in %ds.";
-const SUMMARY_FORMAT = '%sRemoved %d orders with their carts and products, and gave the disk space back.%s';
+const SUMMARY_FORMAT = '%sRemoved %d history and simulation orders with their payments, carts, and products, and gave the disk space back.%s';
 
 $startedAt = time();
 $removed = ContainerFactory::create()->get(RemoveSalesHistoryService::class)->execute(

@@ -14,7 +14,7 @@ build instead of a screen. It authenticates with the browser session, not tokens
 | [`src/api/`](../../frontend/src/api) | The typed API client, the generated `schema.ts`, and the helper that turns problem details into messages |
 | [`src/session/`](../../frontend/src/session) | The session context, its provider, and the route guard |
 | [`src/auth/`](../../frontend/src/auth) | Sign-in, registration, and email confirmation pages |
-| [`src/panel/`](../../frontend/src/panel) | The panel layout and the orders, products, product editing, reports, and analytics pages |
+| [`src/panel/`](../../frontend/src/panel) | The panel layout and the orders, products, product editing, reports, analytics, and Black Friday pages |
 | [`src/ui/`](../../frontend/src/ui) | A small design system: `Page`, `Button`, `TextField`, `Alert`, `DataTable`, the charts (`ChartPanel`, `BarChart`, `LineChart`, `Heatmap`), design tokens in `tokens.css`, and money formatting |
 | [`e2e/`](../../frontend/e2e) | Playwright end-to-end tests |
 

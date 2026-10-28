@@ -65,6 +65,8 @@ a change pass.
   of one webhook (applied once), concurrent cancellations (one succeeds).
 - **Asynchronous work.** Registration until the email arrives in Mailpit, and order expiry
   through the real broker and worker.
+- **A Black Friday run.** A whole [simulation](../flows/black-friday.md) through the API,
+  the simulator, and the database, checking that every unit sold was paid for.
 - **Security paths.** CSRF rejection, access control for every panel route, SQL injection and
   script injection in the legacy report, security headers, and that GET requests change
   nothing.

@@ -72,7 +72,8 @@ final class MessagingDiscovery
     }
 
     /**
-     * Builds the handler services through the container.
+     * Each handler service is built through the container when its first message arrives, so
+     * a process builds only the handlers of the transports it consumes.
      *
      * @return array<class-string, list<callable>> handlers keyed by the message class they accept
      */
@@ -97,11 +98,8 @@ final class MessagingDiscovery
 
                 /** @var class-string $messageClass */
                 $messageClass = $type->getName();
-                $service = $services->get($class);
-
-                if (is_object($service)) {
-                    $handlers[$messageClass][] = $method->getClosure($service);
-                }
+                $methodName = $method->getName();
+                $handlers[$messageClass][] = static fn (object $message): mixed => $services->get($class)->{$methodName}($message);
             }
         }
 

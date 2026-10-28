@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Payment\Infrastructure\Gateway;
 
+use App\Payment\ValueObject\FakePaySignature;
 use App\Payment\Entity\PaymentId;
 use App\Payment\Enum\PaymentOutcomeEnum;
 use App\Payment\Exception\InvalidWebhookPayloadException;
@@ -23,8 +24,6 @@ final readonly class FakePayGateway implements PaymentGatewayInterface
     private const string PROVIDER_ID_PREFIX = 'fp_';
     private const string CHECKOUT_URL_FORMAT = '%s/pay/%s';
     private const string URL_PATH_SEPARATOR = '/';
-    private const string SIGNATURE_HEADER = 'x-fakepay-signature';
-    private const string HASH_ALGORITHM = 'sha256';
     private const string EVENT_ID_FIELD = 'id';
     private const string PAYMENT_ID_FIELD = 'payment_id';
     private const string STATUS_FIELD = 'status';
@@ -49,9 +48,9 @@ final readonly class FakePayGateway implements PaymentGatewayInterface
 
     public function parseSignedWebhook(string $payload, array $headers): PaymentWebhookEvent
     {
-        $signature = $headers[self::SIGNATURE_HEADER] ?? throw new InvalidWebhookSignatureException();
+        $signature = $headers[FakePaySignature::HEADER] ?? throw new InvalidWebhookSignatureException();
 
-        if (!hash_equals(hash_hmac(self::HASH_ALGORITHM, $payload, $this->webhookSecret), $signature)) {
+        if (!FakePaySignature::matches($payload, $this->webhookSecret, $signature)) {
             throw new InvalidWebhookSignatureException();
         }
 

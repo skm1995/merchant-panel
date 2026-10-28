@@ -8,6 +8,7 @@ use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
+use App\Shared\Http\LoadTestKey;
 use App\Shared\Http\RateLimiter;
 use App\Shared\Http\Router;
 use App\Shared\Http\Session;
@@ -20,6 +21,7 @@ use Psr\Log\NullLogger;
  */
 final class HttpHarness
 {
+    private const string LOAD_TEST_KEY = 'test-load-test-key';
     public static function responder(): Responder
     {
         return new Responder();
@@ -33,6 +35,7 @@ final class HttpHarness
             self::responder(),
             new CurrentUser(new Session(), new MerchantUserRepository()),
             new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
+            new LoadTestKey(self::LOAD_TEST_KEY),
         );
 
         foreach ($controllers as $controller) {

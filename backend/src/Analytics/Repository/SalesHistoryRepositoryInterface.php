@@ -30,12 +30,13 @@ interface SalesHistoryRepositoryInterface
     public function addOrders(array $orders): void;
 
     /**
-     * Deletes up to $limit history orders with their lines and carts and returns how many.
+     * Deletes up to $limit orders of the history or of Black Friday simulations, with their
+     * payments, lines, and carts, and returns how many.
      */
     public function removeBatch(int $limit): int;
 
     /**
-     * Deletes history products that no order or cart refers to any more.
+     * Deletes history and simulation products that no order or cart refers to any more.
      */
     public function removeUnusedProducts(): int;
 

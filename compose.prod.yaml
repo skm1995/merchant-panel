@@ -55,6 +55,8 @@ services:
       - docker/env/reports.env
       - docker/env/order-access.env
       - docker/env/rate-limit.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
     environment:
       ORDER_RESERVATION_SECONDS: 900
       SESSION_COOKIE_SECURE: "true"
@@ -107,6 +109,36 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # Runs the Black Friday simulations merchants start in the panel: consumes only the
+  # simulation queue and sends its buyers through the public address, which inside the server
+  # resolves to the Caddy container.
+  simulator:
+    extends:
+      file: docker/php/compose.yaml
+      service: app-prod
+    command: php bin/simulator.php
+    user: www-data
+    env_file:
+      - docker/env/logging.env
+      - docker/env/database.env
+      - docker/env/messenger.env
+      - docker/env/payment.env
+      - docker/env/redis.env
+      - docker/env/load-test.env
+      - docker/env/simulation.env
+    environment:
+      SIMULATION_BASE_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      SIMULATION_RESOLVE_HOST: caddy
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       rabbitmq:

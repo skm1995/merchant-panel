@@ -308,6 +308,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/panel/simulations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a Black Friday simulation
+         * @description Resets the stock of the simulation's products and lets simulated buyers place, pay for, and receive webhooks for orders through the public API for a fixed time. One simulation runs at a time, and a new one can start only after a cool-down; otherwise the answer is 409 with Retry-After.
+         */
+        post: operations["startSimulation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/panel/simulations/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The running or the last simulation
+         * @description Counters while the simulation runs, the stock of its products, and, once it has finished, a check that every unit sold was paid for and no product was oversold.
+         */
+        get: operations["getCurrentSimulation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/panel/reports/daily-revenue": {
         parameters: {
             query?: never;
@@ -624,6 +664,40 @@ export interface components {
             data: components["schemas"]["OrderSummary"][];
             /** Format: uuid */
             next_cursor: string | null;
+        };
+        Simulation: {
+            id: string;
+            /** @enum {string} */
+            state: "running" | "finished";
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            ends_at: string;
+            /** @description Simulated buyers shopping at the same time. */
+            buyers: number;
+            counters: {
+                orders_placed: number;
+                orders_paid: number;
+                /** @description Checkouts refused because the stock ran out. */
+                sold_out: number;
+                /** @description Requests that failed for any other reason, such as a server error. */
+                failed_requests: number;
+            };
+            products: {
+                product_id: number;
+                sku: string;
+                name: string;
+                stock_at_start: number;
+                stock: number;
+                reserved: number;
+            }[];
+            /** @description Null while the simulation runs. */
+            check: {
+                /** @description Every unit taken from stock belongs to a paid order, and no stock went below zero. */
+                consistent: boolean;
+                units_sold: number;
+                units_paid: number;
+            } | null;
         };
         DailyRevenueReport: {
             /** Format: date */
@@ -1297,6 +1371,52 @@ export interface operations {
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+        };
+    };
+    startSimulation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The simulation was started; follow it with GET /api/v1/panel/simulations/current. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Simulation"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+        };
+    };
+    getCurrentSimulation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The running or the last simulation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Simulation"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
         };
     };
     getPanelDailyRevenueReport: {

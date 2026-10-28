@@ -12,6 +12,7 @@ use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Exception\InvalidRequestException;
 use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\MapException;
+use App\Shared\Http\LoadTestKey;
 use App\Shared\Http\RateLimit;
 use App\Shared\Http\RateLimiter;
 use App\Shared\Http\RequireApiKey;
@@ -31,6 +32,7 @@ use Tests\Unit\Support\MerchantUserRepository;
 
 final class RouterTest extends TestCase
 {
+    private const string LOAD_TEST_KEY = 'test-load-test-key';
     private const string ROUTE_PATH = '/';
     private const string MISSING_ROUTE_PATH = '/missing';
     private const string DISPATCHED_MESSAGE = 'route dispatched';
@@ -296,6 +298,45 @@ final class RouterTest extends TestCase
         self::assertIsString($output);
         self::assertStringContainsString(self::RETRY_DETAIL_PREFIX, $output);
         self::assertSame(2, $controller->calls);
+    }
+
+    public function testTheLoadTestKeyLiftsRateLimitsAndAWrongKeyDoesNot(): void
+    {
+        putenv(sprintf('%s=%s', self::RATE_LIMIT_VARIABLE, self::ONE_REQUEST_PER_MINUTE));
+        $controller = new class () {
+            public const string PATH = '/api/v1/carts';
+            public int $calls = 0;
+
+            #[Route(HttpMethodEnum::POST, self::PATH)]
+            #[RateLimit(RouterTest::RATE_LIMIT_VARIABLE)]
+            public function create(): void
+            {
+                $this->calls++;
+            }
+        };
+        $router = $this->router();
+        $router->registerController($controller::class, static fn (): object => $controller);
+        $request = static fn (string $key): Request => new Request(
+            HttpMethodEnum::POST->value,
+            $controller::PATH,
+            headers: ['x-load-test-key' => $key],
+            clientAddress: self::CLIENT,
+        );
+
+        try {
+            for ($attempt = 0; $attempt < 3; $attempt++) {
+                $router->handle($request(self::LOAD_TEST_KEY));
+            }
+            ob_start();
+            $router->handle($request('guessed-key'));
+            $router->handle($request('guessed-key'));
+            ob_end_clean();
+        } finally {
+            putenv(self::RATE_LIMIT_VARIABLE);
+        }
+
+        self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, http_response_code());
+        self::assertSame(4, $controller->calls, 'Three requests with the key pass the limit of one; with a wrong key the second request is refused.');
     }
 
     public function testRouteRequiringAnApiKeyRejectsMissingOrWrongKeys(): void
@@ -642,6 +683,7 @@ final class RouterTest extends TestCase
             new Responder(),
             new CurrentUser(new Session(), new MerchantUserRepository()),
             new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
+            new LoadTestKey(self::LOAD_TEST_KEY),
         );
     }
 }

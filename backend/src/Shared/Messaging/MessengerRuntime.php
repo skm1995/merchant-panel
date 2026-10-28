@@ -72,17 +72,29 @@ final class MessengerRuntime
     }
 
     /**
-     * Consumes every transport that a message class is routed to.
+     * The transports message classes are routed to.
+     *
+     * @return list<string>
+     */
+    public function transportNames(): array
+    {
+        return array_values(array_unique($this->routes));
+    }
+
+    /**
+     * Consumes the given transports, so separate processes can share the work: the worker
+     * takes every transport but the simulation's, which the simulator takes alone.
      *
      * @param array<class-string, list<callable>> $handlers
+     * @param list<string> $transports
      */
-    public function worker(array $handlers): Worker
+    public function worker(array $handlers, array $transports): Worker
     {
         $receivers = [];
         $retryStrategies = [];
         $failureSenders = [];
 
-        foreach (array_unique($this->routes) as $name) {
+        foreach ($transports as $name) {
             $receivers[$name] = $this->transport($name);
             $retryStrategies[$name] = new MultiplierRetryStrategy();
             $failureSenders[$name] = $this->transport(self::FAILED_TRANSPORT);

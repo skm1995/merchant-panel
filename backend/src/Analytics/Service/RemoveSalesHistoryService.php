@@ -7,8 +7,9 @@ namespace App\Analytics\Service;
 use App\Analytics\Repository\SalesHistoryRepositoryInterface;
 
 /**
- * Removes the generated sales history and gives its disk space back. Orders go in batches,
- * so each transaction stays short and the shop keeps running meanwhile.
+ * Removes the generated sales history and the orders of Black Friday simulations, and gives
+ * their disk space back. Orders go in batches, so each transaction stays short and the shop
+ * keeps running meanwhile.
  * bin/remove-sales-history.php runs it on demand.
  */
 final readonly class RemoveSalesHistoryService

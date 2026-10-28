@@ -50,6 +50,8 @@ QUICKPAY_WEBHOOK_SECRET=${QUICKPAY_WEBHOOK_SECRET}
 REPORTS_API_KEY=${REPORTS_API_KEY}
 ORDER_ACCESS_SECRET=${ORDER_ACCESS_SECRET}
 MAILPIT_PASSWORD=${MAILPIT_PASSWORD}
+# Lifts the rate limits for the Black Friday simulator only; a new key on every deployment.
+LOAD_TEST_KEY=$(openssl rand -hex 32)
 ENV
 
 echo "Preparing the server..."
