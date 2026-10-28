@@ -28,6 +28,8 @@ interface BarChartProps {
 const HEIGHT = 280;
 const ROW_HEIGHT = 32;
 const ROUNDED_END = 4;
+// Room right of the longest bar for its value label, such as "PLN 5,654,320".
+const LABEL_SPACE = 112;
 
 /**
  * One series of bars in the first chart color, with a recessive grid and a tooltip. The
@@ -42,7 +44,7 @@ export function BarChart({ data, format, formatAxis = format, horizontal = false
         <RechartsBarChart
           data={data}
           layout={horizontal ? 'vertical' : 'horizontal'}
-          margin={{ left: 8, right: 16 }}
+          margin={{ left: 8, right: horizontal ? LABEL_SPACE : 16 }}
         >
           <CartesianGrid
             stroke="var(--chart-grid)"
