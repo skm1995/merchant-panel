@@ -62,27 +62,19 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
     private const int MAXIMUM_QUANTITY = 2;
     private const int REQUEST_TIMEOUT_SECONDS = 10;
 
-    private HttpClientInterface $client;
-
     public function __construct(
         private SimulationStoreInterface $store,
         private ClockInterface $clock,
         #[Env('SIMULATION_BASE_URL')] private string $baseUrl,
-        #[Env('SIMULATION_RESOLVE_HOST')] string $resolveHost,
+        #[Env('SIMULATION_RESOLVE_HOST')] private string $resolveHost,
         #[Env('LOAD_TEST_KEY')] private string $loadTestKey,
         #[Env('FAKEPAY_WEBHOOK_SECRET')] private string $webhookSecret,
     ) {
-        $host = (string) parse_url($baseUrl, PHP_URL_HOST);
-        $this->client = HttpClient::create([
-            self::TIMEOUT_OPTION => self::REQUEST_TIMEOUT_SECONDS,
-            // Inside the server the public name points back at the proxy's container.
-            self::RESOLVE_OPTION => [$host => gethostbyname($resolveHost)],
-            self::HEADERS_OPTION => [HeaderNameEnum::LOAD_TEST_KEY->value => $loadTestKey],
-        ]);
     }
 
     public function run(SimulationRun $run): void
     {
+        $client = $this->client();
         $productIds = array_map(static fn (SimulationProduct $product): int => $product->productId, $run->productsAtStart);
         $orders = 0;
         $pending = [];
@@ -90,13 +82,13 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
         for ($number = 1; $number <= $run->buyers; $number++) {
             $buyer = new Buyer($number);
             $buyer->startOrder(sprintf(self::ORDER_NUMBER_FORMAT, $run->id, $number, ++$orders));
-            $pending[] = $this->createCart($buyer);
+            $pending[] = $this->createCart($client, $buyer);
         }
 
         while ($pending !== []) {
             $next = [];
 
-            foreach ($this->client->stream($pending, self::STREAM_TIMEOUT_SECONDS) as $response => $chunk) {
+            foreach ($client->stream($pending, self::STREAM_TIMEOUT_SECONDS) as $response => $chunk) {
                 try {
                     if ($chunk->isTimeout()) {
                         continue;
@@ -115,11 +107,11 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
 
                 /** @var Buyer $buyer */
                 $buyer = $response->getInfo(self::USER_DATA_OPTION);
-                $following = $this->advance($run, $buyer, $response, $productIds);
+                $following = $this->advance($client, $run, $buyer, $response, $productIds);
 
                 if ($following === null && $this->clock->now() < $run->endsAt) {
                     $buyer->startOrder(sprintf(self::ORDER_NUMBER_FORMAT, $run->id, $buyer->number, ++$orders));
-                    $following = $this->createCart($buyer);
+                    $following = $this->createCart($client, $buyer);
                 }
 
                 if ($following !== null) {
@@ -137,7 +129,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
      *
      * @param list<int> $productIds
      */
-    private function advance(SimulationRun $run, Buyer $buyer, ResponseInterface $response, array $productIds): ?ResponseInterface
+    private function advance(HttpClientInterface $client, SimulationRun $run, Buyer $buyer, ResponseInterface $response, array $productIds): ?ResponseInterface
     {
         try {
             $status = $response->getStatusCode();
@@ -151,43 +143,43 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
 
         return match (true) {
             $buyer->step === BuyerStepEnum::CREATE_CART && $status === ResponseStatusEnum::CREATED->value
-                => $this->addItem($buyer, (string) $body[self::ID_FIELD], $productIds[array_rand($productIds)]),
+                => $this->addItem($client, $buyer, (string) $body[self::ID_FIELD], $productIds[array_rand($productIds)]),
             $buyer->step === BuyerStepEnum::ADD_ITEM && $status === ResponseStatusEnum::OK->value
-                => $this->checkOut($buyer),
+                => $this->checkOut($client, $buyer),
             $buyer->step === BuyerStepEnum::ADD_ITEM && $status === ResponseStatusEnum::CONFLICT->value
                 => $this->count($run, SimulationCounters::SOLD_OUT),
             $buyer->step === BuyerStepEnum::CHECK_OUT && $status === ResponseStatusEnum::CREATED->value
-                => $this->startPayment($run, $buyer, $body, $headers),
+                => $this->startPayment($client, $run, $buyer, $body, $headers),
             $buyer->step === BuyerStepEnum::CHECK_OUT && $status === ResponseStatusEnum::CONFLICT->value
                 => $this->count($run, SimulationCounters::SOLD_OUT),
             $buyer->step === BuyerStepEnum::START_PAYMENT && $status === ResponseStatusEnum::CREATED->value
-                => $this->confirmPayment($buyer, (string) $body[self::CHECKOUT_URL_FIELD]),
+                => $this->confirmPayment($client, $buyer, (string) $body[self::CHECKOUT_URL_FIELD]),
             $buyer->step === BuyerStepEnum::CONFIRM_PAYMENT && $status === ResponseStatusEnum::OK->value
                 => $this->count($run, SimulationCounters::ORDERS_PAID),
             default => $this->count($run, SimulationCounters::FAILED_REQUESTS),
         };
     }
 
-    private function createCart(Buyer $buyer): ResponseInterface
+    private function createCart(HttpClientInterface $client, Buyer $buyer): ResponseInterface
     {
         $buyer->step = BuyerStepEnum::CREATE_CART;
 
-        return $this->send($buyer, HttpMethodEnum::POST, self::CARTS_PATH);
+        return $this->send($client, $buyer, HttpMethodEnum::POST, self::CARTS_PATH);
     }
 
-    private function addItem(Buyer $buyer, string $cartId, int $productId): ResponseInterface
+    private function addItem(HttpClientInterface $client, Buyer $buyer, string $cartId, int $productId): ResponseInterface
     {
         $buyer->step = BuyerStepEnum::ADD_ITEM;
         $buyer->cartId = $cartId;
 
-        return $this->send($buyer, HttpMethodEnum::PUT, sprintf(self::CART_ITEM_PATH_FORMAT, $cartId, $productId), [self::QUANTITY_FIELD => random_int(1, self::MAXIMUM_QUANTITY)]);
+        return $this->send($client, $buyer, HttpMethodEnum::PUT, sprintf(self::CART_ITEM_PATH_FORMAT, $cartId, $productId), [self::QUANTITY_FIELD => random_int(1, self::MAXIMUM_QUANTITY)]);
     }
 
-    private function checkOut(Buyer $buyer): ResponseInterface
+    private function checkOut(HttpClientInterface $client, Buyer $buyer): ResponseInterface
     {
         $buyer->step = BuyerStepEnum::CHECK_OUT;
 
-        return $this->send($buyer, HttpMethodEnum::POST, sprintf(self::CHECKOUT_PATH_FORMAT, $buyer->cartId), headers: [
+        return $this->send($client, $buyer, HttpMethodEnum::POST, sprintf(self::CHECKOUT_PATH_FORMAT, $buyer->cartId), headers: [
             HeaderNameEnum::IDEMPOTENCY_KEY->value => $buyer->orderNumber,
         ]);
     }
@@ -196,7 +188,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
      * @param array<array-key, mixed> $order
      * @param array<string, list<string>> $headers
      */
-    private function startPayment(SimulationRun $run, Buyer $buyer, array $order, array $headers): ResponseInterface
+    private function startPayment(HttpClientInterface $client, SimulationRun $run, Buyer $buyer, array $order, array $headers): ResponseInterface
     {
         $this->store->increment($run->id, SimulationCounters::ORDERS_PLACED);
         $buyer->step = BuyerStepEnum::START_PAYMENT;
@@ -206,13 +198,13 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
         $total = $order[self::TOTAL_FIELD];
         $buyer->orderTotal = (int) $total[self::AMOUNT_FIELD];
 
-        return $this->send($buyer, HttpMethodEnum::POST, sprintf(self::PAYMENTS_PATH_FORMAT, $buyer->orderId), [self::PROVIDER_FIELD => self::FAKEPAY], [
+        return $this->send($client, $buyer, HttpMethodEnum::POST, sprintf(self::PAYMENTS_PATH_FORMAT, $buyer->orderId), [self::PROVIDER_FIELD => self::FAKEPAY], [
             HeaderNameEnum::ORDER_TOKEN->value => $buyer->orderToken,
             HeaderNameEnum::IDEMPOTENCY_KEY->value => sprintf(self::PAYMENT_KEY_FORMAT, $buyer->orderNumber),
         ]);
     }
 
-    private function confirmPayment(Buyer $buyer, string $checkoutUrl): ResponseInterface
+    private function confirmPayment(HttpClientInterface $client, Buyer $buyer, string $checkoutUrl): ResponseInterface
     {
         $buyer->step = BuyerStepEnum::CONFIRM_PAYMENT;
         preg_match(self::PROVIDER_PAYMENT_PATTERN, $checkoutUrl, $matches);
@@ -224,7 +216,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
             self::CURRENCY_FIELD => self::CURRENCY,
         ], JSON_THROW_ON_ERROR);
 
-        return $this->client->request(HttpMethodEnum::POST->value, $this->baseUrl . self::WEBHOOK_PATH, [
+        return $client->request(HttpMethodEnum::POST->value, $this->baseUrl . self::WEBHOOK_PATH, [
             self::BODY_OPTION => $payload,
             self::HEADERS_OPTION => [HeaderNameEnum::CONTENT_TYPE->value => self::JSON, FakePaySignature::HEADER => FakePaySignature::of($payload, $this->webhookSecret)],
             self::USER_DATA_OPTION => $buyer,
@@ -235,7 +227,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
      * @param array<string, mixed>|null $json
      * @param array<string, string> $headers
      */
-    private function send(Buyer $buyer, HttpMethodEnum $method, string $path, ?array $json = null, array $headers = []): ResponseInterface
+    private function send(HttpClientInterface $client, Buyer $buyer, HttpMethodEnum $method, string $path, ?array $json = null, array $headers = []): ResponseInterface
     {
         $options = [self::HEADERS_OPTION => $headers, self::USER_DATA_OPTION => $buyer];
 
@@ -243,7 +235,21 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
             $options[self::JSON_OPTION] = $json;
         }
 
-        return $this->client->request($method->value, $this->baseUrl . $path, $options);
+        return $client->request($method->value, $this->baseUrl . $path, $options);
+    }
+
+    /**
+     * A client for one run. The proxy's address is looked up for every run, because the
+     * simulator outlives restarts of the proxy's container, which change its address.
+     */
+    private function client(): HttpClientInterface
+    {
+        return HttpClient::create([
+            self::TIMEOUT_OPTION => self::REQUEST_TIMEOUT_SECONDS,
+            // Inside the server the public name points back at the proxy's container.
+            self::RESOLVE_OPTION => [(string) parse_url($this->baseUrl, PHP_URL_HOST) => gethostbyname($this->resolveHost)],
+            self::HEADERS_OPTION => [HeaderNameEnum::LOAD_TEST_KEY->value => $this->loadTestKey],
+        ]);
     }
 
     private function count(SimulationRun $run, string $counter): null
