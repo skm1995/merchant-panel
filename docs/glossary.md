@@ -4,10 +4,12 @@ Terms used in the code and in this documentation, with where they matter in the 
 
 | Term | Meaning | In this project |
 |---|---|---|
+| **`SKIP LOCKED`** | Makes a query skip rows other transactions have locked, so several workers share a queue table | The outbox relay |
 | **ADR** (architecture decision record) | A short document that records one decision, its context, alternatives, and consequences | [`decisions/`](decisions/README.md) |
 | **At-least-once delivery** | A message is delivered one or more times, never zero; handlers must tolerate duplicates | The outbox relay and RabbitMQ; [ADR 0006](decisions/0006-transactional-outbox.md) |
 | **Cache stampede** | Many requests recompute the same expired cache entry at once and overload the database | Prevented with a short lock and probabilistic early refresh in `StampedeProtectedCache` |
 | **Characterization test, golden master** | A test that records what existing code does, so a refactoring can prove it changed nothing | [Legacy](flows/legacy.md) |
+| **Command bus** | The object controllers send commands through; it finds the handler and returns its result | [`CommandBusInterface`](../backend/src/Shared/Messaging/Bus/CommandBusInterface.php) on Symfony Messenger; queries have their own bus |
 | **Conditional update** | An `UPDATE … WHERE` that repeats a business rule, so the database refuses a change that breaks it | Stock reservation and status changes; [ADR 0007](decisions/0007-prevent-overselling-in-the-database.md) |
 | **Content-Security-Policy (CSP)** | A response header that tells the browser which sources may provide scripts, styles, and other content | [`headers.caddy`](../docker/caddy/headers.caddy) |
 | **Correlation id, request id** | An identifier that follows one request through every process and log line | [Observability](operations/observability.md) |
@@ -29,6 +31,5 @@ Terms used in the code and in this documentation, with where they matter in the 
 | **Rate limiting (fixed window)** | Counting requests per client in fixed time intervals and refusing those over the limit | Sign-in, registration, carts, checkout |
 | **Read model** | A data shape built for reading and showing, not for changing state | `OrderView`, `PaymentView` |
 | **Row lock (`SELECT … FOR UPDATE`)** | Locks rows until the transaction ends, so concurrent transactions wait | Carts, products, payments |
-| **`SKIP LOCKED`** | Makes a query skip rows other transactions have locked, so several workers share a queue table | The outbox relay |
 | **Strangler fig** | Replacing a legacy system piece by piece while the old entry points redirect to the new ones | [Legacy](flows/legacy.md) |
 | **TDD** | Test-driven development: write a failing test, make it pass, then refactor | How every change was made |

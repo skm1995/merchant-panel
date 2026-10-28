@@ -7,8 +7,6 @@ namespace App\Payment\Controller;
 use App\Order\Entity\OrderId;
 use App\Order\Exception\OrderNotFoundException;
 use App\Order\Request\OrderAccessTokenHeader;
-use App\Payment\Command\HandlePaymentWebhookHandler;
-use App\Payment\Command\StartPaymentHandler;
 use App\Payment\Entity\PaymentId;
 use App\Payment\Exception\InvalidWebhookPayloadException;
 use App\Payment\Exception\InvalidWebhookSignatureException;
@@ -17,7 +15,6 @@ use App\Payment\Exception\PaymentAmountMismatchException;
 use App\Payment\Exception\PaymentIdempotencyKeyReusedException;
 use App\Payment\Exception\PaymentNotFoundException;
 use App\Payment\Exception\UnknownPaymentProviderException;
-use App\Payment\Query\GetPaymentHandler;
 use App\Payment\Query\GetPaymentQuery;
 use App\Payment\Request\PaymentWebhookRequest;
 use App\Payment\Request\StartPaymentRequest;
@@ -27,6 +24,8 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
+use App\Shared\Messaging\Bus\CommandBusInterface;
+use App\Shared\Messaging\Bus\QueryBusInterface;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
 
@@ -39,9 +38,8 @@ final readonly class PaymentApiController
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
-        private StartPaymentHandler $startPayment,
-        private GetPaymentHandler $getPayment,
-        private HandlePaymentWebhookHandler $handleWebhook,
+        private CommandBusInterface $commands,
+        private QueryBusInterface $queries,
         private Responder $responder,
     ) {
     }
@@ -53,8 +51,8 @@ final readonly class PaymentApiController
     public function start(Request $request): void
     {
         $command = StartPaymentRequest::toCommand($request);
-        $paymentId = $this->startPayment->handle($command);
-        $payment = $this->getPayment->handle(new GetPaymentQuery($paymentId, $command->orderAccessToken));
+        $paymentId = $this->commands->dispatch($command);
+        $payment = $this->queries->ask(new GetPaymentQuery($paymentId, $command->orderAccessToken));
 
         $this->responder->created(PaymentResponse::fromView($payment), sprintf(self::PAYMENT_LOCATION_FORMAT, $paymentId->value));
     }
@@ -65,7 +63,7 @@ final readonly class PaymentApiController
     {
         $paymentId = PaymentId::fromString($request->routeParameter(self::ID_PARAMETER));
 
-        $this->responder->json(PaymentResponse::fromView($this->getPayment->handle(new GetPaymentQuery($paymentId, OrderAccessTokenHeader::read($request)))));
+        $this->responder->json(PaymentResponse::fromView($this->queries->ask(new GetPaymentQuery($paymentId, OrderAccessTokenHeader::read($request)))));
     }
 
     #[Route(HttpMethodEnum::POST, self::WEBHOOK_ROUTE_PATH)]
@@ -76,7 +74,7 @@ final readonly class PaymentApiController
     #[MapException(PaymentAmountMismatchException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function webhook(Request $request): void
     {
-        $result = $this->handleWebhook->handle(PaymentWebhookRequest::toCommand($request));
+        $result = $this->commands->dispatch(PaymentWebhookRequest::toCommand($request));
 
         $this->responder->json(WebhookResponse::fromResult($result));
     }

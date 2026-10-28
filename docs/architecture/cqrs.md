@@ -10,15 +10,19 @@ nowhere else ([0022](../decisions/0022-cqrs-only-for-orders-and-payments.md)).
 ```mermaid
 flowchart LR
     subgraph Write["Write path: a command"]
-        C[Controller] -->|PlaceOrderCommand| H[PlaceOrderHandler]
+        C[Controller] -->|PlaceOrderCommand| B[command bus]
+        B --> H[PlaceOrderHandler]
         H -->|transaction| R[OrderRepository<br/>entities, locks,<br/>conditional updates]
         H -->|same transaction| O[(outbox)]
-        H -->|returns ids| C
+        H -->|returns ids| B
+        B --> C
     end
     subgraph Read["Read path: a query"]
-        C2[Controller] -->|GetOrderQuery| Q[GetOrderHandler]
+        C2[Controller] -->|GetOrderQuery| QB[query bus]
+        QB --> Q[GetOrderHandler]
         Q --> RR[OrderReadRepository<br/>SQL straight into<br/>read models]
-        Q -->|OrderView| C2
+        Q -->|OrderView| QB
+        QB --> C2
     end
     R --> DB[(MySQL)]
     RR --> DB
@@ -33,9 +37,50 @@ flowchart LR
 | Transaction | Always, with an explicit isolation level, retried after a deadlock | None; one consistent read |
 | Returns | An identifier or an outcome (the new order's id and access token, a payment id, a webhook's `processed` or `duplicate`), never a read model | A read model the API serializes as is |
 
-A controller is the only place both meet: checkout runs `PlaceOrderHandler`, which returns the
-new order's id and access token, then `GetOrderHandler` to answer with the order as any later
-read would see it.
+A controller is the only place both meet: checkout sends `PlaceOrderCommand`, which returns the
+new order's id and access token, then asks `GetOrderQuery` to answer with the order as any
+later read would see it.
+
+## The buses
+
+Controllers do not know the handlers. They send commands through
+[`CommandBusInterface`](../../backend/src/Shared/Messaging/Bus/CommandBusInterface.php) and
+queries through [`QueryBusInterface`](../../backend/src/Shared/Messaging/Bus/QueryBusInterface.php),
+two Symfony Messenger buses ([0023](../decisions/0023-commands-and-queries-through-messenger-buses.md)):
+
+```php
+$placed = $this->commands->dispatch(PlaceOrderRequest::toCommand($request)); // PlacedOrder
+$order = $this->queries->ask(new GetOrderQuery($placed->orderId, $placed->accessToken)); // OrderView
+```
+
+- **Handlers are found by name.** [`ConventionHandlersLocator`](../../backend/src/Shared/Messaging/Bus/ConventionHandlersLocator.php)
+  sends `PlaceOrderCommand` to `PlaceOrderHandler` in the same namespace and builds it from
+  the container only then. There is no registry to keep in step, and a command without a
+  handler fails with the name of the class it is missing.
+- **Results are typed.** A command or query declares what its handler returns, such as
+  `@implements CommandInterface<PlacedOrder>`, and PHPStan checks every call site.
+- **Exceptions are not wrapped.** Messenger wraps a handler's exception in
+  `HandlerFailedException`; the buses throw the original, so controllers keep mapping domain
+  exceptions to HTTP statuses.
+- **Commands are logged.** [`CommandLogMiddleware`](../../backend/src/Shared/Messaging/Bus/CommandLogMiddleware.php)
+  logs `Command handled` with the duration, or `Command failed` with the reason, such as
+  insufficient stock. Queries change nothing and are not logged.
+- **Transactions stay in the handlers.** Each handler chooses its isolation level, which a
+  bus-wide transaction could not.
+
+### Now or later
+
+A command class says when it runs:
+
+| Declared as | Runs | Example |
+|---|---|---|
+| `implements CommandInterface<TResult>` | **now**, through the command bus, in the request; the caller gets the result or the exception | `PlaceOrderCommand`, `CancelOrderCommand`, `StartPaymentCommand`, `HandlePaymentWebhookCommand` |
+| `implements OutboxMessageInterface` with `#[Message(transport: ...)]` | **later**, recorded in the outbox in the caller's transaction, then delivered by the relay and the worker | `ExpireOrderReservationCommand` |
+
+A later command goes through the outbox rather than straight to RabbitMQ: a message sent to the
+broker inside a transaction that rolls back would act on an order that does not exist, and one
+sent after the commit is lost when the broker is down. The outbox row commits or rolls back
+with the order ([0006](../decisions/0006-transactional-outbox.md)).
 
 ## Why the paths differ
 
@@ -68,8 +113,8 @@ order's version, and no harm when the message is delivered twice
   user. The only derived data is the [daily sales summary](../decisions/0017-daily-sales-summary-recomputed-per-day.md)
   for reports, which the worker refreshes about a second after a payment.
 - **No event sourcing.** State is stored as rows, not rebuilt from a log of events.
-- **No command bus.** Controllers call handlers directly through constructor injection; a bus
-  would add indirection without a second caller to justify it.
+- **No asynchronous bus for requests.** Commands sent by a controller run at once; only work
+  that may run later goes through the outbox.
 
 ## Where it is not used
 

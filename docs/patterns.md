@@ -100,10 +100,14 @@ Use it only where writes enforce invariants under concurrency (stock, money,
 idempotency) and reads need a different shape, as in checkout and orders. Keep simple
 CRUD (catalog, carts, authentication) on plain application services.
 
-- Writes: a `Command/` object handled by a `*Handler` that loads the write model, runs in
-  a transaction, and returns only an identifier.
-- Reads: a `Query/` object handled by a `*Handler` that reads a `ReadModel/` view straight
-  from SQL through a read repository, without entities.
+- Writes: a `Command/` object implementing `CommandInterface<TResult>`, sent through
+  `CommandBusInterface` to the `*Handler` named after it, which loads the write model, runs in
+  a transaction, and returns only an identifier or an outcome.
+- Reads: a `Query/` object implementing `QueryInterface<TResult>`, asked through
+  `QueryBusInterface` of the `*Handler` named after it, which reads a `ReadModel/` view
+  straight from SQL through a read repository, without entities.
+- Work that may run later is a command implementing `OutboxMessageInterface` with
+  `#[Message]`, recorded in the outbox, never sent to the broker directly.
 - One shared database; no event sourcing and no separate read store.
 - [CQRS](architecture/cqrs.md) shows both paths with the existing handlers.
 

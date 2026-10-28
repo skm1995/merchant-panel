@@ -28,7 +28,11 @@ use App\Shared\Http\Session;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use DateTimeImmutable;
 use Money\Money;
+use App\Shared\Messaging\Bus\MessengerCommandBus;
+use App\Shared\Messaging\Bus\MessengerQueryBus;
+use App\Shared\Messaging\RuntimeServiceContainer;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Order\OrderFixtures;
 use Tests\Unit\Support\FrozenClock;
@@ -112,8 +116,8 @@ final class OrderApiControllerTest extends TestCase
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $stock = new StockReservation($products, $this->createStub(OutboxInterface::class), new FrozenClock());
 
-        return HttpHarness::json($request, new OrderApiController(
-            new PlaceOrderHandler(
+        $handlers = new RuntimeServiceContainer([
+            PlaceOrderHandler::class => new PlaceOrderHandler(
                 $this->createStub(OrderRepositoryInterface::class),
                 new CartService($carts, new ProductCatalog($products), $transactions),
                 $stock,
@@ -123,9 +127,14 @@ final class OrderApiControllerTest extends TestCase
                 OrderFixtures::access(),
                 self::RESERVATION_SECONDS,
             ),
-            new GetOrderHandler($readOrders, OrderFixtures::access()),
-            new CancelOrderHandler($orders, new OrderStatusChange($orders, $stock), $transactions, OrderFixtures::access()),
-            new ListOrdersHandler($readOrders),
+            GetOrderHandler::class => new GetOrderHandler($readOrders, OrderFixtures::access()),
+            CancelOrderHandler::class => new CancelOrderHandler($orders, new OrderStatusChange($orders, $stock), $transactions, OrderFixtures::access()),
+            ListOrdersHandler::class => new ListOrdersHandler($readOrders),
+        ]);
+
+        return HttpHarness::json($request, new OrderApiController(
+            new MessengerCommandBus($handlers, new NullLogger()),
+            new MessengerQueryBus($handlers),
             HttpHarness::responder(),
         ));
     }

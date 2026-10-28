@@ -9,17 +9,13 @@ use App\Cart\Exception\CartNotFoundException;
 use App\Cart\Exception\CartNotOpenException;
 use App\Cart\Exception\EmptyCartException;
 use App\Catalog\Exception\InsufficientStockException;
-use App\Order\Command\CancelOrderHandler;
-use App\Order\Command\PlaceOrderHandler;
 use App\Order\Entity\OrderId;
 use App\Order\Enum\OrderRateLimitEnum;
 use App\Order\Exception\IdempotencyKeyReusedException;
 use App\Order\Exception\InvalidOrderTransitionException;
 use App\Order\Exception\OrderNotFoundException;
 use App\Order\Exception\OrderVersionMismatchException;
-use App\Order\Query\GetOrderHandler;
 use App\Order\Query\GetOrderQuery;
-use App\Order\Query\ListOrdersHandler;
 use App\Order\ReadModel\OrderView;
 use App\Order\Request\CancelOrderRequest;
 use App\Order\Request\ListOrdersRequest;
@@ -34,6 +30,8 @@ use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
 use App\Shared\Http\RateLimit;
 use App\Shared\Http\Request;
+use App\Shared\Messaging\Bus\CommandBusInterface;
+use App\Shared\Messaging\Bus\QueryBusInterface;
 use App\Shared\Http\RequireMerchant;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
@@ -48,10 +46,8 @@ final readonly class OrderApiController
     private const string ID_PARAMETER = 'id';
 
     public function __construct(
-        private PlaceOrderHandler $placeOrder,
-        private GetOrderHandler $getOrder,
-        private CancelOrderHandler $cancelOrder,
-        private ListOrdersHandler $listOrders,
+        private CommandBusInterface $commands,
+        private QueryBusInterface $queries,
         private Responder $responder,
     ) {
     }
@@ -65,8 +61,8 @@ final readonly class OrderApiController
     #[MapException(IdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function checkout(Request $request): void
     {
-        $placed = $this->placeOrder->handle(PlaceOrderRequest::toCommand($request));
-        $order = $this->getOrder->handle(new GetOrderQuery($placed->orderId, $placed->accessToken));
+        $placed = $this->commands->dispatch(PlaceOrderRequest::toCommand($request));
+        $order = $this->queries->ask(new GetOrderQuery($placed->orderId, $placed->accessToken));
 
         $this->responder->sendHeader(HeaderNameEnum::ORDER_TOKEN, $placed->accessToken);
         $this->responder->created(
@@ -81,7 +77,7 @@ final readonly class OrderApiController
     public function show(Request $request): void
     {
         $orderId = OrderId::fromString($request->routeParameter(self::ID_PARAMETER));
-        $order = $this->getOrder->handle(new GetOrderQuery($orderId, OrderAccessTokenHeader::read($request)));
+        $order = $this->queries->ask(new GetOrderQuery($orderId, OrderAccessTokenHeader::read($request)));
 
         $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
     }
@@ -93,8 +89,8 @@ final readonly class OrderApiController
     public function cancel(Request $request): void
     {
         $command = CancelOrderRequest::toCommand($request);
-        $this->cancelOrder->handle($command);
-        $order = $this->getOrder->handle(new GetOrderQuery($command->orderId, $command->accessToken));
+        $this->commands->dispatch($command);
+        $order = $this->queries->ask(new GetOrderQuery($command->orderId, $command->accessToken));
 
         $this->responder->json(OrderResponse::fromView($order), entityTag: self::entityTag($order));
     }
@@ -103,7 +99,7 @@ final readonly class OrderApiController
     #[RequireMerchant]
     public function list(Request $request): void
     {
-        $this->responder->json(OrderSummaryPageResponse::fromPage($this->listOrders->handle(ListOrdersRequest::toQuery($request))));
+        $this->responder->json(OrderSummaryPageResponse::fromPage($this->queries->ask(ListOrdersRequest::toQuery($request))));
     }
 
     private static function entityTag(OrderView $order): EntityTag
