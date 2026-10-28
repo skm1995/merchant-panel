@@ -65,6 +65,9 @@ final class ApiClient
     public static function sendConcurrently(array $requests): array
     {
         $client = HttpClient::create();
+        foreach ($requests as $request) {
+            ApiCallLog::record($request[0]->value, $request[1]);
+        }
         $pending = array_map(
             static fn (array $request) => $client->request($request[0]->value, Browser::url($request[1]), [
                 'headers' => $request[2],
@@ -86,6 +89,7 @@ final class ApiClient
     /** @param array<string, mixed> $options */
     private static function request(HttpMethodEnum $method, string $path, array $options): ResponseInterface
     {
+        ApiCallLog::record($method->value, $path);
         $response = HttpClient::create()->request($method->value, Browser::url($path), $options);
 
         return new Response($response->getStatusCode(), $response->getHeaders(false), $response->getContent(false));

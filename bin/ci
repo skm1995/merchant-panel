@@ -24,7 +24,9 @@ backend_checks() {
     "${run[@]}" composer validate --no-check-publish
     "${run[@]}" composer openapi-validate
     "${run[@]}" composer coverage-unit
+    "${run[@]}" composer api-calls-reset
     "${run[@]}" composer coverage-functional
+    "${run[@]}" composer api-calls-check
     "${run[@]}" composer analyse
     "${run[@]}" composer deptrac
     "${run[@]}" composer cs-check

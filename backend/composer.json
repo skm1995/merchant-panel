@@ -61,6 +61,8 @@
         "coverage-functional": "phpunit --testsuite Functional --coverage-php .phpunit.cache/coverage/functional.cov",
         "coverage-report": "phpcov merge --clover ../build/coverage/clover.xml --html ../build/coverage/html .phpunit.cache/coverage",
         "coverage-check": "php tools/check-coverage.php",
+        "api-calls-reset": "rm -f .phpunit.cache/api-calls.log",
+        "api-calls-check": "php tools/check-api-calls.php",
         "analyse": "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M",
         "cs-check": "php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php",
         "cs-fix": "php-cs-fixer fix --config=.php-cs-fixer.dist.php",

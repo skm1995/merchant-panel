@@ -14,7 +14,8 @@ server automatically.
 3. **Backend and frontend at the same time**, each writing its own log that is printed when
    both are done:
    - backend: `composer validate`, OpenAPI validation, unit and functional tests with
-     coverage, PHPStan, Deptrac, and the code style check;
+     coverage, the check that the functional tests called every API operation, PHPStan,
+     Deptrac, and the code style check;
    - frontend: the generated API types are up to date, `tsc`, ESLint, Prettier, and the Vitest
      suite with its coverage minimums.
 4. **End to end:** the demo merchant is recreated in the test database, and Playwright runs.

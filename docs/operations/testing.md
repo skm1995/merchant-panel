@@ -36,6 +36,15 @@ lowest bcrypt cost ([`CheapPasswordHash`](../../backend/tests/Unit/Support/Cheap
 because the production cost takes a fifth of a second per hash; the one test that compares the
 timing of sign-in attempts keeps the real cost.
 
+## Every route is tested
+
+[`RouteContractTest`](../../backend/tests/Unit/Shared/Http/RouteContractTest.php) checks that
+every API route has an operation in the OpenAPI contract and the other way round, and after
+the functional suite [`check-api-calls.php`](../../backend/tools/check-api-calls.php) checks
+that the functional tests called every operation
+([0020](../decisions/0020-every-route-in-the-contract-and-the-tests.md)). A new endpoint
+without a contract entry or a functional test fails `bin/ci` with its name.
+
 ## Coverage
 
 `bin/ci` merges the coverage of the unit, functional, and end-to-end tests, including every

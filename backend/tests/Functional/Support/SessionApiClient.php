@@ -65,6 +65,7 @@ final class SessionApiClient
     /** @param array<string, string> $server */
     private function request(HttpMethodEnum $method, string $path, ?string $body, array $server): ResponseInterface
     {
+        ApiCallLog::record($method->value, $path);
         $this->browser->request(
             $method->value,
             Browser::url($path),
