@@ -25,8 +25,8 @@ interface ReportReadRepositoryInterface
     public function dailySales(ReportPeriod $period): array;
 
     /**
-     * Products with the highest revenue from paid orders, highest first; equal revenue is
-     * ordered by product id.
+     * Products with the highest revenue from paid orders, from the daily sales summary,
+     * highest first; equal revenue is ordered by product id.
      *
      * @return list<ProductSales>
      */

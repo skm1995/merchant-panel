@@ -60,17 +60,23 @@ result in PHP, with `Money` for amounts:
 | Report | Route | How it is computed |
 |---|---|---|
 | Daily revenue | `GET /api/v1/panel/reports/daily-revenue` | SQL groups paid orders by day (`GROUP BY DATE(created_at)`) and sums their totals; PHP adds each day to a running total |
-| Top products | `GET /api/v1/panel/reports/top-products` | SQL sums units and revenue per product from order lines, sorts by revenue, and cuts the list with `LIMIT` (at most 50); PHP numbers the positions. Equal revenue is ordered by product id |
+| Top products | `GET /api/v1/panel/reports/top-products` | SQL sums units and revenue per product over the period's days of the daily sales summary, sorts by revenue, and cuts the list with `LIMIT` (at most 50); PHP numbers the positions. Equal revenue is ordered by product id |
 | Stock outlook | `GET /api/v1/panel/reports/stock-outlook` | SQL sums the units each product sold in the last 28 full days from the [daily sales summary](../decisions/0017-daily-sales-summary-recomputed-per-day.md) and sorts by available stock per unit sold, with `LIMIT`; PHP turns that into units per day and whole days of stock left |
-| Order heatmap | `GET /api/v1/panel/reports/order-heatmap` | SQL counts paid orders of the period per `WEEKDAY()` and `HOUR()` in UTC, reading only the `orders_status_created_at` index |
+| Order heatmap | `GET /api/v1/panel/reports/order-heatmap` | SQL counts paid orders of the period per `WEEKDAY()` and `HOUR()` in UTC, reading only the `orders_status_created_at_totals` index |
 | Monthly revenue | `GET /api/v1/panel/reports/monthly-revenue` | SQL sums the summary's revenue per month for the last 24 months; PHP lays out the last 12 next to the same months a year earlier, with the change in percent, and fills months without sales with zero |
 
 A period may cover at most 366 days, and amounts are summed in one currency (PLN by default).
 [`ReportQueryPlanTest`](../../backend/tests/Functional/Report/ReportQueryPlanTest.php) runs
 `EXPLAIN` on every report query and fails if it stops reading a range of its index: the
-orders reports must range-scan `orders_status_created_at` (the heatmap without reading any
-order row), and the summary reports a range of the summary's primary key, which starts with
+orders reports must read a range of `orders_status_created_at_totals` without reading any
+order row, and the summary reports a range of the summary's primary key, which starts with
 the day. A change that would make a report read a whole table is caught in CI.
+
+The index holds the status, creation time, currency, and total, so the daily revenue report
+never reads the orders themselves. With only status and creation time in it, MySQL preferred
+another index on the 3 million generated orders and read every paid order of the period: two
+months of daily revenue took 5 seconds instead of a fraction of one. Top products read the
+summary for the same reason: 0.05 seconds instead of 1.3 for those two months.
 
 Integrations read the same reports at `/api/v1/reports/…` with the `X-Api-Key` header instead
 of a session; one controller serves both, so the two cannot drift apart.

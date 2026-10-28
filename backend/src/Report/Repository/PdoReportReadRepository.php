@@ -19,8 +19,9 @@ use Money\Currency;
 use PDO;
 
 /**
- * Hand-written reporting SQL over paid orders. Both queries filter orders by status and a
- * half-open created_at range so MySQL can range-scan orders_status_created_at.
+ * Hand-written reporting SQL. Queries over orders filter by status and a half-open
+ * created_at range, so MySQL reads a range of orders_status_created_at_totals; queries over
+ * products read a range of days from the daily sales summary.
  */
 final class PdoReportReadRepository implements ReportReadRepositoryInterface
 {
@@ -36,19 +37,16 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
         ORDER BY day
         SQL;
     public const string TOP_PRODUCTS_QUERY = <<<'SQL'
-        SELECT order_items.product_id AS productId,
-            MAX(order_items.sku) AS sku,
-            MAX(order_items.name) AS name,
-            SUM(order_items.quantity) AS unitsSold,
-            SUM(order_items.quantity * order_items.unit_price_amount) AS revenue,
+        SELECT daily_product_sales.product_id AS productId, products.sku, products.name,
+            SUM(daily_product_sales.units) AS unitsSold,
+            SUM(daily_product_sales.revenue) AS revenue,
             :result_currency AS currency
-        FROM orders
-        JOIN order_items ON order_items.order_id = orders.id
-        WHERE orders.status = :status
-            AND orders.created_at >= :starts_at
-            AND orders.created_at < :ends_before
-            AND order_items.unit_price_currency = :currency
-        GROUP BY order_items.product_id
+        FROM daily_product_sales
+        JOIN products ON products.id = daily_product_sales.product_id
+        WHERE daily_product_sales.currency = :currency
+            AND daily_product_sales.day >= :starts_at
+            AND daily_product_sales.day < :ends_before
+        GROUP BY daily_product_sales.product_id, products.sku, products.name
         ORDER BY revenue DESC, productId
         LIMIT :limit
         SQL;
@@ -120,7 +118,7 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
     {
         $statement = $this->pdo->prepare(self::TOP_PRODUCTS_QUERY);
 
-        foreach (self::periodParameters($period) as $name => $value) {
+        foreach (self::summaryPeriodParameters($period) as $name => $value) {
             $statement->bindValue($name, $value);
         }
 
@@ -181,6 +179,21 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
             static fn (ReportedOrderRecord $record): ReportedOrder => $record->toEntity(),
             RecordFetcher::all($statement, ReportedOrderRecord::class),
         );
+    }
+
+    /**
+     * The period as whole days of the daily sales summary, in the report's currency.
+     *
+     * @return array<string, string>
+     */
+    public static function summaryPeriodParameters(ReportPeriod $period): array
+    {
+        return [
+            self::STARTS_AT_PARAMETER => $period->startsAt()->format(self::DATE_FORMAT),
+            self::ENDS_BEFORE_PARAMETER => $period->endsBefore()->format(self::DATE_FORMAT),
+            self::CURRENCY_PARAMETER => $period->currency->getCode(),
+            self::RESULT_CURRENCY_PARAMETER => $period->currency->getCode(),
+        ];
     }
 
     /** @return array<string, string> */

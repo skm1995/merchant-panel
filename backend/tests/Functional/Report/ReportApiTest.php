@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Report;
 
+use App\Analytics\Repository\PdoDailySalesRepository;
 use App\Cart\Entity\CartId;
 use App\Shared\Config\Environment;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use Tests\Functional\Support\ApiClient;
@@ -55,6 +57,7 @@ final class ReportApiTest extends TestCase
         $this->order(self::PAID, '2001-03-05 12:00:00', [[$bowl, 2, 1000]]);
         $this->order(self::CANCELLED, '2001-03-05 13:00:00', [[$mug, 10, 1500]]);
         $this->order(self::PAID, '2001-04-01 00:00:00', [[$mug, 1, 1500]]);
+        $this->summarize(['2001-03-02', '2001-03-05', '2001-04-01']);
 
         $daily = $this->report(self::DAILY_REVENUE_PATH, self::PERIOD);
         $top = $this->report(self::TOP_PRODUCTS_PATH, self::PERIOD + ['limit' => '2']);
@@ -81,6 +84,21 @@ final class ReportApiTest extends TestCase
 
         self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $response->getStatusCode());
         ApiClient::assertMatchesSpecification(self::DAILY_REVENUE_PATH, HttpMethodEnum::GET->value, $response);
+    }
+
+    /**
+     * Summarizes the days as the worker does after each payment; the orders here are inserted
+     * directly, so no payment triggers it.
+     *
+     * @param list<string> $days
+     */
+    private function summarize(array $days): void
+    {
+        $sales = new PdoDailySalesRepository($this->pdo);
+
+        foreach ($days as $day) {
+            $sales->refreshDay(new DateTimeImmutable($day));
+        }
     }
 
     /** @param list<array{int, int, int}> $lines */

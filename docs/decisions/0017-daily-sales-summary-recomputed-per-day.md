@@ -30,5 +30,5 @@ history generator refreshes each day it creates.
 - A repeated or late message recomputes the same numbers, so the handler is idempotent
   without extra bookkeeping.
 - The summary lags behind a payment by the time the worker needs, about a second.
-- Recomputing a day reads only that day's orders through `orders_status_created_at`; even
+- Recomputing a day reads only that day's orders through `orders_status_created_at_totals`; even
   Black Friday has tens of thousands of them.

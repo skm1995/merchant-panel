@@ -32,7 +32,9 @@ final readonly class SalesHistoryFactory
     private const int PRODUCT_SEED = 1;
     private const int MIN_PRICE = 990;
     private const int MAX_PRICE = 49990;
-    private const int MAX_STOCK = 400;
+    // Popular products sell hundreds of units a day, so stock reaches into the thousands and
+    // the stock outlook ranges from days to years.
+    private const int MAX_STOCK = 20000;
     private const int MAX_LINES = 4;
     private const int SECONDS_PER_HOUR = 3600;
     private const int UUID_BYTES = 16;

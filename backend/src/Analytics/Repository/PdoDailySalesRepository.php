@@ -12,7 +12,7 @@ use PDO;
 /**
  * Rebuilds a day of the summary by deleting it and inserting the day's paid sales grouped by
  * product. Both statements read one range: the summary's key starts with the day, and the
- * orders are found through orders_status_created_at.
+ * orders are found through orders_status_created_at_totals.
  */
 final class PdoDailySalesRepository implements DailySalesRepositoryInterface
 {

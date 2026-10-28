@@ -21,7 +21,7 @@ use Tests\Functional\Support\TestOrderVolume;
 final class ReportQueryPlanTest extends TestCase
 {
     private const string PRIMARY_KEY = 'PRIMARY';
-    private const string REPORTING_INDEX = 'orders_status_created_at';
+    private const string REPORTING_INDEX = 'orders_status_created_at_totals';
     private const string RANGE_ACCESS = 'range';
     private const string LOOKUP_BY_PRIMARY_KEY = 'eq_ref';
     private const string SUMMARY_TABLE = 'daily_product_sales';
@@ -46,16 +46,19 @@ final class ReportQueryPlanTest extends TestCase
 
         self::assertSame(self::REPORTING_INDEX, $orders['key'] ?? null);
         self::assertSame(self::RANGE_ACCESS, $orders['access_type'] ?? null);
+        self::assertTrue($orders['using_index'] ?? false, 'The index also holds the currency and total, so no order row is read.');
     }
 
-    public function testTopProductsRangeScansOrdersAndJoinsItemsByPrimaryKey(): void
+    public function testTopProductsRangeScansTheSummaryAndLooksProductsUpByPrimaryKey(): void
     {
-        $orders = $this->tableAccess(PdoReportReadRepository::TOP_PRODUCTS_QUERY, PdoReportReadRepository::periodParameters(self::period()) + ['limit' => 10], 'orders');
-        $items = $this->tableAccess(PdoReportReadRepository::TOP_PRODUCTS_QUERY, PdoReportReadRepository::periodParameters(self::period()) + ['limit' => 10], 'order_items');
+        $parameters = PdoReportReadRepository::summaryPeriodParameters(self::period()) + ['limit' => 10];
+        $summary = $this->tableAccess(PdoReportReadRepository::TOP_PRODUCTS_QUERY, $parameters, self::SUMMARY_TABLE);
+        $products = $this->tableAccess(PdoReportReadRepository::TOP_PRODUCTS_QUERY, $parameters, 'products');
 
-        self::assertSame(self::REPORTING_INDEX, $orders['key'] ?? null);
-        self::assertSame(self::RANGE_ACCESS, $orders['access_type'] ?? null);
-        self::assertSame(self::PRIMARY_KEY, $items['key'] ?? null, 'Items are looked up by order_id, the primary key prefix.');
+        self::assertSame(self::PRIMARY_KEY, $summary['key'] ?? null);
+        self::assertSame(self::RANGE_ACCESS, $summary['access_type'] ?? null);
+        self::assertSame(self::PRIMARY_KEY, $products['key'] ?? null);
+        self::assertSame(self::LOOKUP_BY_PRIMARY_KEY, $products['access_type'] ?? null);
     }
 
     public function testOrderHeatmapReadsOnlyTheReportingIndex(): void
