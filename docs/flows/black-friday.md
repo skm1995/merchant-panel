@@ -63,7 +63,12 @@ next one, until the run's time is up.
 
 The requests carry the `X-Load-Test-Key` header, which skips the rate limits and nothing else;
 otherwise one address would be refused after twenty checkouts an hour. `bin/deploy` draws a new
-random key on every deployment and gives it only to PHP and the simulator.
+random key on every deployment and gives it only to PHP and the simulator, and production
+refuses to start without one rather than use the development key.
+[`LoadTestKey`](../../backend/src/Shared/Http/LoadTestKey.php) accepts it only from private or
+reserved addresses, such as the Docker network the simulator calls from; Caddy passes the real
+client address, so a key leaked to someone on the internet still lifts nothing. Caddy's access
+log redacts the header like the other credentials.
 
 ## The check
 

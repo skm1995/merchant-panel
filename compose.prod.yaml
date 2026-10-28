@@ -60,6 +60,8 @@ services:
     environment:
       ORDER_RESERVATION_SECONDS: 900
       SESSION_COOKIE_SECURE: "true"
+      # Required here, so production never falls back to the development key in load-test.env.
+      LOAD_TEST_KEY: ${LOAD_TEST_KEY:?LOAD_TEST_KEY is required}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -134,6 +136,7 @@ services:
     environment:
       SIMULATION_BASE_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
       SIMULATION_RESOLVE_HOST: caddy
+      LOAD_TEST_KEY: ${LOAD_TEST_KEY:?LOAD_TEST_KEY is required}
     depends_on:
       migrate:
         condition: service_completed_successfully

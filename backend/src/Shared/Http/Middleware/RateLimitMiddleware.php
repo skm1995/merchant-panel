@@ -15,7 +15,7 @@ use App\Shared\Http\Responder;
 
 /**
  * Answers 429 with Retry-After once a client goes over the route's limit. Requests with the
- * load test key, from the Black Friday simulator, are not counted.
+ * load test key from inside the server, the Black Friday simulator's, are not counted.
  */
 final readonly class RateLimitMiddleware implements MiddlewareInterface
 {
@@ -33,7 +33,7 @@ final readonly class RateLimitMiddleware implements MiddlewareInterface
 
     public function process(Request $request, RequestHandlerInterface $next): void
     {
-        if ($this->loadTestKey->matches($request->header(HeaderNameEnum::LOAD_TEST_KEY->value))) {
+        if ($this->loadTestKey->exempts($request->header(HeaderNameEnum::LOAD_TEST_KEY->value), $request->clientAddress)) {
             $next->handle($request);
 
             return;

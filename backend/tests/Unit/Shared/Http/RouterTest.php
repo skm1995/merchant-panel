@@ -53,6 +53,7 @@ final class RouterTest extends TestCase
     private const string ONE_REQUEST_PER_MINUTE = '1/60';
     private const string CLIENT = '192.0.2.1';
     private const string OTHER_CLIENT = '192.0.2.2';
+    private const string INTERNAL_CLIENT = '172.18.0.7';
     private const string RETRY_DETAIL_PREFIX = 'Too many requests. Try again in ';
     private const string POST_VALUE = 'post route dispatched';
     private const string SESSION_API_PATH = '/api/v1/session';
@@ -316,11 +317,11 @@ final class RouterTest extends TestCase
         };
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        $request = static fn (string $key): Request => new Request(
+        $request = static fn (string $key, string $address = self::INTERNAL_CLIENT): Request => new Request(
             HttpMethodEnum::POST->value,
             $controller::PATH,
             headers: ['x-load-test-key' => $key],
-            clientAddress: self::CLIENT,
+            clientAddress: $address,
         );
 
         try {
@@ -330,13 +331,15 @@ final class RouterTest extends TestCase
             ob_start();
             $router->handle($request('guessed-key'));
             $router->handle($request('guessed-key'));
+            $router->handle($request(self::LOAD_TEST_KEY, self::CLIENT));
+            $router->handle($request(self::LOAD_TEST_KEY, self::CLIENT));
             ob_end_clean();
         } finally {
             putenv(self::RATE_LIMIT_VARIABLE);
         }
 
         self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, http_response_code());
-        self::assertSame(4, $controller->calls, 'Three requests with the key pass the limit of one; with a wrong key the second request is refused.');
+        self::assertSame(5, $controller->calls, 'Three requests with the key pass the limit of one; a wrong key, or the right key from the internet, gets one request through, then 429.');
     }
 
     public function testRouteRequiringAnApiKeyRejectsMissingOrWrongKeys(): void

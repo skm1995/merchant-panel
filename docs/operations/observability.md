@@ -20,7 +20,8 @@ message and a context array, never by echoing.
 | `Cache unavailable; …`, `Rate limiting skipped …` | the cache and the rate limiter | the Redis error |
 
 Request bodies, passwords, and tokens are never logged. Caddy writes its own JSON access log
-as well, with cookies and the API key, order token, and CSRF headers replaced by `REDACTED`
+as well, with cookies and the API key, order token, CSRF, and load test key headers replaced by
+`REDACTED`
 ([`access-log.caddy`](../../docker/caddy/access-log.caddy)).
 
 ## Following a request
