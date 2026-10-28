@@ -10,6 +10,8 @@ security review on 2026-10-27 shaped most of the controls marked as added then.
 | Threat | Control | Where |
 |---|---|---|
 | A stranger registers and edits the shop | Registration gives no panel access; an operator grants merchant access, checked in the database on every request | [Authentication](flows/authentication.md), [ADR 0010](decisions/0010-merchant-access-granted-by-an-operator.md) |
+| A stranger reads the production logs, with request paths and ids | Kibana is reachable only through Caddy behind the demo tools' password; Elasticsearch listens only on the Compose network; logs never contain request bodies, passwords, or tokens | [ADR 0024](decisions/0024-log-search-in-production.md), [Observability](operations/observability.md) |
+| A compromised log shipper controls the server | Vector is the only container given the Docker socket, read-only, to read container logs | [`compose.prod.yaml`](../compose.prod.yaml) |
 | Someone who saw an order id cancels or pays for the order | Guest order requests need an HMAC-derived access token; a wrong token looks like an unknown order | [ADR 0009](decisions/0009-hmac-order-access-tokens.md) |
 | Cross-site request forgery | CSRF token in a custom header for every state change, compared with `hash_equals`; `SameSite=Lax` cookie | [`CsrfMiddleware`](../backend/src/Shared/Http/Middleware/CsrfMiddleware.php) |
 | Session theft or fixation | HttpOnly, Secure, `SameSite=Lax` cookie; strict session ids; the id is regenerated and a new CSRF token issued on sign-in | [`Session`](../backend/src/Shared/Http/Session.php), [`CurrentUser`](../backend/src/Auth/Infrastructure/Session/CurrentUser.php) |

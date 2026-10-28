@@ -1,5 +1,6 @@
-# Production: the panel and API on the application domain, and Mailpit behind a password on
-# the mail domain, both with HTTPS certificates Caddy obtains and renews itself.
+# Production: the panel and API on the application domain, and the demo's tools behind a
+# password on the mail domain (Mailpit, and Kibana under /kibana/), both with HTTPS
+# certificates Caddy obtains and renews itself.
 {
 	admin off
 }
@@ -22,7 +23,15 @@
 	basic_auth {
 		demo {$MAILPIT_PASSWORD_HASH}
 	}
-	reverse_proxy mailpit:8025
+
+	# Kibana serves itself under /kibana (server.basePath), so the path is passed on as is.
+	handle /kibana* {
+		reverse_proxy kibana:5601
+	}
+
+	handle {
+		reverse_proxy mailpit:8025
+	}
 }
 
 # Docker's health check only; this port is not published.

@@ -10,7 +10,7 @@ GitHub Actions deploys every green commit on `master`; nobody changes the server
 |---|---|---|
 | `https://szymonkozlowski.is-a.dev` | GitHub Pages, from the `skm1995.github.io` repository | The personal site that introduces the project |
 | `https://demo.szymonkozlowski.is-a.dev` | Caddy on the server | The merchant panel and the API |
-| `https://mail.szymonkozlowski.is-a.dev` | Caddy on the server | Mailpit, behind the user `demo` and a password |
+| `https://mail.szymonkozlowski.is-a.dev` | Caddy on the server | The demo's tools behind the user `demo` and a password: Mailpit, and Kibana under `/kibana/` |
 
 The domains are free subdomains from [is-a.dev](https://is-a.dev), registered through a pull
 request to its repository: the site's name points to GitHub Pages with a CNAME record, and
@@ -23,13 +23,17 @@ the panel. Deployment creates it once and leaves it alone afterwards.
 
 ## What runs
 
-Caddy publishes ports 80 and 443; MySQL, Redis, RabbitMQ, and Mailpit are reachable only on
-the Compose network. The images contain the code: PHP runs without Xdebug and with OPcache
+Caddy publishes ports 80 and 443; MySQL, Redis, RabbitMQ, Mailpit, Elasticsearch, and Kibana
+are reachable only on the Compose network. Elasticsearch gets a 2 GB heap within a 3 GB limit
+and Kibana 1.5 GB, so with MySQL's buffer pool the server keeps several gigabytes free;
+[`provision.sh`](../../docker/server/provision.sh) raises `vm.max_map_count`, which
+Elasticsearch needs. The images contain the code: PHP runs without Xdebug and with OPcache
 that never rechecks files, and the worker, the outbox relay, and the maintenance commands run
 as `www-data`. See [System](../architecture/system.md) for every container.
 
-MySQL gets an 8 GB buffer pool, so the sales history and its indexes stay in memory, and a
-2 GB redo log for fast bulk inserts; PHP-FPM may run up to 48 requests in parallel
+MySQL gets an 8 GB buffer pool, so the sales history and its indexes stay in memory, a 2 GB
+redo log for fast bulk inserts, and no binary log, which only replicas, point-in-time
+recovery, or change data capture would need; PHP-FPM may run up to 48 requests in parallel
 ([`fpm-pool.conf`](../../docker/php/fpm-pool.conf)) instead of the image's default of 5.
 
 The Compose project keeps the repository's earlier name, `vanilla-php-playground`, because

@@ -28,6 +28,13 @@ for rule in "-p tcp -m tcp --dport 80" "-p tcp -m tcp --dport 443" "-p udp -m ud
     fi
 done
 
+# Elasticsearch maps its index files into memory and needs more memory map areas than the
+# kernel allows by default, now and after a reboot.
+if [ "$(sysctl -n vm.max_map_count)" -lt 262144 ]; then
+    echo "vm.max_map_count=262144" | sudo tee /etc/sysctl.d/99-elasticsearch.conf >/dev/null
+    sudo sysctl --quiet --load /etc/sysctl.d/99-elasticsearch.conf
+fi
+
 # Daily maintenance: a database backup, then deleting accounts left unconfirmed for a week.
 # Output goes to the system log under the merchant-panel tag. The cron file of the project's
 # earlier name is removed, so the jobs never run twice.

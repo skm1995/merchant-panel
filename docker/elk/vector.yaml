@@ -2,11 +2,12 @@
 # the Docker API, which works on Linux, Docker Desktop, and CI alike, unlike reading log
 # files from the host. Application logs are JSON lines and are decoded into the "app"
 # field, so Kibana can filter on app.extra.request_id, app.context.status, or app.level_name.
+# COMPOSE_PROJECT names the Compose project whose containers are shipped.
 sources:
   containers:
     type: docker_logs
     include_labels:
-      - com.docker.compose.project=merchant-panel
+      - com.docker.compose.project=${COMPOSE_PROJECT}
 
 transforms:
   application:

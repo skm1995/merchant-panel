@@ -141,8 +141,10 @@ services:
     image: mysql:8.4
     restart: unless-stopped
     # The server has 24 GB of memory: an 8 GB buffer pool keeps the sales history and its
-    # indexes in memory, and a larger redo log speeds up its bulk generation.
-    command: ["--innodb-buffer-pool-size=8G", "--innodb-redo-log-capacity=2G"]
+    # indexes in memory, and a larger redo log speeds up its bulk generation. Without
+    # replicas, point-in-time recovery, or change data capture (backups are dumps), the
+    # binary log would only write every change a second time.
+    command: ["--innodb-buffer-pool-size=8G", "--innodb-redo-log-capacity=2G", "--disable-log-bin"]
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
       MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}
@@ -187,9 +189,78 @@ services:
     image: axllent/mailpit:v1.27.0
     restart: unless-stopped
 
+  # Log search: Vector ships every container's logs to Elasticsearch, and Kibana shows them
+  # under /kibana/ on the mail domain, behind the same password as Mailpit. Elasticsearch
+  # keeps seven days of logs on one node and listens only inside the Compose network.
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.0
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+    mem_limit: 3g
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:9200/_cluster/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.2.0
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      SERVER_BASEPATH: /kibana
+      SERVER_REWRITEBASEPATH: "true"
+      SERVER_PUBLICBASEURL: https://${MAIL_DOMAIN:?MAIL_DOMAIN is required}/kibana
+      TELEMETRY_OPTIN: "false"
+      NODE_OPTIONS: --max-old-space-size=1024
+    mem_limit: 1536m
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:5601/kibana/api/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 120
+
+  # Sets up log retention, the data view, and the dashboards; bin/deploy runs it after every
+  # deploy with `docker compose run`, so it lives in the tools profile.
+  kibana-setup:
+    image: curlimages/curl:8.16.0
+    restart: "no"
+    profiles:
+      - tools
+    volumes:
+      - ./docker/elk:/elk:ro
+    entrypoint: ["/bin/sh", "/elk/setup.sh"]
+    environment:
+      KIBANA_URL: http://kibana:5601/kibana
+    depends_on:
+      kibana:
+        condition: service_healthy
+
+  vector:
+    image: timberio/vector:0.50.0-alpine
+    restart: unless-stopped
+    command: ["--config", "/etc/vector/vector.yaml"]
+    environment:
+      COMPOSE_PROJECT: vanilla-php-playground
+    volumes:
+      - ./docker/elk/vector.yaml:/etc/vector/vector.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
 volumes:
   mysql_data:
   rabbitmq_data:
   redis_data:
   caddy_data:
   caddy_config:
+  elasticsearch_data:

@@ -70,6 +70,7 @@ hash=$(sudo docker run --rm "${CADDY_IMAGE}" caddy hash-password --plaintext "${
 echo "MAILPIT_PASSWORD_HASH='${hash}'" >> .env
 sudo docker compose -f compose.prod.yaml up --detach --build --remove-orphans --wait
 sudo docker compose -f compose.prod.yaml run --rm -T seed-demo < /dev/null
+sudo docker compose -f compose.prod.yaml run --rm -T kibana-setup < /dev/null
 # The shared demo account; status 3 means it already exists, so a redeploy keeps its data.
 set -a && . docker/env/demo.env && set +a
 status=0

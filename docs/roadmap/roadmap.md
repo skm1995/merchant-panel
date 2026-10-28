@@ -47,11 +47,12 @@ dump into a scratch database to prove the backups work.
 
 ## Monitoring and alerts
 
-**Problem:** nobody is notified when the demo is down or failing.
+**Problem:** nobody is notified when the demo is down or failing; the logs are searchable in
+Kibana, but someone has to look.
 
 **Sketch:** a free external uptime check on `https://demo…/api/v1/products?limit=1` that
-emails on failure, and a nightly job that counts `ERROR` lines in the logs of the last day and
-mails a summary when there are any.
+emails on failure, and a Kibana rule that mails when server errors or refused commands rise
+above their usual rate.
 
 ## Images built in CI
 

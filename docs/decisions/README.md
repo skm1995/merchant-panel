@@ -29,3 +29,4 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0021](0021-recharts-for-charts.md) | Recharts for the panel's charts | Accepted |
 | [0022](0022-cqrs-only-for-orders-and-payments.md) | CQRS only for orders and payments | Accepted, amended by 0023 |
 | [0023](0023-commands-and-queries-through-messenger-buses.md) | Commands and queries through Messenger buses | Accepted |
+| [0024](0024-log-search-in-production.md) | Log search in production, under the demo's tools domain | Accepted |

@@ -81,7 +81,8 @@ mounted into the containers, plus:
 - one-off tool containers in the `tools` profile: `php-test` (PHPUnit and the static checks),
   `frontend-test` (the frontend toolchain), `e2e` (Playwright), and `k6`;
 - the `observability` profile with Elasticsearch, Kibana, and Vector, which collects the
-  containers' JSON logs.
+  containers' JSON logs; production runs them as regular services
+  ([observability](../operations/observability.md#on-the-server)).
 
 Development services publish their ports on `127.0.0.1` only, so their development
 credentials are not reachable from the local network.

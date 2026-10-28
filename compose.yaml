@@ -387,16 +387,17 @@ services:
       timeout: 5s
       retries: 60
 
-  # Creates the "Application logs" data view once Kibana is up.
+  # Sets up log retention, the "Application logs" data view, and the dashboards once Kibana
+  # is up; production runs the same script.
   kibana-setup:
     image: curlimages/curl:8.16.0
     profiles:
       - observability
     volumes:
-      - ./docker/elk/kibana-data-view.json:/data-view.json:ro
-    command: >-
-      --fail --silent --show-error -X POST http://kibana:5601/api/data_views/data_view
-      -H "kbn-xsrf: true" -H "Content-Type: application/json" --data @/data-view.json
+      - ./docker/elk:/elk:ro
+    entrypoint: ["/bin/sh", "/elk/setup.sh"]
+    environment:
+      KIBANA_URL: http://kibana:5601
     depends_on:
       kibana:
         condition: service_healthy
@@ -406,6 +407,8 @@ services:
     profiles:
       - observability
     command: ["--config", "/etc/vector/vector.yaml"]
+    environment:
+      COMPOSE_PROJECT: merchant-panel
     volumes:
       - ./docker/elk/vector.yaml:/etc/vector/vector.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro

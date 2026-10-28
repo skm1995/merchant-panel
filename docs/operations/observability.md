@@ -62,8 +62,22 @@ the `app` field, and sends everything to Elasticsearch. Kibana opens at
 
 ## On the server
 
-The production stack has no Elasticsearch, to keep the free server's resources for the
-application. Logs are read with Docker:
+Production runs the same Vector, Elasticsearch, and Kibana
+([0024](../decisions/0024-log-search-in-production.md)). Kibana is at
+`https://mail.szymonkozlowski.is-a.dev/kibana/`, behind the same user and password as Mailpit.
+[`docker/elk/setup.sh`](../../docker/elk/setup.sh) runs after every deploy, here and in the
+`observability` profile alike, and prepares:
+
+- daily `app-logs-*` indices without replicas on the single node, deleted after seven days by
+  the lifecycle policy in [`ilm-policy.json`](../../docker/elk/ilm-policy.json);
+- the "Application logs" data view;
+- the **Black Friday** dashboard from [`dashboards.ndjson`](../../docker/elk/dashboards.ndjson):
+  requests and p95 latency over time, server errors, and commands handled and refused per type,
+  refreshed every five seconds. Its charts are Vega-Lite specifications, so they are plain text
+  in the repository; to change one, edit it in Kibana, export it under Stack Management, Saved
+  objects, and replace the file.
+
+Docker's own rotated log files remain as a fallback:
 
 ```sh
 cd ~/app && sudo docker compose -f compose.prod.yaml logs --since 1h php worker | grep <request id>
@@ -71,6 +85,5 @@ cd ~/app && sudo docker compose -f compose.prod.yaml logs --since 1h php worker 
 
 ## Limitations
 
-- No metrics, dashboards, or alerts in production; nobody is notified when the demo is down
-  or errors increase.
-- Production logs live only in Docker's rotated files on the server.
+- No alerts: nobody is notified when the demo is down or errors increase.
+- Logs are kept for seven days, on the same server as the application.
