@@ -26,3 +26,4 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0018](0018-outside-in-tests.md) | Outside-in tests: functional tests lead, unit tests cover logic | Accepted |
 | [0019](0019-merged-coverage-with-a-ratchet.md) | Merged coverage of all suites, with a minimum that only rises | Accepted |
 | [0020](0020-every-route-in-the-contract-and-the-tests.md) | Every route is in the contract and called by a functional test | Accepted |
+| [0021](0021-recharts-for-charts.md) | Recharts for the panel's charts | Accepted |

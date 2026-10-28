@@ -32,7 +32,7 @@ describe('PanelLayout', () => {
 
     expect(await screen.findByRole('heading', { name: 'Orders' })).toBeInTheDocument();
     expect(screen.getByText(`Signed in as ${EMAIL}`)).toBeInTheDocument();
-    expect(screen.getByRole('navigation')).toHaveTextContent('OrdersProductsReports');
+    expect(screen.getByRole('navigation')).toHaveTextContent('OrdersProductsReportsAnalytics');
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }));
 

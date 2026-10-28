@@ -8,6 +8,7 @@ const LINKS = [
   { to: '/orders', label: 'Orders' },
   { to: '/products', label: 'Products' },
   { to: '/reports', label: 'Reports' },
+  { to: '/analytics', label: 'Analytics' },
 ];
 
 export function PanelLayout() {

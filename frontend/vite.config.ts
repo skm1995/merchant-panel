@@ -22,7 +22,7 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/api/schema.ts'],
       reporter: ['text-summary', 'html', 'json-summary'],
-      thresholds: { lines: 94, statements: 94, functions: 98, branches: 81 },
+      thresholds: { lines: 95, statements: 95, functions: 98, branches: 84 },
     },
   },
 });

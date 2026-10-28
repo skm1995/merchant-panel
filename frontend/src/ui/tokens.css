@@ -18,6 +18,17 @@
   --space-3: 16px;
   --space-4: 24px;
   --space-5: 40px;
+  /* Charts: two categorical series validated for color-vision deficiencies, recessive
+     grid lines, and a one-hue sequential ramp from almost nothing to the most. */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-grid: #e6e9ef;
+  --chart-scale-0: #f4f6fa;
+  --chart-scale-1: #cde2fb;
+  --chart-scale-2: #86b6ef;
+  --chart-scale-3: #3987e5;
+  --chart-scale-4: #1c5cab;
+  --chart-scale-5: #0d366b;
 }
 
 body {

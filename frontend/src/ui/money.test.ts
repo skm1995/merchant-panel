@@ -1,4 +1,4 @@
-import { formatMoney, toDecimalInput, toMinorUnits } from './money';
+import { toChartValue, formatMoney, toDecimalInput, toMinorUnits } from './money';
 
 describe('formatMoney', () => {
   it('formats minor units without floating-point rounding', () => {
@@ -38,5 +38,12 @@ describe('toDecimalInput', () => {
     expect(toDecimalInput({ amount: '1999', currency: 'PLN' })).toBe('19.99');
     expect(toDecimalInput({ amount: '5', currency: 'PLN' })).toBe('0.05');
     expect(toDecimalInput({ amount: '1500', currency: 'JPY' })).toBe('1500');
+  });
+});
+
+describe('toChartValue', () => {
+  it('plots minor units as a number of major units', () => {
+    expect(toChartValue({ amount: '1999', currency: 'PLN' })).toBe(19.99);
+    expect(toChartValue({ amount: '5', currency: 'JPY' })).toBe(5);
   });
 });

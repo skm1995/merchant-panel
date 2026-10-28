@@ -1,0 +1,10 @@
+.reports {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.lowStock {
+  color: var(--color-error);
+  font-weight: 600;
+  white-space: nowrap;
+}

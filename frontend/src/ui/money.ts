@@ -77,3 +77,11 @@ export function toMinorUnits(text: string, currency: string): string | null {
 export function decimalPlaces(currency: string): number {
   return fractionDigits(currency);
 }
+
+/**
+ * The amount as a number of major units, only for plotting a chart: numbers lose digits
+ * beyond the safe integer range, so tables and tooltips show formatMoney's exact text.
+ */
+export function toChartValue(money: Money): number {
+  return Number(toDecimalString(money));
+}

@@ -1,0 +1,55 @@
+.heatmap {
+  display: grid;
+  grid-template-columns: 6.5rem repeat(24, minmax(14px, 1fr));
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.hourLabel {
+  text-align: center;
+}
+
+.dayLabel {
+  align-self: center;
+}
+
+.cell {
+  aspect-ratio: 1;
+  min-height: 14px;
+  border-radius: 3px;
+}
+
+.level0 {
+  background: var(--chart-scale-0);
+}
+.level1 {
+  background: var(--chart-scale-1);
+}
+.level2 {
+  background: var(--chart-scale-2);
+}
+.level3 {
+  background: var(--chart-scale-3);
+}
+.level4 {
+  background: var(--chart-scale-4);
+}
+.level5 {
+  background: var(--chart-scale-5);
+}
+
+.legend {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.legendSwatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}

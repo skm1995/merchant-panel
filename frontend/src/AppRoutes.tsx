@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { ConfirmEmailPage } from './auth/ConfirmEmailPage';
 import { LoginPage } from './auth/LoginPage';
@@ -6,8 +7,19 @@ import { OrdersPage } from './panel/OrdersPage';
 import { PanelLayout } from './panel/PanelLayout';
 import { ProductEditPage } from './panel/ProductEditPage';
 import { ProductsPage } from './panel/ProductsPage';
-import { ReportsPage } from './panel/ReportsPage';
 import { RequireMerchant } from './session/RequireMerchant';
+
+// The report pages load the charting library, so they are fetched only when opened.
+const ReportsPage = lazy(() =>
+  import('./panel/ReportsPage').then((module) => ({ default: module.ReportsPage })),
+);
+const AnalyticsPage = lazy(() =>
+  import('./panel/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })),
+);
+
+function Loading({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<p>Loading…</p>}>{children}</Suspense>;
+}
 
 export function AppRoutes() {
   return (
@@ -21,7 +33,22 @@ export function AppRoutes() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:id/edit" element={<ProductEditPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
+          <Route
+            path="/reports"
+            element={
+              <Loading>
+                <ReportsPage />
+              </Loading>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <Loading>
+                <AnalyticsPage />
+              </Loading>
+            }
+          />
         </Route>
       </Route>
     </Routes>

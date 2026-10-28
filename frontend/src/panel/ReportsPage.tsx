@@ -3,9 +3,13 @@ import { apiClient } from '../api/client';
 import { problemMessage } from '../api/problem';
 import type { components } from '../api/schema';
 import { Alert } from '../ui/Alert';
+import { BarChart } from '../ui/BarChart';
 import { Button } from '../ui/Button';
+import { formatWholeAmount } from '../ui/chartFormat';
+import { ChartPanel } from '../ui/ChartPanel';
 import { DataTable, type Column } from '../ui/DataTable';
-import { formatMoney } from '../ui/money';
+import { LineChart } from '../ui/LineChart';
+import { formatMoney, toChartValue } from '../ui/money';
 import { Page } from '../ui/Page';
 import { TextField } from '../ui/TextField';
 
@@ -18,6 +22,11 @@ const DAY_COLUMNS: Column<Day>[] = [
   { header: 'Day', cell: (day) => day.day },
   { header: 'Orders', cell: (day) => String(day.orders) },
   { header: 'Revenue', cell: (day) => formatMoney(day.revenue) },
+  { header: 'Running total', cell: (day) => formatMoney(day.running_total) },
+];
+
+const RUNNING_TOTAL_COLUMNS: Column<Day>[] = [
+  { header: 'Day', cell: (day) => day.day },
   { header: 'Running total', cell: (day) => formatMoney(day.running_total) },
 ];
 
@@ -74,18 +83,68 @@ export function ReportsPage() {
       </form>
       {reports !== null && (
         <>
-          <DataTable
-            caption="Daily revenue"
-            columns={DAY_COLUMNS}
-            rows={reports.revenue.days}
-            rowKey={(day) => day.day}
-          />
-          <DataTable
-            caption="Top products"
-            columns={PRODUCT_COLUMNS}
-            rows={reports.products.products}
-            rowKey={(product) => String(product.product_id)}
-          />
+          <ChartPanel
+            title="Daily revenue"
+            howItsComputed="SQL groups the paid orders of the period by day with GROUP BY and adds up their totals; days without paid orders are left out."
+            data={
+              <DataTable
+                caption="Daily revenue"
+                columns={DAY_COLUMNS}
+                rows={reports.revenue.days}
+                rowKey={(day) => day.day}
+              />
+            }
+          >
+            <BarChart
+              data={reports.revenue.days.map((day) => ({
+                label: day.day,
+                value: toChartValue(day.revenue),
+              }))}
+              format={formatWholeAmount(reports.revenue.currency)}
+            />
+          </ChartPanel>
+          <ChartPanel
+            title="Running total"
+            howItsComputed="PHP adds each day's revenue to the total of the days before it, with Money, on the small result of the daily revenue query."
+            data={
+              <DataTable
+                caption="Running total"
+                columns={RUNNING_TOTAL_COLUMNS}
+                rows={reports.revenue.days}
+                rowKey={(day) => day.day}
+              />
+            }
+          >
+            <LineChart
+              data={reports.revenue.days.map((day) => ({
+                label: day.day,
+                total: toChartValue(day.running_total),
+              }))}
+              series={[{ key: 'total', name: 'Running total' }]}
+              format={formatWholeAmount(reports.revenue.currency)}
+            />
+          </ChartPanel>
+          <ChartPanel
+            title="Top products"
+            howItsComputed="SQL adds up units and revenue per product from the lines of paid orders, sorts by revenue, and keeps the first ones with LIMIT; equal revenue is ordered by product id."
+            data={
+              <DataTable
+                caption="Top products"
+                columns={PRODUCT_COLUMNS}
+                rows={reports.products.products}
+                rowKey={(product) => String(product.product_id)}
+              />
+            }
+          >
+            <BarChart
+              horizontal
+              data={reports.products.products.map((product) => ({
+                label: product.name,
+                value: toChartValue(product.revenue),
+              }))}
+              format={formatWholeAmount(reports.products.currency)}
+            />
+          </ChartPanel>
         </>
       )}
     </Page>

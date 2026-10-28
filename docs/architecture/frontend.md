@@ -14,8 +14,8 @@ build instead of a screen. It authenticates with the browser session, not tokens
 | [`src/api/`](../../frontend/src/api) | The typed API client, the generated `schema.ts`, and the helper that turns problem details into messages |
 | [`src/session/`](../../frontend/src/session) | The session context, its provider, and the route guard |
 | [`src/auth/`](../../frontend/src/auth) | Sign-in, registration, and email confirmation pages |
-| [`src/panel/`](../../frontend/src/panel) | The panel layout and the orders, products, product editing, and reports pages |
-| [`src/ui/`](../../frontend/src/ui) | A small design system: `Page`, `Button`, `TextField`, `Alert`, `DataTable`, design tokens in `tokens.css`, and money formatting |
+| [`src/panel/`](../../frontend/src/panel) | The panel layout and the orders, products, product editing, reports, and analytics pages |
+| [`src/ui/`](../../frontend/src/ui) | A small design system: `Page`, `Button`, `TextField`, `Alert`, `DataTable`, the charts (`ChartPanel`, `BarChart`, `LineChart`, `Heatmap`), design tokens in `tokens.css`, and money formatting |
 | [`e2e/`](../../frontend/e2e) | Playwright end-to-end tests |
 
 ## Talking to the API
@@ -70,6 +70,16 @@ merchant access sees an explanation and a sign-out button instead of the panel.
   [`src/ui/money.ts`](../../frontend/src/ui/money.ts) without floating-point arithmetic.
 - Styles are CSS modules with design tokens, so the strict Content-Security-Policy, which
   allows no inline styles or scripts, holds in production.
+- Charts use [Recharts](https://recharts.org) ([0021](../decisions/0021-recharts-for-charts.md)).
+  Every chart sits in a [`ChartPanel`](../../frontend/src/ui/ChartPanel.tsx) with its title,
+  its numbers as a table behind "Show data", and a short "How it's computed". The drawing is
+  hidden from screen readers, which read the title and the table; the
+  [`Heatmap`](../../frontend/src/ui/Heatmap.tsx) is plain markup with a label on every square.
+  Colors come from the chart tokens: two categorical series checked for color-vision
+  deficiencies, and one hue from light to dark for magnitudes. No chart has two y-axes.
+- The report pages are loaded lazily, so the charting library (about 110 kB compressed) is
+  fetched only when a merchant opens Reports or Analytics. The end-to-end test fails on any
+  console error, which is how a chart breaking the Content-Security-Policy would show.
 
 ## Testing
 
@@ -92,5 +102,6 @@ The test stack and production serve the built app instead.
 
 - Only the merchant panel exists; customers have no storefront and use the API directly.
 - Pages handle loading and errors individually; there is no shared data-fetching cache.
+- There is no dark theme; the panel and its charts use one light palette.
 - The end-to-end tests cover the main journeys only; most behavior is tested at the
   component level with a faked API.

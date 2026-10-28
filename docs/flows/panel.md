@@ -48,8 +48,10 @@ layer.
 
 ## Reports
 
-The reports page asks for a period and shows the period's reports; three more reports look at
-longer trends. Plain SQL in
+The Reports page asks for a period and shows its daily revenue, running total, and top
+products; the Analytics page shows three reports on longer trends without asking. Every report
+is a chart with its numbers in a table behind "Show data" and a sentence on how it is
+computed. Plain SQL in
 [`PdoReportReadRepository`](../../backend/src/Report/Repository/PdoReportReadRepository.php)
 filters and adds up the orders, and
 [`ReportService`](../../backend/src/Report/Service/ReportService.php) works on that small

@@ -66,10 +66,20 @@ describe('ReportsPage', () => {
 
     await showReports('2026-10-01', '2026-10-07');
 
-    const revenue = await screen.findByRole('table', { name: 'Daily revenue' });
+    const user = userEvent.setup();
+    const revenueFigure = await screen.findByRole('figure', { name: 'Daily revenue' });
+    await user.click(within(revenueFigure).getByRole('button', { name: 'Show data' }));
+    const revenue = within(revenueFigure).getByRole('table', { name: 'Daily revenue' });
     expect(within(revenue).getAllByRole('cell', { name: /^PLN\s300\.00$/ })).toHaveLength(2);
-    const products = screen.getByRole('table', { name: 'Top products' });
+    const productsFigure = screen.getByRole('figure', { name: 'Top products' });
+    await user.click(within(productsFigure).getByRole('button', { name: 'Show data' }));
+    const products = within(productsFigure).getByRole('table', { name: 'Top products' });
     expect(within(products).getByRole('cell', { name: 'Mug' })).toBeInTheDocument();
+    const totalFigure = screen.getByRole('figure', { name: 'Running total' });
+    await user.click(within(totalFigure).getByRole('button', { name: 'Show data' }));
+    expect(within(totalFigure).getByRole('row', { name: /2026-10-02/ })).toHaveTextContent(
+      'PLN 300.00',
+    );
     expect(requested).toContain('?from=2026-10-01&to=2026-10-07');
   });
 
