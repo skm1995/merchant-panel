@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Report\Request;
 
+use App\Report\Request\ReportLimitInput;
 use App\Report\Request\TopProductsRequest;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Exception\InvalidRequestException;
@@ -26,7 +27,7 @@ final class TopProductsRequestTest extends TestCase
 
     public function testDefaultsTheLimit(): void
     {
-        self::assertSame(TopProductsRequest::DEFAULT_LIMIT, TopProductsRequest::fromRequest(self::request([]))->limit);
+        self::assertSame(ReportLimitInput::DEFAULT_LIMIT, TopProductsRequest::fromRequest(self::request([]))->limit);
     }
 
     /** @return iterable<string, array{string}> */

@@ -7,11 +7,15 @@ namespace App\Report\Repository;
 use App\Order\Enum\OrderStatusEnum;
 use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailySales;
+use App\Report\ReadModel\HeatmapCell;
+use App\Report\ReadModel\MonthRevenue;
+use App\Report\ReadModel\ProductPace;
 use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\ReportedOrder;
 use App\Shared\Database\RecordFetcher;
 use App\Shared\Database\SqlDateTime;
 use DateTimeImmutable;
+use Money\Currency;
 use PDO;
 
 /**
@@ -48,6 +52,33 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
         ORDER BY revenue DESC, productId
         LIMIT :limit
         SQL;
+    public const string STOCK_OUTLOOK_QUERY = <<<'SQL'
+        SELECT products.id AS productId, products.sku, products.name,
+            products.stock - products.reserved AS available,
+            SUM(daily_product_sales.units) AS unitsSold
+        FROM daily_product_sales
+        JOIN products ON products.id = daily_product_sales.product_id
+        WHERE daily_product_sales.day >= :starts_at AND daily_product_sales.day < :ends_before
+        GROUP BY products.id, products.sku, products.name, products.stock, products.reserved
+        ORDER BY (products.stock - products.reserved) / SUM(daily_product_sales.units), products.id
+        LIMIT :limit
+        SQL;
+    public const string ORDER_HEATMAP_QUERY = <<<'SQL'
+        SELECT WEEKDAY(created_at) + 1 AS weekday, HOUR(created_at) AS hour, COUNT(*) AS orders
+        FROM orders
+        WHERE status = :status
+            AND created_at >= :starts_at
+            AND created_at < :ends_before
+        GROUP BY weekday, hour
+        ORDER BY weekday, hour
+        SQL;
+    public const string MONTHLY_REVENUE_QUERY = <<<'SQL'
+        SELECT DATE_FORMAT(day, '%Y-%m') AS month, SUM(revenue) AS revenue, :result_currency AS currency
+        FROM daily_product_sales
+        WHERE currency = :currency AND day >= :starts_at AND day < :ends_before
+        GROUP BY month
+        ORDER BY month
+        SQL;
     private const string ORDERS_BY_STATUS_QUERY = <<<'SQL'
         SELECT orders.id AS orderNumber,
             GROUP_CONCAT(order_items.name ORDER BY order_items.name SEPARATOR ', ') AS products,
@@ -68,6 +99,7 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
     private const string CURRENCY_PARAMETER = 'currency';
     private const string RESULT_CURRENCY_PARAMETER = 'result_currency';
     private const string LIMIT_PARAMETER = 'limit';
+    private const string DATE_FORMAT = 'Y-m-d';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -101,6 +133,42 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
         );
     }
 
+    public function productSalesBetween(DateTimeImmutable $startsAt, DateTimeImmutable $endsBefore, int $limit): array
+    {
+        $statement = $this->pdo->prepare(self::STOCK_OUTLOOK_QUERY);
+        $statement->bindValue(self::STARTS_AT_PARAMETER, $startsAt->format(self::DATE_FORMAT));
+        $statement->bindValue(self::ENDS_BEFORE_PARAMETER, $endsBefore->format(self::DATE_FORMAT));
+        $statement->bindValue(self::LIMIT_PARAMETER, $limit, PDO::PARAM_INT);
+        $statement->execute();
+
+        return array_map(
+            static fn (ProductPaceRecord $record): ProductPace => $record->toEntity(),
+            RecordFetcher::all($statement, ProductPaceRecord::class),
+        );
+    }
+
+    public function paidOrdersByWeekdayAndHour(ReportPeriod $period): array
+    {
+        $statement = $this->pdo->prepare(self::ORDER_HEATMAP_QUERY);
+        $statement->execute(self::orderRangeParameters($period));
+
+        return array_map(
+            static fn (HeatmapCellRecord $record): HeatmapCell => $record->toEntity(),
+            RecordFetcher::all($statement, HeatmapCellRecord::class),
+        );
+    }
+
+    public function revenueByMonth(Currency $currency, DateTimeImmutable $startsAt, DateTimeImmutable $endsBefore): array
+    {
+        $statement = $this->pdo->prepare(self::MONTHLY_REVENUE_QUERY);
+        $statement->execute(self::monthlyRevenueParameters($currency, $startsAt, $endsBefore));
+
+        return array_map(
+            static fn (MonthRevenueRecord $record): MonthRevenue => $record->toEntity(),
+            RecordFetcher::all($statement, MonthRevenueRecord::class),
+        );
+    }
+
     public function ordersByStatus(OrderStatusEnum $status, DateTimeImmutable $since, int $limit): array
     {
         $statement = $this->pdo->prepare(self::ORDERS_BY_STATUS_QUERY);
@@ -113,6 +181,27 @@ final class PdoReportReadRepository implements ReportReadRepositoryInterface
             static fn (ReportedOrderRecord $record): ReportedOrder => $record->toEntity(),
             RecordFetcher::all($statement, ReportedOrderRecord::class),
         );
+    }
+
+    /** @return array<string, string> */
+    public static function orderRangeParameters(ReportPeriod $period): array
+    {
+        return [
+            self::STATUS_PARAMETER => OrderStatusEnum::PAID->value,
+            self::STARTS_AT_PARAMETER => SqlDateTime::format($period->startsAt()),
+            self::ENDS_BEFORE_PARAMETER => SqlDateTime::format($period->endsBefore()),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function monthlyRevenueParameters(Currency $currency, DateTimeImmutable $startsAt, DateTimeImmutable $endsBefore): array
+    {
+        return [
+            self::CURRENCY_PARAMETER => $currency->getCode(),
+            self::RESULT_CURRENCY_PARAMETER => $currency->getCode(),
+            self::STARTS_AT_PARAMETER => $startsAt->format(self::DATE_FORMAT),
+            self::ENDS_BEFORE_PARAMETER => $endsBefore->format(self::DATE_FORMAT),
+        ];
     }
 
     /** @return array<string, string> */

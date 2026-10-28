@@ -21,7 +21,8 @@ final class Responder
     private const string PROBLEM_STATUS_KEY = 'status';
     private const string PROBLEM_DETAIL_KEY = 'detail';
     private const string DEFAULT_PROBLEM_TYPE = 'about:blank';
-    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+    // Floats keep their fraction (2.0, not 2), so a number field never changes its JSON type.
+    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION;
 
     /** @param array<string, mixed> $data */
     public function render(string $view, array $data = []): void

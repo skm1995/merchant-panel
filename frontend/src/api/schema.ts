@@ -348,6 +348,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/panel/reports/stock-outlook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stock outlook for the signed-in merchant
+         * @description The stock outlook report for the merchant panel, authorized by the session.
+         */
+        get: operations["getPanelStockOutlookReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/panel/reports/order-heatmap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Order heatmap for the signed-in merchant
+         * @description The order heatmap report for the merchant panel, authorized by the session.
+         */
+        get: operations["getPanelOrderHeatmapReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/panel/reports/monthly-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monthly revenue for the signed-in merchant
+         * @description The monthly revenue report for the merchant panel, authorized by the session.
+         */
+        get: operations["getPanelMonthlyRevenueReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/daily-revenue": {
         parameters: {
             query?: never;
@@ -380,6 +440,66 @@ export interface paths {
          * @description Requires the reporting API key. Returns at most `limit` products, highest revenue first; products with equal revenue are ordered by product id.
          */
         get: operations["getTopProductsReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/stock-outlook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Products that will sell out first
+         * @description Requires the reporting API key. Products that will sell out first at the pace of the last 28 days, from the daily sales summary: units sold per day and the days the available stock lasts. Products without sales in those days are omitted.
+         */
+        get: operations["getStockOutlookReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/order-heatmap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Paid orders per weekday and hour
+         * @description Requires the reporting API key. Paid orders in any currency counted per weekday (1 is Monday) and hour in UTC, for a heatmap of when customers buy. Cells without orders are omitted.
+         */
+        get: operations["getOrderHeatmapReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/monthly-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monthly revenue compared with the year before
+         * @description Requires the reporting API key. Revenue of paid orders per month for the last twelve months, including the current one, from the daily sales summary, next to the same month a year earlier.
+         */
+        get: operations["getMonthlyRevenueReport"];
         put?: never;
         post?: never;
         delete?: never;
@@ -534,6 +654,45 @@ export interface components {
                 revenue: components["schemas"]["Money"];
             }[];
         };
+        StockOutlookReport: {
+            /** @description The number of past days, ending yesterday, whose sales set the pace. */
+            days_measured: number;
+            products: {
+                product_id: number;
+                sku: string;
+                name: string;
+                /** @description Stock that is not reserved by open orders. */
+                available: number;
+                units_sold: number;
+                /** @description Units sold per day, rounded to two decimal places. */
+                units_per_day: number;
+                /** @description Whole days the available stock lasts at that pace. */
+                days_left: number;
+            }[];
+        };
+        OrderHeatmapReport: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            cells: {
+                /** @description ISO weekday, 1 is Monday. */
+                weekday: number;
+                /** @description Hour in UTC. */
+                hour: number;
+                orders: number;
+            }[];
+        };
+        MonthlyRevenueReport: {
+            currency: string;
+            months: {
+                month: string;
+                revenue: components["schemas"]["Money"];
+                previous_year_revenue: components["schemas"]["Money"];
+                /** @description Change against the same month a year earlier, in percent rounded to one decimal place; null when that month had no revenue. */
+                change_percent: number | null;
+            }[];
+        };
     };
     responses: {
         /** @description An RFC 9457 problem details response. */
@@ -583,6 +742,33 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["TopProductsReport"];
+            };
+        };
+        /** @description Products that will sell out first. */
+        StockOutlook: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["StockOutlookReport"];
+            };
+        };
+        /** @description Paid orders per weekday and hour in the period. */
+        OrderHeatmap: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["OrderHeatmapReport"];
+            };
+        };
+        /** @description Monthly revenue with the same month a year earlier. */
+        MonthlyRevenue: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["MonthlyRevenueReport"];
             };
         };
     };
@@ -1152,6 +1338,58 @@ export interface operations {
             403: components["responses"]["Problem"];
         };
     };
+    getPanelStockOutlookReport: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StockOutlook"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getPanelOrderHeatmapReport: {
+        parameters: {
+            query: {
+                from: components["parameters"]["From"];
+                to: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["OrderHeatmap"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    getPanelMonthlyRevenueReport: {
+        parameters: {
+            query?: {
+                currency?: components["parameters"]["Currency"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["MonthlyRevenue"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
     getDailyRevenueReport: {
         parameters: {
             query: {
@@ -1185,6 +1423,55 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: components["responses"]["TopProducts"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getStockOutlookReport: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StockOutlook"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getOrderHeatmapReport: {
+        parameters: {
+            query: {
+                from: components["parameters"]["From"];
+                to: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["OrderHeatmap"];
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getMonthlyRevenueReport: {
+        parameters: {
+            query?: {
+                currency?: components["parameters"]["Currency"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["MonthlyRevenue"];
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
         };

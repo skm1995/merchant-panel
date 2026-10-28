@@ -79,6 +79,116 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '403':
           $ref: 'shared.yaml#/responses/Problem'
+  stockOutlook:
+    get:
+      operationId: getStockOutlookReport
+      security:
+        - apiKey: []
+      summary: Products that will sell out first
+      description: >-
+        Requires the reporting API key. Products that will sell out first at the pace of the last 28 days, from the daily sales summary: units sold per day and the days the available stock lasts. Products without sales in those days are omitted.
+      parameters:
+        - $ref: '#/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/responses/StockOutlook'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+  orderHeatmap:
+    get:
+      operationId: getOrderHeatmapReport
+      security:
+        - apiKey: []
+      summary: Paid orders per weekday and hour
+      description: >-
+        Requires the reporting API key. Paid orders in any currency counted per weekday (1 is Monday) and hour in UTC, for a heatmap of when customers buy. Cells without orders are omitted.
+      parameters:
+        - $ref: '#/parameters/From'
+        - $ref: '#/parameters/To'
+      responses:
+        '200':
+          $ref: '#/responses/OrderHeatmap'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+  monthlyRevenue:
+    get:
+      operationId: getMonthlyRevenueReport
+      security:
+        - apiKey: []
+      summary: Monthly revenue compared with the year before
+      description: >-
+        Requires the reporting API key. Revenue of paid orders per month for the last twelve months, including the current one, from the daily sales summary, next to the same month a year earlier.
+      parameters:
+        - $ref: '#/parameters/Currency'
+      responses:
+        '200':
+          $ref: '#/responses/MonthlyRevenue'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+  panelStockOutlook:
+    get:
+      operationId: getPanelStockOutlookReport
+      security:
+        - sessionCookie: []
+      summary: Stock outlook for the signed-in merchant
+      description: >-
+        The stock outlook report for the merchant panel, authorized by the session.
+      parameters:
+        - $ref: '#/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/responses/StockOutlook'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+  panelOrderHeatmap:
+    get:
+      operationId: getPanelOrderHeatmapReport
+      security:
+        - sessionCookie: []
+      summary: Order heatmap for the signed-in merchant
+      description: >-
+        The order heatmap report for the merchant panel, authorized by the session.
+      parameters:
+        - $ref: '#/parameters/From'
+        - $ref: '#/parameters/To'
+      responses:
+        '200':
+          $ref: '#/responses/OrderHeatmap'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+  panelMonthlyRevenue:
+    get:
+      operationId: getPanelMonthlyRevenueReport
+      security:
+        - sessionCookie: []
+      summary: Monthly revenue for the signed-in merchant
+      description: >-
+        The monthly revenue report for the merchant panel, authorized by the session.
+      parameters:
+        - $ref: '#/parameters/Currency'
+      responses:
+        '200':
+          $ref: '#/responses/MonthlyRevenue'
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '401':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
 parameters:
   From:
     name: from
@@ -124,6 +234,24 @@ responses:
       application/json:
         schema:
           $ref: '#/schemas/TopProductsReport'
+  StockOutlook:
+    description: Products that will sell out first.
+    content:
+      application/json:
+        schema:
+          $ref: '#/schemas/StockOutlookReport'
+  OrderHeatmap:
+    description: Paid orders per weekday and hour in the period.
+    content:
+      application/json:
+        schema:
+          $ref: '#/schemas/OrderHeatmapReport'
+  MonthlyRevenue:
+    description: Monthly revenue with the same month a year earlier.
+    content:
+      application/json:
+        schema:
+          $ref: '#/schemas/MonthlyRevenueReport'
 schemas:
   DailyRevenueReport:
     type: object
@@ -188,3 +316,96 @@ schemas:
               type: integer
             revenue:
               $ref: 'shared.yaml#/schemas/Money'
+  StockOutlookReport:
+    type: object
+    additionalProperties: false
+    required: [days_measured, products]
+    properties:
+      days_measured:
+        type: integer
+        description: The number of past days, ending yesterday, whose sales set the pace.
+      products:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [product_id, sku, name, available, units_sold, units_per_day, days_left]
+          properties:
+            product_id:
+              type: integer
+            sku:
+              type: string
+            name:
+              type: string
+            available:
+              type: integer
+              minimum: 0
+              description: Stock that is not reserved by open orders.
+            units_sold:
+              type: integer
+              minimum: 1
+            units_per_day:
+              type: number
+              description: Units sold per day, rounded to two decimal places.
+            days_left:
+              type: integer
+              minimum: 0
+              description: Whole days the available stock lasts at that pace.
+  OrderHeatmapReport:
+    type: object
+    additionalProperties: false
+    required: [from, to, cells]
+    properties:
+      from:
+        type: string
+        format: date
+      to:
+        type: string
+        format: date
+      cells:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [weekday, hour, orders]
+          properties:
+            weekday:
+              type: integer
+              minimum: 1
+              maximum: 7
+              description: ISO weekday, 1 is Monday.
+            hour:
+              type: integer
+              minimum: 0
+              maximum: 23
+              description: Hour in UTC.
+            orders:
+              type: integer
+              minimum: 1
+  MonthlyRevenueReport:
+    type: object
+    additionalProperties: false
+    required: [currency, months]
+    properties:
+      currency:
+        type: string
+      months:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [month, revenue, previous_year_revenue, change_percent]
+          properties:
+            month:
+              type: string
+              pattern: '^[0-9]{4}-[0-9]{2}$'
+            revenue:
+              $ref: 'shared.yaml#/schemas/Money'
+            previous_year_revenue:
+              $ref: 'shared.yaml#/schemas/Money'
+            change_percent:
+              type: number
+              nullable: true
+              description: >-
+                Change against the same month a year earlier, in percent rounded to one decimal
+                place; null when that month had no revenue.

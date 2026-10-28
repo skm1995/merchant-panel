@@ -7,6 +7,8 @@ namespace Tests\Unit\Report;
 use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
 use App\Report\ReadModel\DailySales;
+use App\Report\ReadModel\MonthRevenue;
+use App\Report\ReadModel\ProductPace;
 use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\TopProduct;
 use DateTimeImmutable;
@@ -37,6 +39,16 @@ final class ReportFixtures
     public static function productSales(int $productId, int $unitsSold, int $revenue): ProductSales
     {
         return new ProductSales($productId, 'SKU-' . $productId, 'Product ' . $productId, $unitsSold, Money::PLN($revenue));
+    }
+
+    public static function pace(int $productId, int $available, int $unitsSold): ProductPace
+    {
+        return new ProductPace($productId, 'SKU-' . $productId, 'Product ' . $productId, $available, $unitsSold);
+    }
+
+    public static function monthRevenue(string $month, int $revenue): MonthRevenue
+    {
+        return new MonthRevenue($month, Money::PLN($revenue));
     }
 
     public static function product(int $rank, int $productId, int $unitsSold, int $revenue): TopProduct

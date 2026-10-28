@@ -48,7 +48,8 @@ layer.
 
 ## Reports
 
-The reports page asks for a period and shows two reports. Plain SQL in
+The reports page asks for a period and shows the period's reports; three more reports look at
+longer trends. Plain SQL in
 [`PdoReportReadRepository`](../../backend/src/Report/Repository/PdoReportReadRepository.php)
 filters and adds up the orders, and
 [`ReportService`](../../backend/src/Report/Service/ReportService.php) works on that small
@@ -58,12 +59,16 @@ result in PHP, with `Money` for amounts:
 |---|---|---|
 | Daily revenue | `GET /api/v1/panel/reports/daily-revenue` | SQL groups paid orders by day (`GROUP BY DATE(created_at)`) and sums their totals; PHP adds each day to a running total |
 | Top products | `GET /api/v1/panel/reports/top-products` | SQL sums units and revenue per product from order lines, sorts by revenue, and cuts the list with `LIMIT` (at most 50); PHP numbers the positions. Equal revenue is ordered by product id |
+| Stock outlook | `GET /api/v1/panel/reports/stock-outlook` | SQL sums the units each product sold in the last 28 full days from the [daily sales summary](../decisions/0017-daily-sales-summary-recomputed-per-day.md) and sorts by available stock per unit sold, with `LIMIT`; PHP turns that into units per day and whole days of stock left |
+| Order heatmap | `GET /api/v1/panel/reports/order-heatmap` | SQL counts paid orders of the period per `WEEKDAY()` and `HOUR()` in UTC, reading only the `orders_status_created_at` index |
+| Monthly revenue | `GET /api/v1/panel/reports/monthly-revenue` | SQL sums the summary's revenue per month for the last 24 months; PHP lays out the last 12 next to the same months a year earlier, with the change in percent, and fills months without sales with zero |
 
 A period may cover at most 366 days, and amounts are summed in one currency (PLN by default).
 [`ReportQueryPlanTest`](../../backend/tests/Functional/Report/ReportQueryPlanTest.php) runs
-`EXPLAIN` on both queries and fails if they stop range-scanning the
-`orders_status_created_at` index, so a change that would make them scan the whole orders
-table is caught in CI.
+`EXPLAIN` on every report query and fails if it stops reading a range of its index: the
+orders reports must range-scan `orders_status_created_at` (the heatmap without reading any
+order row), and the summary reports a range of the summary's primary key, which starts with
+the day. A change that would make a report read a whole table is caught in CI.
 
 Integrations read the same reports at `/api/v1/reports/…` with the `X-Api-Key` header instead
 of a session; one controller serves both, so the two cannot drift apart.

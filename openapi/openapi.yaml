@@ -46,10 +46,22 @@ paths:
     $ref: 'report.yaml#/paths/panelDailyRevenue'
   /api/v1/panel/reports/top-products:
     $ref: 'report.yaml#/paths/panelTopProducts'
+  /api/v1/panel/reports/stock-outlook:
+    $ref: 'report.yaml#/paths/panelStockOutlook'
+  /api/v1/panel/reports/order-heatmap:
+    $ref: 'report.yaml#/paths/panelOrderHeatmap'
+  /api/v1/panel/reports/monthly-revenue:
+    $ref: 'report.yaml#/paths/panelMonthlyRevenue'
   /api/v1/reports/daily-revenue:
     $ref: 'report.yaml#/paths/dailyRevenue'
   /api/v1/reports/top-products:
     $ref: 'report.yaml#/paths/topProducts'
+  /api/v1/reports/stock-outlook:
+    $ref: 'report.yaml#/paths/stockOutlook'
+  /api/v1/reports/order-heatmap:
+    $ref: 'report.yaml#/paths/orderHeatmap'
+  /api/v1/reports/monthly-revenue:
+    $ref: 'report.yaml#/paths/monthlyRevenue'
 components:
   securitySchemes:
     csrfToken:

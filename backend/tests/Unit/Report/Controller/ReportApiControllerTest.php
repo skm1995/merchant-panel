@@ -11,6 +11,7 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Report\ReportFixtures;
 
@@ -62,7 +63,7 @@ final class ReportApiControllerTest extends TestCase
     {
         return HttpHarness::json(
             new Request(HttpMethodEnum::GET->value, $path, ['from' => ReportFixtures::FROM, 'to' => ReportFixtures::TO], headers: $headers),
-            new ReportApiController(new ReportService($reports), HttpHarness::responder()),
+            new ReportApiController(new ReportService($reports, new FrozenClock()), HttpHarness::responder()),
         );
     }
 }

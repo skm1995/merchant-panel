@@ -26,6 +26,10 @@ final class PanelApiTest extends TestCase
     private const string ORDERS_PATH = '/api/v1/panel/orders';
     private const string TOP_PRODUCTS_PATH = '/api/v1/panel/reports/top-products';
     private const string DAILY_REVENUE_PATH = '/api/v1/panel/reports/daily-revenue';
+    private const string STOCK_OUTLOOK_PATH = '/api/v1/panel/reports/stock-outlook';
+    private const string ORDER_HEATMAP_PATH = '/api/v1/panel/reports/order-heatmap';
+    private const string MONTHLY_REVENUE_PATH = '/api/v1/panel/reports/monthly-revenue';
+    private const string HEATMAP_QUERY = '?from=2037-12-01&to=2037-12-07';
     private const string SESSION_PATH = '/api/v1/session';
     private const string REPORT_QUERY = '?from=2037-12-01&to=2037-12-07';
     private const string EMAIL_PREFIX = 'panel-api-';
@@ -66,6 +70,9 @@ final class PanelApiTest extends TestCase
     {
         $this->assertResponse(self::ORDERS_PATH, ResponseStatusEnum::UNAUTHORIZED, $this->client->get(self::ORDERS_PATH));
         $this->assertResponse(self::TOP_PRODUCTS_PATH, ResponseStatusEnum::UNAUTHORIZED, $this->client->get(self::TOP_PRODUCTS_PATH . self::REPORT_QUERY));
+        $this->assertResponse(self::STOCK_OUTLOOK_PATH, ResponseStatusEnum::UNAUTHORIZED, $this->client->get(self::STOCK_OUTLOOK_PATH));
+        $this->assertResponse(self::ORDER_HEATMAP_PATH, ResponseStatusEnum::UNAUTHORIZED, $this->client->get(self::ORDER_HEATMAP_PATH . self::HEATMAP_QUERY));
+        $this->assertResponse(self::MONTHLY_REVENUE_PATH, ResponseStatusEnum::UNAUTHORIZED, $this->client->get(self::MONTHLY_REVENUE_PATH));
     }
 
     public function testRefusesSignedInUsersWithoutMerchantAccess(): void
@@ -75,6 +82,9 @@ final class PanelApiTest extends TestCase
 
         $this->assertResponse(self::ORDERS_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::ORDERS_PATH));
         $this->assertResponse(self::TOP_PRODUCTS_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::TOP_PRODUCTS_PATH . self::REPORT_QUERY));
+        $this->assertResponse(self::STOCK_OUTLOOK_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::STOCK_OUTLOOK_PATH));
+        $this->assertResponse(self::ORDER_HEATMAP_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::ORDER_HEATMAP_PATH . self::HEATMAP_QUERY));
+        $this->assertResponse(self::MONTHLY_REVENUE_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::MONTHLY_REVENUE_PATH));
     }
 
     public function testPagesThroughOrdersNewestFirst(): void
@@ -98,6 +108,9 @@ final class PanelApiTest extends TestCase
 
         $revenue = $this->assertResponse(self::DAILY_REVENUE_PATH, ResponseStatusEnum::OK, $this->client->get(self::DAILY_REVENUE_PATH . self::REPORT_QUERY));
         $this->assertResponse(self::TOP_PRODUCTS_PATH, ResponseStatusEnum::OK, $this->client->get(self::TOP_PRODUCTS_PATH . self::REPORT_QUERY));
+        $this->assertResponse(self::STOCK_OUTLOOK_PATH, ResponseStatusEnum::OK, $this->client->get(self::STOCK_OUTLOOK_PATH));
+        $this->assertResponse(self::ORDER_HEATMAP_PATH, ResponseStatusEnum::OK, $this->client->get(self::ORDER_HEATMAP_PATH . self::HEATMAP_QUERY));
+        $this->assertResponse(self::MONTHLY_REVENUE_PATH, ResponseStatusEnum::OK, $this->client->get(self::MONTHLY_REVENUE_PATH));
 
         self::assertIsArray($revenue['days']);
         self::assertCount(3, $revenue['days']);

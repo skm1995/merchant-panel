@@ -27,21 +27,31 @@ final class ReportPeriodInput
 
     public static function parse(Request $request): ReportPeriod
     {
+        $currency = self::currency($request);
+
+        try {
+            return new ReportPeriod(
+                self::date($request, self::FROM_PARAMETER),
+                self::date($request, self::TO_PARAMETER),
+                $currency,
+            );
+        } catch (InvalidReportPeriodException $exception) {
+            throw new InvalidRequestException($exception->getMessage(), previous: $exception);
+        }
+    }
+
+    /**
+     * The currency query parameter, PLN when it is missing.
+     */
+    public static function currency(Request $request): Currency
+    {
         $currency = $request->query(self::CURRENCY_PARAMETER) ?? self::DEFAULT_CURRENCY;
 
         if (preg_match(self::CURRENCY_PATTERN, $currency) !== 1) {
             throw new InvalidRequestException(self::INVALID_CURRENCY_MESSAGE);
         }
 
-        try {
-            return new ReportPeriod(
-                self::date($request, self::FROM_PARAMETER),
-                self::date($request, self::TO_PARAMETER),
-                new Currency($currency),
-            );
-        } catch (InvalidReportPeriodException $exception) {
-            throw new InvalidRequestException($exception->getMessage(), previous: $exception);
-        }
+        return new Currency($currency);
     }
 
     private static function date(Request $request, string $parameter): DateTimeImmutable
