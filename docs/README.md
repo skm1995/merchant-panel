@@ -11,6 +11,8 @@ by path rather than copied, so every claim can be checked against the source.
    - [System](architecture/system.md): containers and how they communicate.
    - [Backend](architecture/backend.md): features, layers, dependency injection, HTTP, and
      messaging inside the PHP application.
+   - [CQRS](architecture/cqrs.md): the separate write and read paths of orders and payments,
+     and why the other features do without them.
    - [Frontend](architecture/frontend.md): the React panel, its session handling, and its
      typed API client.
    - [Request lifecycle](architecture/request-lifecycle.md): one request followed from the

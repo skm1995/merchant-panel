@@ -49,6 +49,7 @@ the session adapter in `Auth/Infrastructure` implements.
 `Order` and `Payment` split writes from reads (CQRS): `Command/` handlers change state through
 entities and repositories, while `Query/` handlers return read models that the API serializes
 directly, such as [`OrderView`](../../backend/src/Order/ReadModel/OrderView.php).
+[CQRS](cqrs.md) describes both paths and why the other features do without them.
 
 ## Dependency injection
 

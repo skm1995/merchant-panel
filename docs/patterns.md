@@ -105,6 +105,7 @@ CRUD (catalog, carts, authentication) on plain application services.
 - Reads: a `Query/` object handled by a `*Handler` that reads a `ReadModel/` view straight
   from SQL through a read repository, without entities.
 - One shared database; no event sourcing and no separate read store.
+- [CQRS](architecture/cqrs.md) shows both paths with the existing handlers.
 
 ## Concurrency and transactions
 
