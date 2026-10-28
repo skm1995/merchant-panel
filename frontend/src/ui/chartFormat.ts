@@ -1,14 +1,27 @@
 const LOCALE = 'en-US';
 
 /**
- * Formats axis values in whole units of the currency, such as "PLN 1,235": an axis needs the
- * magnitude, while tables and tooltips of the reports show exact amounts.
+ * Formats values in whole units of the currency, such as "PLN 1,235", for tooltips; the
+ * reports' tables show the exact amounts.
  */
 export function formatWholeAmount(currency: string): (value: number) => string {
   const format = new Intl.NumberFormat(LOCALE, {
     style: 'currency',
     currency,
     maximumFractionDigits: 0,
+  });
+
+  return (value) => format.format(value);
+}
+
+/**
+ * Formats axis values compactly, such as "PLN 140M", so long amounts fit beside the chart.
+ */
+export function formatCompactAmount(currency: string): (value: number) => string {
+  const format = new Intl.NumberFormat(LOCALE, {
+    style: 'currency',
+    currency,
+    notation: 'compact',
   });
 
   return (value) => format.format(value);

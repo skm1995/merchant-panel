@@ -4,7 +4,7 @@ import { problemMessage } from '../api/problem';
 import type { components } from '../api/schema';
 import { Alert } from '../ui/Alert';
 import { BarChart } from '../ui/BarChart';
-import { formatDays, formatWholeAmount } from '../ui/chartFormat';
+import { formatCompactAmount, formatDays, formatWholeAmount } from '../ui/chartFormat';
 import { ChartPanel } from '../ui/ChartPanel';
 import { DataTable, type Column } from '../ui/DataTable';
 import { Heatmap, type HeatmapCell } from '../ui/Heatmap';
@@ -170,6 +170,7 @@ export function AnalyticsPage() {
                 { key: 'previous', name: 'A year before' },
               ]}
               format={formatWholeAmount(reports.monthly.currency)}
+              formatAxis={formatCompactAmount(reports.monthly.currency)}
             />
           </ChartPanel>
         </div>

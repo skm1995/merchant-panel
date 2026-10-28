@@ -1,4 +1,5 @@
 import {
+  LabelList,
   Bar,
   BarChart as RechartsBarChart,
   CartesianGrid,
@@ -16,8 +17,10 @@ export interface BarDatum {
 
 interface BarChartProps {
   data: BarDatum[];
-  /** Formats values for the axis and the tooltip. */
+  /** Formats values in the tooltip and next to the bars. */
   format: (value: number) => string;
+  /** Formats the value axis; defaults to format. */
+  formatAxis?: (value: number) => string;
   /** Horizontal bars suit long category names, such as products. */
   horizontal?: boolean;
 }
@@ -30,7 +33,7 @@ const ROUNDED_END = 4;
  * One series of bars in the first chart color, with a recessive grid and a tooltip. The
  * drawing is hidden from assistive technology; ChartPanel offers the numbers as a table.
  */
-export function BarChart({ data, format, horizontal = false }: BarChartProps) {
+export function BarChart({ data, format, formatAxis = format, horizontal = false }: BarChartProps) {
   const height = horizontal ? Math.max(HEIGHT / 2, data.length * ROW_HEIGHT + 40) : HEIGHT;
 
   return (
@@ -48,13 +51,13 @@ export function BarChart({ data, format, horizontal = false }: BarChartProps) {
           />
           {horizontal ? (
             <>
-              <XAxis type="number" tickFormatter={format} stroke="var(--color-muted)" />
+              <XAxis type="number" tickFormatter={formatAxis} stroke="var(--color-muted)" />
               <YAxis type="category" dataKey="label" width={160} stroke="var(--color-muted)" />
             </>
           ) : (
             <>
               <XAxis dataKey="label" stroke="var(--color-muted)" />
-              <YAxis tickFormatter={format} width={88} stroke="var(--color-muted)" />
+              <YAxis tickFormatter={formatAxis} width={88} stroke="var(--color-muted)" />
             </>
           )}
           <Tooltip formatter={tooltipValue(format)} cursor={{ fill: 'var(--chart-grid)' }} />
@@ -65,7 +68,16 @@ export function BarChart({ data, format, horizontal = false }: BarChartProps) {
               horizontal ? [0, ROUNDED_END, ROUNDED_END, 0] : [ROUNDED_END, ROUNDED_END, 0, 0]
             }
             isAnimationActive={false}
-          />
+          >
+            {horizontal && (
+              <LabelList
+                dataKey="value"
+                position="right"
+                formatter={tooltipValue(format)}
+                fill="var(--color-text)"
+              />
+            )}
+          </Bar>
         </RechartsBarChart>
       </ResponsiveContainer>
     </div>

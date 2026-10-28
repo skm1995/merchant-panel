@@ -5,7 +5,7 @@ import type { components } from '../api/schema';
 import { Alert } from '../ui/Alert';
 import { BarChart } from '../ui/BarChart';
 import { Button } from '../ui/Button';
-import { formatWholeAmount } from '../ui/chartFormat';
+import { formatCompactAmount, formatWholeAmount } from '../ui/chartFormat';
 import { ChartPanel } from '../ui/ChartPanel';
 import { DataTable, type Column } from '../ui/DataTable';
 import { LineChart } from '../ui/LineChart';
@@ -101,6 +101,7 @@ export function ReportsPage() {
                 value: toChartValue(day.revenue),
               }))}
               format={formatWholeAmount(reports.revenue.currency)}
+              formatAxis={formatCompactAmount(reports.revenue.currency)}
             />
           </ChartPanel>
           <ChartPanel
@@ -122,6 +123,7 @@ export function ReportsPage() {
               }))}
               series={[{ key: 'total', name: 'Running total' }]}
               format={formatWholeAmount(reports.revenue.currency)}
+              formatAxis={formatCompactAmount(reports.revenue.currency)}
             />
           </ChartPanel>
           <ChartPanel
@@ -143,6 +145,7 @@ export function ReportsPage() {
                 value: toChartValue(product.revenue),
               }))}
               format={formatWholeAmount(reports.products.currency)}
+              formatAxis={formatCompactAmount(reports.products.currency)}
             />
           </ChartPanel>
         </>

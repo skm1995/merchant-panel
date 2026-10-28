@@ -20,6 +20,8 @@ interface LineChartProps {
   data: Record<string, string | number>[];
   series: LineSeries[];
   format: (value: number) => string;
+  /** Formats the value axis; defaults to format. */
+  formatAxis?: (value: number) => string;
 }
 
 const HEIGHT = 280;
@@ -31,7 +33,7 @@ const SERIES_COLORS = [FIRST_COLOR, 'var(--chart-series-2)'];
  * there is more than one and a tooltip for every point. The drawing is hidden from
  * assistive technology; ChartPanel offers the numbers as a table.
  */
-export function LineChart({ data, series, format }: LineChartProps) {
+export function LineChart({ data, series, format, formatAxis = format }: LineChartProps) {
   return (
     <div aria-hidden="true">
       <ResponsiveContainer
@@ -42,7 +44,7 @@ export function LineChart({ data, series, format }: LineChartProps) {
         <RechartsLineChart data={data} margin={{ left: 8, right: 16 }}>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis dataKey="label" stroke="var(--color-muted)" />
-          <YAxis tickFormatter={format} width={88} stroke="var(--color-muted)" />
+          <YAxis tickFormatter={formatAxis} width={88} stroke="var(--color-muted)" />
           <Tooltip formatter={tooltipValue(format)} />
           {series.length > 1 && <Legend />}
           {series.map((line, index) => {
