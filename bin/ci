@@ -17,19 +17,46 @@ docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0 git /repo --config 
 "${run[@]}" composer install --no-interaction --no-progress
 "${node[@]}" npm ci
 "${node[@]}" npm run build
+# Coverage of every suite, including requests the test web server handles, is merged at the end.
+"${run[@]}" composer coverage-prepare
 "${compose[@]}" up --detach --wait
-"${run[@]}" composer validate --no-check-publish
-"${run[@]}" composer openapi-validate
-"${run[@]}" composer test-unit
-"${run[@]}" composer test-functional
-"${run[@]}" composer analyse
-"${run[@]}" composer deptrac
-"${run[@]}" composer cs-check
+backend_checks() {
+    "${run[@]}" composer validate --no-check-publish
+    "${run[@]}" composer openapi-validate
+    "${run[@]}" composer coverage-unit
+    "${run[@]}" composer coverage-functional
+    "${run[@]}" composer analyse
+    "${run[@]}" composer deptrac
+    "${run[@]}" composer cs-check
+}
 
-"${node[@]}" npm run api:check
-"${node[@]}" npm run typecheck
-"${node[@]}" npm run lint
-"${node[@]}" npm run format:check
-"${node[@]}" npm test
+frontend_checks() {
+    "${node[@]}" npm run api:check
+    "${node[@]}" npm run typecheck
+    "${node[@]}" npm run lint
+    "${node[@]}" npm run format:check
+    "${node[@]}" npm run test:coverage
+}
+
+# The two sides do not depend on each other, so their checks run at the same time; each
+# writes its own log, printed whole once both are done.
+logs=$(mktemp -d)
+trap 'rm -rf "${logs}"' EXIT
+backend_checks > "${logs}/backend.log" 2>&1 &
+backend=$!
+frontend_checks > "${logs}/frontend.log" 2>&1 &
+frontend=$!
+failed=0
+wait "${backend}" || failed=1
+cat "${logs}/backend.log"
+wait "${frontend}" || failed=1
+cat "${logs}/frontend.log"
+if (( failed )); then
+    echo "Backend or frontend checks failed; see the logs above." >&2
+    exit 1
+fi
+
 "${run[@]}" php tests/Fixture/reset-demo-merchant.php
 docker compose --profile tools run --rm --no-deps e2e npx playwright test
+"${run[@]}" composer coverage-report
+"${run[@]}" composer coverage-check

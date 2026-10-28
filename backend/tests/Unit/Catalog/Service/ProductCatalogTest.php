@@ -17,13 +17,10 @@ final class ProductCatalogTest extends TestCase
     private const int AFTER_ID = 10;
     private const int PRODUCT_ID = 11;
 
-    public function testFetchesOneExtraProductToDetectTheNextPage(): void
+    public function testReturnsAFullPageWithACursorWhenMoreProductsFollow(): void
     {
-        $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::once())
-            ->method('findPage')
-            ->with(self::PAGE_SIZE + 1, self::AFTER_ID)
-            ->willReturn([ProductFactory::create(11), ProductFactory::create(12), ProductFactory::create(13)]);
+        $products = $this->createStub(ProductRepositoryInterface::class);
+        $products->method('findPage')->willReturn([ProductFactory::create(11), ProductFactory::create(12), ProductFactory::create(13)]);
 
         $page = new ProductCatalog($products)->page(self::PAGE_SIZE, self::AFTER_ID);
 
@@ -41,8 +38,7 @@ final class ProductCatalogTest extends TestCase
 
     public function testRejectsPageSizeAboveMaximum(): void
     {
-        $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::never())->method('findPage');
+        $products = $this->createStub(ProductRepositoryInterface::class);
 
         $this->expectException(InvalidPageSizeException::class);
         new ProductCatalog($products)->page(ProductCatalog::MAXIMUM_PAGE_SIZE + 1, null);

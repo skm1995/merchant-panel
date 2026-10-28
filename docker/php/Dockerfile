@@ -18,17 +18,19 @@ COPY docker/php/hardening.ini /usr/local/etc/php/conf.d/90-hardening.ini
 
 WORKDIR /app/backend
 
-# Development and tests: the repository is mounted at /app, and Xdebug is available.
+# Development and tests: the repository is mounted at /app. Xdebug is available for
+# debugging, and PCOV measures test coverage, much faster than Xdebug can.
 FROM base AS dev
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends $PHPIZE_DEPS \
-    && pecl install xdebug \
-    && docker-php-ext-enable xdebug \
+    && pecl install xdebug pcov \
+    && docker-php-ext-enable xdebug pcov \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/99-xdebug.ini
+COPY docker/php/pcov.ini /usr/local/etc/php/conf.d/99-pcov.ini
 
 # Production: the backend code and its runtime dependencies are part of the image.
 FROM base AS prod

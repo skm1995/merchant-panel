@@ -143,6 +143,9 @@ services:
       ORDER_RESERVATION_SECONDS: 3
       XDEBUG_MODE: "off"
       SESSION_COOKIE_SECURE: "false"
+      # Adds docker/php/coverage/coverage.ini to the image's configuration, so every request
+      # records its coverage while bin/ci collects it.
+      PHP_INI_SCAN_DIR: ":/app/docker/php/coverage"
     depends_on:
       migrate-test:
         condition: service_completed_successfully

@@ -13,6 +13,7 @@ use App\Shared\Http\Session;
 use DateTimeImmutable;
 use DomainException;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\CheapPasswordHash;
 
 final class LoginUserServiceTest extends TestCase
 {
@@ -59,7 +60,7 @@ final class LoginUserServiceTest extends TestCase
     {
         $user = new User(
             self::EMAIL,
-            password_hash(self::PASSWORD, PASSWORD_DEFAULT),
+            CheapPasswordHash::of(self::PASSWORD),
             new DateTimeImmutable(),
             new DateTimeImmutable(),
         );

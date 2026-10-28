@@ -19,6 +19,20 @@ jobs:
       - name: Show service logs
         if: failure()
         run: docker compose --profile test logs --no-color
+      - name: Summarize coverage
+        if: always()
+        run: |
+          cat build/coverage/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+          jq -r '"Frontend line coverage: \(.total.lines.pct)%."' frontend/coverage/coverage-summary.json >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Keep coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            build/coverage/html
+            frontend/coverage
+          if-no-files-found: ignore
       - name: Stop services
         if: always()
         run: docker compose --profile test down --volumes

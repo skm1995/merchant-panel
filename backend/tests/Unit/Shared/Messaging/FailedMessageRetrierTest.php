@@ -28,7 +28,7 @@ final class FailedMessageRetrierTest extends TestCase
             new SentToFailureTransportStamp('emails'),
         ]);
         $failedTransport = $this->createMock(TransportInterface::class);
-        $failedTransport->expects(self::exactly(2))->method('get')->willReturnOnConsecutiveCalls([$envelope], []);
+        $failedTransport->method('get')->willReturnOnConsecutiveCalls([$envelope], []);
         $failedTransport->expects(self::once())->method('ack')->with($envelope);
         $bus = $this->createMock(MessageBusInterface::class);
         $bus->expects(self::once())->method('dispatch')->with(
@@ -51,8 +51,7 @@ final class FailedMessageRetrierTest extends TestCase
         $first = new Envelope(new ConfirmationEmailMessage(self::EMAIL, self::TOKEN));
         $second = new Envelope(new ConfirmationEmailMessage(self::SECOND_EMAIL, self::TOKEN));
         $failedTransport = $this->createMock(TransportInterface::class);
-        $failedTransport->expects(self::exactly(3))
-            ->method('get')
+        $failedTransport->method('get')
             ->willReturnOnConsecutiveCalls([$first], [$second], []);
         $failedTransport->expects(self::exactly(2))->method('ack');
         $bus = $this->createMock(MessageBusInterface::class);
@@ -70,8 +69,7 @@ final class FailedMessageRetrierTest extends TestCase
         $undecodable = new Envelope(new MessageDecodingFailedException(self::DECODING_FAILURE));
         $decodable = new Envelope(new ConfirmationEmailMessage(self::EMAIL, self::TOKEN));
         $failedTransport = $this->createMock(TransportInterface::class);
-        $failedTransport->expects(self::exactly(3))
-            ->method('get')
+        $failedTransport->method('get')
             ->willReturnOnConsecutiveCalls([$undecodable], [$decodable], []);
         $failedTransport->expects(self::once())->method('ack')->with($decodable);
         $failedTransport->expects(self::never())->method('reject');
@@ -91,7 +89,7 @@ final class FailedMessageRetrierTest extends TestCase
     {
         $envelope = new Envelope(new ConfirmationEmailMessage(self::EMAIL, self::TOKEN));
         $failedTransport = $this->createMock(TransportInterface::class);
-        $failedTransport->expects(self::once())->method('get')->willReturn([$envelope]);
+        $failedTransport->method('get')->willReturn([$envelope]);
         $failedTransport->expects(self::never())->method('ack');
         $bus = $this->createMock(MessageBusInterface::class);
         $bus->expects(self::once())->method('dispatch')->willThrowException(new \RuntimeException('Broker unavailable.'));

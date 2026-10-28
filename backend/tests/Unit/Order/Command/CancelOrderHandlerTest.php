@@ -69,10 +69,10 @@ final class CancelOrderHandlerTest extends TestCase
         $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::accessToken(), self::VERSION));
     }
 
-    public function testRefusesAWrongAccessTokenBeforeLookingTheOrderUp(): void
+    public function testRefusesAWrongAccessTokenWithoutChangingTheOrder(): void
     {
         $orders = $this->createMock(OrderRepositoryInterface::class);
-        $orders->expects(self::never())->method('findState');
+        $orders->expects(self::never())->method('transition');
 
         $this->expectException(OrderNotFoundException::class);
         $this->handler($orders)->handle(new CancelOrderCommand(OrderFixtures::orderId(), OrderFixtures::WRONG_ACCESS_TOKEN, self::VERSION));

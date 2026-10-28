@@ -4,7 +4,10 @@ A pure PHP JSON API without a framework or ORM. The root `AGENTS.md` applies as 
 
 ## Testing
 
-- Give each production class its own `<ClassName>Test` in the mirrored namespace under `tests/Unit/`. Unit tests build classes directly with test doubles; test controllers through `Tests\Unit\Support\HttpHarness`, which dispatches through the real router.
+- Unit tests cover logic with many cases, where each case is cheap: calculations, domain rules, state transitions, input parsing and validation, and the reaction to a failing dependency such as the broker. Put them in the mirrored namespace under `tests/Unit/`. A class that only passes calls on, maps data, or wires collaborators needs no unit test of its own.
+- Functional tests cover how the parts work together: the main path and the security and failure paths of every endpoint, every SQL query against the real database, concurrency, and messaging through the broker and worker. Leave combinations of edge cases to unit tests.
+- Controllers are covered by functional tests. Use `Tests\Unit\Support\HttpHarness`, which dispatches through the real router, only for cross-cutting HTTP behavior such as middleware, access attributes, and error mapping.
+- Assert what the code returns or what it leaves behind, not the calls it makes. Replace only boundaries the test does not control (the clock, payment gateways, the mailer, the broker) and prefer small fakes such as `FrozenClock` over mocks with call expectations; expect a call only when that call is the effect being tested, such as a message recorded in the outbox.
 - Keep unit and functional suites separate. Functional tests run against dedicated test infrastructure (database, broker queues, worker), apply migrations, clean up their data, and use unique test data.
 - Exercise HTTP in functional tests through Caddy and the web server with an HTTP client: `ApiClient` for sessionless routes and `SessionApiClient` for session routes, which keeps the cookie and sends the CSRF header. Never include the front controller or overwrite superglobals. Test repositories against the real test database instead of mocking PDO. Browser flows are covered by the Playwright tests in `frontend/e2e/`.
 - Functional tests validate every real API response, including problem details, against `../openapi/`.

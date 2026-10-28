@@ -44,5 +44,5 @@ with their consequences. Items that are planned to change link to the
 | The rate limiter connects to Redis on every request | A small cost for routes without a limit | [Performance](roadmap.md#performance) |
 | The route table is compiled again for every request | Reflection on every request | [Performance](roadmap.md#performance) |
 | A vanished Redis container makes Docker's DNS slow | Requests wait several seconds until Redis returns | Restart policy brings it back; accepted |
-| Few end-to-end tests, no coverage threshold or mutation testing | Most behavior is tested below the browser | [Test depth](roadmap.md#test-depth) |
+| Few end-to-end tests, no mutation testing | Most behavior is tested below the browser | [Test depth](roadmap.md#test-depth) |
 | Frontend pages fetch data individually | No shared cache or retry policy | Fine at the panel's size |

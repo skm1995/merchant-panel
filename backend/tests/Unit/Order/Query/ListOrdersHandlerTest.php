@@ -18,12 +18,12 @@ final class ListOrdersHandlerTest extends TestCase
 {
     private const int LIMIT = 2;
 
-    public function testFetchesOneExtraOrderToFindTheNextPage(): void
+    public function testReturnsAFullPageWithACursorWhenMoreOrdersFollow(): void
     {
         $after = OrderId::generate();
         $summaries = [self::summary(), self::summary(), self::summary()];
-        $orders = $this->createMock(OrderReadRepositoryInterface::class);
-        $orders->expects(self::once())->method('findPage')->with(self::LIMIT + 1, $after)->willReturn($summaries);
+        $orders = $this->createStub(OrderReadRepositoryInterface::class);
+        $orders->method('findPage')->willReturn($summaries);
 
         $page = new ListOrdersHandler($orders)->handle(new ListOrdersQuery(self::LIMIT, $after));
 

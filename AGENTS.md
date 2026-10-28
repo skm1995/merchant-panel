@@ -10,7 +10,8 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 
 ## Workflow
 
-- Follow TDD on both sides: write a failing test, make the smallest change that passes it, then refactor with the tests green. Test behavior, including failure paths, not implementation details or declarations.
+- Follow TDD on both sides, outside in: start a feature with a failing functional test of its behavior from the outside (an API call, a user action), then drop to unit tests where the code has logic with many cases. Make the smallest change that passes, then refactor with the tests green.
+- Test behavior, including failure paths, not implementation details or declarations: assert results and state, not which methods were called. A test should survive a refactoring that keeps the behavior.
 - Test security and recovery paths explicitly: GET without side effects, rejected CSRF tokens, and behavior when infrastructure such as the broker fails.
 - Balance DRY and KISS: give each piece of knowledge one owner, but avoid generic frameworks and indirection that obscure a simple flow.
 - Keep `docs/` true to the code in the same commit that changes it: update the architecture, flow, or operations page a change affects, record a new or reversed decision as an ADR in `docs/decisions/`, and move items between the known limitations and the roadmap when a change removes or adds one. Link code by path rather than copying it, so pages stay short and do not drift.
@@ -28,4 +29,5 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 
 - Every push to `master` that passes CI deploys through `bin/deploy`; keep the server reproducible from `docker/server/provision.sh` and GitHub secrets, never from manual changes on it.
 - `bin/ci` scans the history for secrets with gitleaks, then verifies both sides against the Compose stack, identically locally and on GitHub; keep service configuration out of the workflow file. Run it without a local `.env` override and push only when it passes.
+- `bin/ci` fails when the merged coverage of all suites drops below its minimum (`backend/tools/check-coverage.php`, `frontend/vite.config.ts`). Raise a minimum when coverage grows; never lower one to let a change pass.
 - Commit messages follow scoped Conventional Commits: `<type>(<scope>): <description>` with a lowercase scope.

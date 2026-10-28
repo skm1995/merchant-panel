@@ -21,6 +21,7 @@ use App\Shared\Http\Session;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\CheapPasswordHash;
 use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Support\ImmediateTransactionRunner;
@@ -56,14 +57,6 @@ final class AuthApiControllerTest extends TestCase
         http_response_code(ResponseStatusEnum::OK->value);
     }
 
-    public function testDescribesAnAnonymousSessionWithItsCsrfToken(): void
-    {
-        $body = HttpHarness::json(new Request(HttpMethodEnum::GET->value, self::SESSION_PATH), $this->controller(null));
-
-        self::assertFalse($body['authenticated']);
-        self::assertNull($body['email']);
-        self::assertSame($this->csrfToken->get(), $body['csrf_token']);
-    }
 
     public function testRejectsSignInWithoutTheCsrfHeader(): void
     {
@@ -73,21 +66,6 @@ final class AuthApiControllerTest extends TestCase
         self::assertNull(new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->email());
     }
 
-    public function testSignsInAVerifiedUserWithANewCsrfToken(): void
-    {
-        $request = $this->unsafe(HttpMethodEnum::POST, self::SESSION_PATH, self::CREDENTIALS);
-        $anonymousToken = $this->csrfToken->get();
-
-        $body = HttpHarness::json($request, $this->controller(self::verifiedUser()));
-
-        self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
-        self::assertTrue($body['authenticated']);
-        self::assertSame(self::EMAIL, $body['email']);
-        self::assertFalse($body['merchant'], 'Signing up gives no merchant access.');
-        self::assertSame(self::EMAIL, new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->email());
-        self::assertNotSame($anonymousToken, $body['csrf_token']);
-        self::assertSame($this->csrfToken->get(), $body['csrf_token']);
-    }
 
     public function testRejectsWrongCredentialsAndUnverifiedUsers(): void
     {
@@ -98,16 +76,6 @@ final class AuthApiControllerTest extends TestCase
         self::assertSame(ResponseStatusEnum::FORBIDDEN->value, http_response_code());
     }
 
-    public function testSignsOut(): void
-    {
-        new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->signIn(self::verifiedUser());
-
-        $output = HttpHarness::dispatch($this->unsafe(HttpMethodEnum::DELETE, self::SESSION_PATH), $this->controller(self::verifiedUser()));
-
-        self::assertSame(ResponseStatusEnum::NO_CONTENT->value, http_response_code());
-        self::assertSame(0, strlen((string) $output));
-        self::assertNull(new CurrentUser($this->session, $this->createStub(UserRepositoryInterface::class))->email());
-    }
 
     public function testAcceptsARegistrationAndRejectsInvalidOnes(): void
     {
@@ -143,12 +111,12 @@ final class AuthApiControllerTest extends TestCase
 
     private static function verifiedUser(): User
     {
-        return new User(self::EMAIL, password_hash(self::PASSWORD, PASSWORD_DEFAULT), new DateTimeImmutable(), new DateTimeImmutable());
+        return new User(self::EMAIL, CheapPasswordHash::of(self::PASSWORD), new DateTimeImmutable(), new DateTimeImmutable());
     }
 
     private static function unverifiedUser(): User
     {
-        return new User(self::EMAIL, password_hash(self::PASSWORD, PASSWORD_DEFAULT), new DateTimeImmutable());
+        return new User(self::EMAIL, CheapPasswordHash::of(self::PASSWORD), new DateTimeImmutable());
     }
 
     private function controller(?User $existingUser): AuthApiController

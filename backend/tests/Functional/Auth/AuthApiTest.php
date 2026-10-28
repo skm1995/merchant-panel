@@ -60,6 +60,7 @@ final class AuthApiTest extends TestCase
     public function testSignsAVerifiedUserInAndOut(): void
     {
         TestUserData::createVerified($this->pdo, $this->email, self::PASSWORD);
+        $anonymous = ApiClient::json($this->client->get(self::SESSION_PATH));
 
         $signedIn = $this->assertResponse(HttpMethodEnum::POST, self::SESSION_PATH, ResponseStatusEnum::OK, $this->client->send(HttpMethodEnum::POST, self::SESSION_PATH, $this->credentials()));
         $current = ApiClient::json($this->client->get(self::SESSION_PATH));
@@ -67,6 +68,8 @@ final class AuthApiTest extends TestCase
         $afterSignOut = ApiClient::json($this->client->get(self::SESSION_PATH));
 
         self::assertSame($this->email, $signedIn['email']);
+        self::assertFalse($signedIn['merchant'], 'Signing up gives no merchant access.');
+        self::assertNotSame($anonymous['csrf_token'], $signedIn['csrf_token'], 'Signing in rotates the CSRF token.');
         self::assertTrue($current['authenticated']);
         self::assertFalse($afterSignOut['authenticated']);
     }

@@ -21,8 +21,6 @@ use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class CartApiControllerTest extends TestCase
 {
-    private const string CARTS_PATH = '/api/v1/carts';
-    private const string CART_PATH = '/api/v1/carts/' . CartFixtures::CART_ID;
     private const string ITEM_PATH = '/api/v1/carts/' . CartFixtures::CART_ID . '/items/5';
     private const string QUANTITY_BODY = '{"quantity":2}';
     private const string TOO_LARGE_QUANTITY_BODY = '{"quantity":1000}';
@@ -32,26 +30,7 @@ final class CartApiControllerTest extends TestCase
         http_response_code(ResponseStatusEnum::OK->value);
     }
 
-    public function testCreatesCart(): void
-    {
-        $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::once())->method('add');
 
-        $body = $this->dispatch(new Request(HttpMethodEnum::POST->value, self::CARTS_PATH), $carts);
-
-        self::assertSame(ResponseStatusEnum::CREATED->value, http_response_code());
-        self::assertSame(CartStatusEnum::OPEN->value, $body['status']);
-    }
-
-    public function testShowsCart(): void
-    {
-        $carts = $this->createStub(CartRepositoryInterface::class);
-        $carts->method('find')->willReturn(CartFixtures::cart());
-
-        $body = $this->dispatch(new Request(HttpMethodEnum::GET->value, self::CART_PATH), $carts);
-
-        self::assertSame(CartFixtures::CART_ID, $body['id']);
-    }
 
     public function testCheckedOutCartRejectsChangesWithConflict(): void
     {

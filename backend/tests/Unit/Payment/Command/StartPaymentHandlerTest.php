@@ -89,7 +89,7 @@ final class StartPaymentHandlerTest extends TestCase
     public function testRefusesAWrongOrderAccessTokenEvenForARepeatedKey(): void
     {
         $payments = $this->createMock(PaymentRepositoryInterface::class);
-        $payments->expects(self::never())->method('findStart');
+        $payments->expects(self::never())->method('add');
         $gateway = $this->createMock(PaymentGatewayInterface::class);
         $gateway->expects(self::never())->method('createPayment');
 

@@ -60,7 +60,9 @@ mails a summary when there are any.
 **Sketch:** build the PHP and Caddy images for ARM in GitHub Actions, push them to the GitHub
 Container Registry tagged with the commit, and let `bin/deploy` pull a tag instead of
 building. Rolling back becomes deploying the previous tag, and a staging stack on the same
-server can run the next tag before it reaches the demo.
+server can run the next tag before it reaches the demo. The same registry would let `bin/ci`
+on GitHub reuse the test images instead of building them on every run, which takes about
+half of its four minutes now; `docker compose build` cannot use the Actions cache directly.
 
 ## Dependency scanning
 
@@ -109,5 +111,5 @@ compiled route table next to the service discovery cache.
 ## Test depth
 
 **Sketch:** more end-to-end journeys (checkout and payment through the API in the browser
-tests), a coverage report in CI without a hard threshold, and mutation testing with Infection
-on the domain and application layers.
+tests), and mutation testing with Infection on the domain and application layers, which
+shows whether covered code is also checked by an assertion.

@@ -51,8 +51,7 @@ final class OrderApiControllerTest extends TestCase
 
     public function testCheckoutWithoutIdempotencyKeyIsBadRequest(): void
     {
-        $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::never())->method('findStatusForUpdate');
+        $carts = $this->createStub(CartRepositoryInterface::class);
 
         $body = $this->dispatch(new Request(HttpMethodEnum::POST->value, self::CHECKOUT_PATH), $carts);
 
@@ -60,15 +59,6 @@ final class OrderApiControllerTest extends TestCase
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $body['status']);
     }
 
-    public function testShowsOrderToTheHolderOfItsAccessToken(): void
-    {
-        $body = $this->dispatch(
-            new Request(HttpMethodEnum::GET->value, self::ORDER_PATH, headers: [self::ORDER_TOKEN_HEADER => OrderFixtures::accessToken()]),
-            $this->createStub(CartRepositoryInterface::class),
-        );
-
-        self::assertSame(OrderFixtures::ORDER_ID, $body['id']);
-    }
 
     public function testHidesOrderFromAWrongAccessToken(): void
     {

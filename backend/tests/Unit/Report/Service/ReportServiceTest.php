@@ -19,8 +19,8 @@ final class ReportServiceTest extends TestCase
     public function testAddsUpTheRevenueOfEachDayIntoARunningTotal(): void
     {
         $period = ReportFixtures::period();
-        $reports = $this->createMock(ReportReadRepositoryInterface::class);
-        $reports->expects(self::once())->method('dailySales')->with($period)->willReturn([
+        $reports = $this->createStub(ReportReadRepositoryInterface::class);
+        $reports->method('dailySales')->willReturn([
             ReportFixtures::sales('2026-10-01', 2, 6000),
             ReportFixtures::sales('2026-10-03', 1, 2000),
             ReportFixtures::sales('2026-10-04', 4, 500),
@@ -44,8 +44,8 @@ final class ReportServiceTest extends TestCase
     public function testRanksTheBestSellingProductsInTheOrderTheyCome(): void
     {
         $period = ReportFixtures::period();
-        $reports = $this->createMock(ReportReadRepositoryInterface::class);
-        $reports->expects(self::once())->method('bestSellingProducts')->with($period, self::LIMIT)->willReturn([
+        $reports = $this->createStub(ReportReadRepositoryInterface::class);
+        $reports->method('bestSellingProducts')->willReturn([
             ReportFixtures::productSales(4, 2, 3000),
             ReportFixtures::productSales(9, 1, 3000),
             ReportFixtures::productSales(2, 1, 2000),

@@ -11,21 +11,28 @@ server automatically.
    on purpose.
 2. **Build:** the images, Composer and npm dependencies, and the production build of the
    panel; then the test stack starts and waits until every service is healthy.
-3. **Backend:** `composer validate`, OpenAPI validation, unit tests, functional tests,
-   PHPStan, Deptrac, and the code style check.
-4. **Frontend:** the generated API types are up to date, `tsc`, ESLint, Prettier, and the
-   Vitest suite.
-5. **End to end:** the demo merchant is recreated in the test database, and Playwright runs.
+3. **Backend and frontend at the same time**, each writing its own log that is printed when
+   both are done:
+   - backend: `composer validate`, OpenAPI validation, unit and functional tests with
+     coverage, PHPStan, Deptrac, and the code style check;
+   - frontend: the generated API types are up to date, `tsc`, ESLint, Prettier, and the Vitest
+     suite with its coverage minimums.
+4. **End to end:** the demo merchant is recreated in the test database, and Playwright runs.
+5. **Coverage:** the coverage of all backend suites, including the requests of the
+   functional and end-to-end tests, is merged and checked against its minimum
+   ([Testing](testing.md#coverage)).
 
-Run it before every push; it takes a few minutes.
+Run it before every push; it takes a little over a minute when the images are built, and
+about four minutes on GitHub, where most of the time goes to building them.
 
 ## GitHub Actions
 
 [`.github/workflows/ci.yaml`](../../.github/workflows/ci.yaml) has two jobs and no service
 configuration of its own:
 
-- `quality` runs `bin/ci` on every push and pull request, and prints the service logs when it
-  fails;
+- `quality` runs `bin/ci` on every push and pull request, prints the service logs when it
+  fails, adds the coverage to the run's summary, and keeps the coverage reports as an
+  artifact;
 - `deploy` runs after `quality` succeeds, only for pushes to `master`, one at a time, and calls
   [`bin/deploy`](../../bin/deploy) with the secrets and variables below.
 

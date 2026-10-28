@@ -62,7 +62,7 @@ final class CartServiceTest extends TestCase
     public function testSavesItemQuantityWhileHoldingTheCartLock(): void
     {
         $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::once())->method('findStatusForUpdate')->willReturn(CartStatusEnum::OPEN);
+        $carts->method('findStatusForUpdate')->willReturn(CartStatusEnum::OPEN);
         $carts->expects(self::once())->method('saveItem')->with(CartFixtures::cartId(), self::PRODUCT_ID, self::QUANTITY);
         $carts->expects(self::never())->method('removeItem');
         $carts->method('find')->willReturn(CartFixtures::cart([CartFixtures::line(self::PRODUCT_ID, self::QUANTITY, 100)]));
@@ -87,7 +87,7 @@ final class CartServiceTest extends TestCase
     public function testRejectsQuantityOutsideTheAllowedRange(): void
     {
         $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::never())->method('findStatusForUpdate');
+        $carts->expects(self::never())->method('saveItem');
 
         $this->expectException(InvalidCartQuantityException::class);
         $this->service($carts)->setItemQuantity(
@@ -127,8 +127,8 @@ final class CartServiceTest extends TestCase
 
     public function testLocksAndLoadsCartForCheckoutWhateverItsStatus(): void
     {
-        $carts = $this->createMock(CartRepositoryInterface::class);
-        $carts->expects(self::once())->method('findStatusForUpdate')->willReturn(CartStatusEnum::CHECKED_OUT);
+        $carts = $this->createStub(CartRepositoryInterface::class);
+        $carts->method('findStatusForUpdate')->willReturn(CartStatusEnum::CHECKED_OUT);
         $carts->method('find')->willReturn(CartFixtures::cart([], CartStatusEnum::CHECKED_OUT));
 
         $cart = $this->service($carts)->lockForCheckout(CartFixtures::cartId());

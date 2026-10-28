@@ -19,8 +19,10 @@ final class RedisCacheStoreTest extends TestCase
     private const string FOREIGN_TOKEN = 'someone-else';
     private const int TTL = 30;
     private const int LOCK_TTL = 5000;
-    private const string UNREACHABLE_HOST = 'redis-that-does-not-exist';
-    private const string UNREACHABLE_PORT = '6379';
+    // A closed local port refuses the connection at once; an unknown host name would wait for
+    // the DNS lookup to time out and slow the suite down by seconds per case.
+    private const string UNREACHABLE_HOST = '127.0.0.1';
+    private const string UNREACHABLE_PORT = '1';
     private const string HOST_VARIABLE = 'REDIS_HOST';
     private const string PORT_VARIABLE = 'REDIS_PORT';
     private const string ASSIGNMENT_FORMAT = '%s=%s';

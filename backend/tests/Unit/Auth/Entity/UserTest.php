@@ -7,6 +7,7 @@ namespace Tests\Unit\Auth\Entity;
 use App\Auth\Entity\User;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\CheapPasswordHash;
 
 final class UserTest extends TestCase
 {
@@ -25,7 +26,7 @@ final class UserTest extends TestCase
 
     public function testMatchesOnlyThePasswordUsedForTheHash(): void
     {
-        $user = new User(self::EMAIL, password_hash(self::PASSWORD, PASSWORD_DEFAULT), new DateTimeImmutable());
+        $user = new User(self::EMAIL, CheapPasswordHash::of(self::PASSWORD), new DateTimeImmutable());
 
         self::assertTrue($user->passwordMatches(self::PASSWORD));
         self::assertFalse($user->passwordMatches(self::WRONG_PASSWORD));

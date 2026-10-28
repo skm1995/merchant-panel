@@ -16,6 +16,7 @@ use App\Auth\Service\UserAuthService;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\CheapPasswordHash;
 
 final class UserAuthServiceTest extends TestCase
 {
@@ -36,7 +37,7 @@ final class UserAuthServiceTest extends TestCase
     public function testRegistersUserWithHashedPasswordAndNormalizedEmail(): void
     {
         $repository = $this->createMock(UserRepositoryInterface::class);
-        $repository->expects(self::once())->method('findByEmail')->with(self::EMAIL)->willReturn(null);
+        $repository->method('findByEmail')->willReturn(null);
         $repository->expects(self::once())->method('create')->with(
             self::EMAIL,
             self::callback(static fn (string $hash): bool => password_verify(self::PASSWORD, $hash)),
@@ -98,7 +99,7 @@ final class UserAuthServiceTest extends TestCase
 
     public function testRejectsSignInWithAPasswordContainingNul(): void
     {
-        $user = new User(self::EMAIL, password_hash(self::PASSWORD, PASSWORD_DEFAULT), new DateTimeImmutable(), new DateTimeImmutable());
+        $user = new User(self::EMAIL, CheapPasswordHash::of(self::PASSWORD), new DateTimeImmutable(), new DateTimeImmutable());
         $repository = $this->createStub(UserRepositoryInterface::class);
         $repository->method('findByEmail')->willReturn($user);
 
@@ -121,10 +122,10 @@ final class UserAuthServiceTest extends TestCase
 
     public function testAuthenticatesValidCredentials(): void
     {
-        $hash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
+        $hash = CheapPasswordHash::of(self::PASSWORD);
         $user = new User(self::EMAIL, $hash, new DateTimeImmutable(), new DateTimeImmutable());
-        $repository = $this->createMock(UserRepositoryInterface::class);
-        $repository->expects(self::once())->method('findByEmail')->with(self::EMAIL)->willReturn($user);
+        $repository = $this->createStub(UserRepositoryInterface::class);
+        $repository->method('findByEmail')->willReturn($user);
 
         self::assertSame($user, new UserAuthService($repository)->authenticate(self::EMAIL, self::PASSWORD));
     }
@@ -154,7 +155,7 @@ final class UserAuthServiceTest extends TestCase
 
     public function testFindsOnlyUnverifiedUserWithMatchingPasswordForResend(): void
     {
-        $passwordHash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
+        $passwordHash = CheapPasswordHash::of(self::PASSWORD);
         $unverified = new User(self::EMAIL, $passwordHash, new DateTimeImmutable());
         $verified = new User(self::EMAIL, $passwordHash, new DateTimeImmutable(), new DateTimeImmutable());
         $repository = $this->createStub(UserRepositoryInterface::class);
@@ -168,7 +169,7 @@ final class UserAuthServiceTest extends TestCase
 
     public function testRejectsLoginBeforeEmailVerification(): void
     {
-        $passwordHash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
+        $passwordHash = CheapPasswordHash::of(self::PASSWORD);
         $user = new User(self::EMAIL, $passwordHash, new DateTimeImmutable(), null);
         $repository = $this->createStub(UserRepositoryInterface::class);
         $repository->method('findByEmail')->willReturn($user);

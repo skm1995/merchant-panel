@@ -1,22 +1,51 @@
 # Testing
 
-The project is built test first: a failing test, the smallest change that passes it, then a
-refactoring with the tests green. Tests describe behavior, including failure paths and
-security rules, rather than implementation details.
+The project is built test first and outside in: a feature starts with a failing functional
+test of its behavior from the outside, and the code with many cases below it is driven by unit
+tests. Each step is the smallest change that passes, followed by a refactoring with the tests
+green. Tests describe behavior, including failure paths and security rules, rather than
+implementation details: they check results and stored state, not which methods were called,
+so a refactoring that keeps the behavior keeps the tests green.
 
 ## The test layers
 
 | Layer | Tool | Runs against | Guards |
 |---|---|---|---|
-| Backend unit | PHPUnit | classes built directly with test doubles; controllers through [`HttpHarness`](../../backend/tests/Unit/Support/HttpHarness.php), which dispatches through the real router | rules, validation, error mapping, middleware order |
+| Backend unit | PHPUnit | classes built directly, with fakes only for boundaries such as the clock and payment gateways; cross-cutting HTTP behavior through [`HttpHarness`](../../backend/tests/Unit/Support/HttpHarness.php), which dispatches through the real router | calculations, domain rules, validation, error mapping, middleware order, reactions to failing dependencies |
 | Backend functional | PHPUnit with an HTTP client | the test stack through Caddy, a real MySQL, Redis, RabbitMQ, worker, and Mailpit | contracts, SQL, locking and concurrency, messaging, security paths |
 | Frontend unit | Vitest, Testing Library, MSW | components in jsdom, the API faked at the network boundary | screens, the session, the API client |
 | End to end | Playwright | a real browser against the test stack | the main journeys across both sides |
 | Load | k6 | the test stack | latency, error rate, and stock invariants under contention |
 | Static | PHPStan level 8, Deptrac, PHP CS Fixer, `tsc`, ESLint, Prettier | the code | types, architecture layers, style |
 
-Each production class has a test class in the mirrored namespace under `tests/Unit`.
-Functional tests live under `tests/Functional` and run only against the test stack.
+## What goes where
+
+| Unit tests | Functional tests |
+|---|---|
+| Calculations: money, totals, running totals, the sales calendar | The main path of every endpoint through the real server and database |
+| Domain rules and state transitions | Every SQL query, including `EXPLAIN` checks of the reports |
+| Parsing and validation of input, with every invalid case | Security paths: missing session, rejected CSRF token, missing merchant role |
+| Edge cases: empty lists, ties, zero, limits | Concurrency: buyers of the last unit, repeated webhooks |
+| Reactions to a failing dependency, such as the broker | Messaging through the outbox, broker, and worker |
+
+Unit tests live in the mirrored namespace under `tests/Unit`; a class that only passes calls
+on or maps data has none, because the functional tests already cover it. Functional tests
+live under `tests/Functional` and run only against the test stack. The unit suite runs in
+a few seconds, the functional suite in about twenty. Unit tests hash test passwords with the
+lowest bcrypt cost ([`CheapPasswordHash`](../../backend/tests/Unit/Support/CheapPasswordHash.php)),
+because the production cost takes a fifth of a second per hash; the one test that compares the
+timing of sign-in attempts keeps the real cost.
+
+## Coverage
+
+`bin/ci` merges the coverage of the unit, functional, and end-to-end tests, including every
+request the test web server handles, and fails when it drops below a minimum that trails the
+measured value by about two points ([0019](../decisions/0019-merged-coverage-with-a-ratchet.md)).
+The HTML reports land in `build/coverage/html/` and `frontend/coverage/`, and GitHub Actions
+keeps them as an artifact of each run. Raise the minimum in
+[`check-coverage.php`](../../backend/tools/check-coverage.php) or
+[`vite.config.ts`](../../frontend/vite.config.ts) when coverage grows; never lower it to make
+a change pass.
 
 ## What the functional tests check
 

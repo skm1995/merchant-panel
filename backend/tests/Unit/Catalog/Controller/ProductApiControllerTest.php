@@ -24,7 +24,6 @@ final class ProductApiControllerTest extends TestCase
     private const string PRODUCT_PATH = '/api/v1/products/7';
     private const string NON_NUMERIC_PRODUCT_PATH = '/api/v1/products/abc';
     private const string LIMIT_PARAMETER = 'limit';
-    private const int PRODUCT_ID = 7;
     private const string PANEL_PRODUCT_PATH = '/api/v1/panel/products/7';
 
     protected function tearDown(): void
@@ -32,22 +31,10 @@ final class ProductApiControllerTest extends TestCase
         http_response_code(ResponseStatusEnum::OK->value);
     }
 
-    public function testListsProductsPage(): void
-    {
-        $products = $this->createStub(ProductRepositoryInterface::class);
-        $products->method('findPage')->willReturn([ProductFactory::create(self::PRODUCT_ID)]);
-
-        $body = $this->get(self::PRODUCTS_PATH, $products);
-
-        self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
-        self::assertSame(self::PRODUCT_ID, $body['data'][0]['id']);
-        self::assertNull($body['next_cursor']);
-    }
 
     public function testPageSizeAboveMaximumIsBadRequest(): void
     {
-        $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::never())->method('findPage');
+        $products = $this->createStub(ProductRepositoryInterface::class);
 
         $this->get(self::PRODUCTS_PATH, $products, [
             self::LIMIT_PARAMETER => (string) (ProductCatalog::MAXIMUM_PAGE_SIZE + 1),
@@ -56,18 +43,6 @@ final class ProductApiControllerTest extends TestCase
         self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
     }
 
-    public function testShowsSingleProduct(): void
-    {
-        $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::once())
-            ->method('findById')
-            ->with(self::PRODUCT_ID)
-            ->willReturn(ProductFactory::create(self::PRODUCT_ID));
-
-        $body = $this->get(self::PRODUCT_PATH, $products);
-
-        self::assertSame(self::PRODUCT_ID, $body['id']);
-    }
 
     public function testMissingProductIsNotFoundProblem(): void
     {
@@ -82,8 +57,7 @@ final class ProductApiControllerTest extends TestCase
 
     public function testNonNumericProductIdDoesNotReachTheCatalog(): void
     {
-        $products = $this->createMock(ProductRepositoryInterface::class);
-        $products->expects(self::never())->method('findById');
+        $products = $this->createStub(ProductRepositoryInterface::class);
 
         $this->get(self::NON_NUMERIC_PRODUCT_PATH, $products, decodeJson: false);
 

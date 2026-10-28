@@ -81,7 +81,7 @@ final class HandlePaymentWebhookHandlerTest extends TestCase
     public function testDuplicateEventChangesNothing(): void
     {
         $payments = $this->createMock(PaymentRepositoryInterface::class);
-        $payments->expects(self::never())->method('lockByProviderPaymentId');
+        $payments->expects(self::never())->method('updateStatus');
 
         $result = $this->handler($payments, $this->event(PaymentOutcomeEnum::SUCCEEDED), firstDelivery: false)
             ->handle(self::command());
