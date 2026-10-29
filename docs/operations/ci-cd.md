@@ -28,20 +28,27 @@ about four minutes on GitHub, where most of the time goes to building them.
 
 ## GitHub Actions
 
-[`.github/workflows/ci.yaml`](../../.github/workflows/ci.yaml) has two jobs and no service
+[`.github/workflows/ci.yaml`](../../.github/workflows/ci.yaml) has three jobs and no service
 configuration of its own:
 
 - `quality` runs `bin/ci` on every push and pull request, prints the service logs when it
   fails, adds the coverage to the run's summary, and keeps the coverage reports as an
   artifact;
-- `deploy` runs after `quality` succeeds, only for pushes to `master`, one at a time, and calls
-  [`bin/deploy`](../../bin/deploy) with the secrets and variables below.
+- `images`, for pushes to `master` and at the same time as `quality`, runs
+  [`bin/publish-images`](../../bin/publish-images) on an ARM runner, the server's
+  architecture: it builds the production PHP and Caddy images and pushes them to the GitHub
+  Container Registry as `ghcr.io/<repository>/php` and `/caddy`, tagged with the commit;
+- `deploy` runs after both succeed, only for pushes to `master`, one at a time, and calls
+  [`bin/deploy`](../../bin/deploy) with the secrets and variables below
+  ([0029](../decisions/0029-images-built-in-ci.md)).
 
 A second workflow, [`monitor.yaml`](../../.github/workflows/monitor.yaml), checks the demo
 every 15 minutes with [`bin/monitor`](../../bin/monitor), and GitHub emails a failed run
 ([Alerts](observability.md#alerts)).
 
-The workflows' tokens can only read the repository.
+The workflows' tokens can only read the repository, except that the `images` job may write
+packages and the `deploy` job read them. The deploy job hands its token to the server only to
+pull the images and logs the server out right after; the token expires with the job.
 
 The audits fail CI when a dependency that reaches the server has a known vulnerability, so a
 newly published advisory stops deployments until the dependency is updated.
@@ -59,15 +66,18 @@ the base images of the Dockerfiles and Compose files, and the GitHub Actions.
    when they are already in place;
 3. uploads the commit with `git archive` and writes the server's `.env` with mode 600,
    including a new random `LOAD_TEST_KEY` for the [Black Friday simulator](../flows/black-friday.md);
-4. builds the images on the server and starts [`compose.prod.yaml`](../../compose.prod.yaml),
-   waiting for every service to be healthy;
+4. pulls the commit's images on the server, logged in to the registry with the job's token,
+   before it touches the running release, then starts
+   [`compose.prod.yaml`](../../compose.prod.yaml), waiting for every service to be healthy,
+   and removes the images no container uses;
 5. adds the demo catalog, prepares Elasticsearch and Kibana (`kibana-setup`), and creates the
    shared demo account if it is missing;
 6. checks that `https://demo.<domain>/api/v1/products` answers.
 
-A failed step fails the job with its output. Compose replaces the containers before checking
-their health, so a release that does not start leaves the demo down until the next deploy;
-[Runbooks](runbooks.md) describe how to recover.
+A failed step fails the job with its output. A failed build or pull stops before the running
+release is touched. Compose replaces the containers before checking their health, so a
+release that pulls but does not start leaves the demo down until a working commit is
+deployed; [Runbooks](runbooks.md#a-deployment-failed) describe how to roll back.
 
 | GitHub setting | Kind | Purpose |
 |---|---|---|
@@ -88,6 +98,6 @@ commit.
 
 ## Limitations
 
-- Images are built on the server, so a deploy takes minutes and there is no one-step rollback;
-  reverting the commit and pushing redeploys the previous code.
+- `bin/ci` still builds its test images on every run, about half of its four minutes on
+  GitHub.
 - There is no staging environment; every green commit goes straight to the demo.

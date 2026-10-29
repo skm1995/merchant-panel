@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Builds the production images of the checked-out commit and pushes them to the registry:
+# PHP with the backend code, and Caddy with the built React app. The images job in
+# .github/workflows/ci.yaml runs it on an ARM runner, the server's architecture, and bin/deploy
+# pulls the images on the server instead of building them there.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+for name in IMAGES IMAGE_TAG IMAGE_SOURCE; do
+    if [ -z "${!name:-}" ]; then
+        echo "Required environment variable \"${name}\" is not set." >&2
+        exit 1
+    fi
+done
+
+php_image="${IMAGES}/php:${IMAGE_TAG}"
+caddy_image="${IMAGES}/caddy:${IMAGE_TAG}"
+# Links the images to the repository in the registry, which lets the deploy job's token read them.
+source_label="org.opencontainers.image.source=${IMAGE_SOURCE}"
+
+docker build --file docker/php/Dockerfile --target prod --label "${source_label}" --tag "${php_image}" .
+docker build --file docker/caddy/Dockerfile --label "${source_label}" --tag "${caddy_image}" .
+docker push "${php_image}"
+docker push "${caddy_image}"

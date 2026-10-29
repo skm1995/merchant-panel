@@ -19,7 +19,7 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0011](0011-caddy-in-front-of-php-fpm.md) | Caddy in front of PHP-FPM | Accepted |
 | [0012](0012-redis-for-cache-sessions-and-rate-limits.md) | Redis for the cache, sessions, and rate limits | Accepted |
 | [0013](0013-separate-backend-and-frontend-in-one-repository.md) | Separate backend and frontend in one repository | Accepted |
-| [0014](0014-one-server-deployed-from-ci.md) | One server, deployed from CI with Docker Compose | Accepted |
+| [0014](0014-one-server-deployed-from-ci.md) | One server, deployed from CI with Docker Compose | Accepted, image building superseded by 0029 |
 | [0015](0015-mailpit-and-vector-for-local-tooling.md) | Mailpit and Vector for mail and log collection | Accepted |
 | [0016](0016-plain-sql-and-php-for-reports.md) | Plain SQL that reduces the data, PHP that computes on the result | Accepted |
 | [0017](0017-daily-sales-summary-recomputed-per-day.md) | A daily sales summary, recomputed a day at a time | Accepted |
@@ -34,3 +34,4 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0026](0026-alerts-from-a-scheduled-github-workflow.md) | Alerts from a scheduled GitHub workflow | Accepted |
 | [0027](0027-password-stamp-ends-sessions.md) | A password stamp in the session ends older sessions | Accepted |
 | [0028](0028-responses-through-a-writer.md) | Responses written through a writer, not PHP's globals | Accepted |
+| [0029](0029-images-built-in-ci.md) | Production images built in CI and pulled by the server | Accepted |

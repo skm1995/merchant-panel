@@ -1,7 +1,7 @@
 # Base definitions for the services that run the backend image. In development and tests
 # (compose.yaml) the whole repository is mounted so the backend can read the shared openapi/
-# contract; in production (compose.prod.yaml) the code is part of the image.
-# Relative paths here resolve from this directory.
+# contract; in production the code is part of the image that bin/publish-images builds in CI
+# and compose.prod.yaml names. Relative paths here resolve from this directory.
 services:
   app:
     build:
@@ -15,10 +15,4 @@ services:
       - ../..:/app
 
   app-prod:
-    build:
-      context: ../..
-      dockerfile: docker/php/Dockerfile
-      target: prod
-      args:
-        PHP_VERSION: "8.5"
     restart: unless-stopped

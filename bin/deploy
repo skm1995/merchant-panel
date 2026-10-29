@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Deploys the checked-out commit to the production server: prepares the server, uploads
-# the commit over SSH, writes the server's .env from this environment, starts
-# compose.prod.yaml, and checks that the site answers over HTTPS. The deploy job in
-# .github/workflows/ci.yaml runs it after CI passes on master.
+# the commit's configuration over SSH, writes the server's .env from this environment, pulls
+# the commit's images that bin/publish-images pushed, starts compose.prod.yaml, and checks
+# that the site answers over HTTPS. The deploy job in .github/workflows/ci.yaml runs it after
+# CI passes on master. The running release is replaced only once every image is pulled, so a
+# failed pull leaves it as it was.
 
 set -euo pipefail
 
@@ -12,7 +14,7 @@ required=(
     DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS BASE_DOMAIN
     MYSQL_PASSWORD MYSQL_ROOT_PASSWORD RABBITMQ_PASSWORD
     FAKEPAY_WEBHOOK_SECRET QUICKPAY_WEBHOOK_SECRET REPORTS_API_KEY ORDER_ACCESS_SECRET MAILPIT_PASSWORD
-    BACKUP_UPLOAD_URL
+    BACKUP_UPLOAD_URL IMAGES IMAGE_TAG REGISTRY_USER REGISTRY_TOKEN
 )
 for name in "${required[@]}"; do
     if [ -z "${!name:-}" ]; then
@@ -35,6 +37,8 @@ ssh=(ssh -i "${workdir}/key" -o UserKnownHostsFile="${workdir}/known_hosts" -o S
 
 install -m 600 /dev/null "${workdir}/.env"
 cat > "${workdir}/.env" <<ENV
+IMAGES=${IMAGES}
+IMAGE_TAG=${IMAGE_TAG}
 APP_DOMAIN=${app_domain}
 MAIL_DOMAIN=${mail_domain}
 MYSQL_DATABASE=app
@@ -64,16 +68,30 @@ echo "Uploading $(git rev-parse --short HEAD)..."
 git archive --format=tar HEAD | "${ssh[@]}" 'rm -rf app.next && mkdir app.next && tar -x -C app.next'
 "${ssh[@]}" 'umask 077 && cat > app.next/.env' < "${workdir}/.env"
 
+# The workflow's token is valid only while the job runs; it goes over standard input, and the
+# server forgets it right after the pull.
+echo "Pulling the images of $(git rev-parse --short HEAD)..."
+"${ssh[@]}" "sudo docker login ${IMAGES%%/*} --username ${REGISTRY_USER} --password-stdin >/dev/null" <<< "${REGISTRY_TOKEN}"
+pulled=0
+"${ssh[@]}" "CADDY_IMAGE=${caddy_image} bash -s" <<'PULL' || pulled=$?
+set -euo pipefail
+cd app.next
+# Compose reads the whole file, Caddy's required password hash included, even to pull.
+password=$(sed -n 's/^MAILPIT_PASSWORD=//p' .env)
+hash=$(sudo docker run --rm "${CADDY_IMAGE}" caddy hash-password --plaintext "${password}")
+echo "MAILPIT_PASSWORD_HASH='${hash}'" >> .env
+sudo docker compose -f compose.prod.yaml pull --quiet
+PULL
+"${ssh[@]}" "sudo docker logout ${IMAGES%%/*} >/dev/null"
+[ "${pulled}" -eq 0 ]
+
 echo "Starting the services..."
-"${ssh[@]}" "CADDY_IMAGE=${caddy_image} bash -s" <<'REMOTE'
+"${ssh[@]}" 'bash -s' <<'REMOTE'
 set -euo pipefail
 rm -rf app
 mv app.next app
 cd app
-password=$(sed -n 's/^MAILPIT_PASSWORD=//p' .env)
-hash=$(sudo docker run --rm "${CADDY_IMAGE}" caddy hash-password --plaintext "${password}")
-echo "MAILPIT_PASSWORD_HASH='${hash}'" >> .env
-sudo docker compose -f compose.prod.yaml up --detach --build --remove-orphans --wait
+sudo docker compose -f compose.prod.yaml up --detach --no-build --remove-orphans --wait
 sudo docker compose -f compose.prod.yaml run --rm -T seed-demo < /dev/null
 sudo docker compose -f compose.prod.yaml run --rm -T kibana-setup < /dev/null
 # The shared demo account; status 3 means it already exists, so a redeploy keeps its data.
@@ -82,7 +100,8 @@ status=0
 sudo docker compose -f compose.prod.yaml run --rm -T --no-deps --user www-data -e "MERCHANT_PASSWORD=${DEMO_MERCHANT_PASSWORD}" \
     php php bin/create-merchant.php "${DEMO_MERCHANT_EMAIL}" < /dev/null || status=$?
 [ "${status}" -eq 0 ] || [ "${status}" -eq 3 ]
-sudo docker image prune --force >/dev/null
+# Every release adds tagged images; the registry keeps them, so the server keeps only those in use.
+sudo docker image prune --all --force >/dev/null
 REMOTE
 
 echo "Checking https://${app_domain}..."

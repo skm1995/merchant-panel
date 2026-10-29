@@ -111,9 +111,13 @@ back on.
 
 ## A deployment failed
 
-Read the failed step in the GitHub Actions log. If the new release does not start, revert the
-commit that broke it and push; the pipeline deploys the previous code. On the server,
-`dc ps` and `dc logs <service>` show which container is unhealthy and why.
+Read the failed step in the GitHub Actions log. A failed `images` job or image pull leaves
+the running release as it was. If the new release does not start, roll back: in the
+repository's **Actions** tab, open the CI run of the last commit that worked and choose
+**Re-run all jobs**. Its images are still in the registry under its commit, so the deploy
+only pulls them again. Then revert the broken commit, so the next push does not bring it
+back. On the server, `dc ps` and `dc logs <service>` show which container is unhealthy and
+why.
 
 ## Rotate a secret
 

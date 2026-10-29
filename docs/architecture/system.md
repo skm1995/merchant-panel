@@ -112,7 +112,5 @@ copies the result.
 ## Limitations
 
 - One server without redundancy; a server failure takes the demo down until it is restored.
-- Images are built on the server during deployment rather than in CI, so there is no quick
-  rollback to a previous image.
 - When the Redis container is gone entirely, resolving its name in Docker's DNS can take
   several seconds per request, which the client timeouts do not shorten.

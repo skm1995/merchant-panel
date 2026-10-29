@@ -1,5 +1,6 @@
 # Production on one server, deployed by bin/deploy after CI passes. The images contain the
-# code, command-line processes run as www-data rather than root, and only Caddy publishes
+# code and are built in CI by bin/publish-images, tagged with the commit; the server only pulls
+# them. Command-line processes run as www-data rather than root, and only Caddy publishes
 # ports. Values come from the .env file bin/deploy writes next to this file; the variable
 # groups in docker/env/ are shared with development.
 # The Compose project keeps the repository's earlier name: its volumes, including the
@@ -11,6 +12,8 @@ services:
     extends:
       file: docker/php/compose.yaml
       service: app-prod
+    # The backend image of the deployed commit; every PHP service below runs the same one.
+    image: &php-image ${IMAGES:?IMAGES is required}/php:${IMAGE_TAG:?IMAGE_TAG is required}
     command: composer migrate
     user: www-data
     restart: "no"
@@ -26,6 +29,7 @@ services:
     extends:
       file: docker/php/compose.yaml
       service: app-prod
+    image: *php-image
     command: composer seed-demo
     user: www-data
     restart: "no"
@@ -41,6 +45,7 @@ services:
     extends:
       file: docker/php/compose.yaml
       service: app-prod
+    image: *php-image
     healthcheck:
       test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
       interval: 5s
@@ -81,6 +86,7 @@ services:
     extends:
       file: docker/php/compose.yaml
       service: app-prod
+    image: *php-image
     command: php bin/worker.php
     user: www-data
     env_file:
@@ -107,6 +113,7 @@ services:
     extends:
       file: docker/php/compose.yaml
       service: app-prod
+    image: *php-image
     command: php bin/outbox-relay.php
     user: www-data
     env_file:
@@ -128,6 +135,7 @@ services:
     extends:
       file: docker/php/compose.yaml
       service: app-prod
+    image: *php-image
     command: php bin/simulator.php
     user: www-data
     env_file:
@@ -155,9 +163,7 @@ services:
         condition: service_healthy
 
   caddy:
-    build:
-      context: .
-      dockerfile: docker/caddy/Dockerfile
+    image: ${IMAGES:?IMAGES is required}/caddy:${IMAGE_TAG:?IMAGE_TAG is required}
     restart: unless-stopped
     ports:
       - "80:80"

@@ -7,7 +7,7 @@ solution.
 
 | Priority | Item | Effort |
 |---|---|---|
-| 2 | [Images built in CI](#images-built-in-ci) | M |
+| 2 | [Staging environment](#staging-environment) | M |
 | 2 | [Better rate limits](#better-rate-limits) | S |
 | 2 | [Published API reference](#published-api-reference) | S |
 | 3 | [Roles and permissions](#roles-and-permissions) | M |
@@ -16,16 +16,16 @@ solution.
 | 3 | [Performance](#performance) | S |
 | 3 | [Test depth](#test-depth) | M |
 
-## Images built in CI
+## Staging environment
 
-**Problem:** building on the server makes deploys slow and rollbacks manual.
+**Problem:** every green commit goes straight to the demo.
 
-**Sketch:** build the PHP and Caddy images for ARM in GitHub Actions, push them to the GitHub
-Container Registry tagged with the commit, and let `bin/deploy` pull a tag instead of
-building. Rolling back becomes deploying the previous tag, and a staging stack on the same
-server can run the next tag before it reaches the demo. The same registry would let `bin/ci`
-on GitHub reuse the test images instead of building them on every run, which takes about
-half of its four minutes now; `docker compose build` cannot use the Actions cache directly.
+**Sketch:** the images CI builds for every commit
+([0029](../decisions/0029-images-built-in-ci.md)) can run a second Compose project on the
+same server under `staging.<domain>`, with its own database and secrets. The deploy job would
+start the commit there first, run the end-to-end tests against it, and only then pull the same
+images for the demo. The same registry would let `bin/ci` on GitHub reuse its test images
+instead of building them on every run.
 
 ## Better rate limits
 

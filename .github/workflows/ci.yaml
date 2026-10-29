@@ -4,7 +4,9 @@ on:
   push:
   pull_request:
 
-# The jobs only read the repository; the deploy reaches the server with its own SSH key.
+# The jobs only read the repository, except that the images job writes the production images
+# to the registry and the deploy job reads them; the deploy reaches the server with its own
+# SSH key.
 permissions:
   contents: read
 
@@ -37,10 +39,36 @@ jobs:
         if: always()
         run: docker compose --profile test down --volumes
 
+  # Builds the production images on the server's architecture while quality runs, so the
+  # server only pulls them.
+  images:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Log in to the registry
+        run: docker login ghcr.io --username "${REGISTRY_USER}" --password-stdin <<< "${REGISTRY_TOKEN}"
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push the production images
+        run: bin/publish-images
+        env:
+          IMAGES: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+
   deploy:
-    needs: quality
+    needs: [quality, images]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     concurrency:
       group: production
     steps:
@@ -49,6 +77,10 @@ jobs:
       - name: Deploy to the server
         run: bin/deploy
         env:
+          IMAGES: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ github.sha }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
