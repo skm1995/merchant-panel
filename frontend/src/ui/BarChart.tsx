@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { categoryWidth, fitLabel, tooltipValue } from './chartFormat';
+import { CHART_LABEL_FONT_SIZE, categoryWidth, fitLabel, tooltipValue } from './chartFormat';
 
 export interface BarDatum {
   label: string;
@@ -47,7 +47,14 @@ function CategoryTick({ x = 0, y = 0, payload, width }: CategoryTickProps) {
   const label = String(payload?.value ?? '');
 
   return (
-    <text x={x} y={y} dy="0.35em" textAnchor="end" fill="var(--color-muted)">
+    <text
+      x={x}
+      y={y}
+      dy="0.35em"
+      textAnchor="end"
+      fontSize={CHART_LABEL_FONT_SIZE}
+      fill="var(--color-muted)"
+    >
       <title>{label}</title>
       {fitLabel(label, width)}
     </text>
@@ -81,6 +88,7 @@ export function BarChart({ data, format, formatAxis = format, horizontal = false
       x={Number(x) + Number(width) + LABEL_OFFSET}
       y={Number(y) + Number(barHeight) / 2}
       dy="0.35em"
+      fontSize={CHART_LABEL_FONT_SIZE}
       fill="var(--color-text)"
     >
       {format(Number(value))}

@@ -31,15 +31,15 @@ describe('chart formats', () => {
 
   it('sizes the category axis to its longest name, within limits', () => {
     expect(categoryWidth(['TV'])).toBe(60);
-    expect(categoryWidth(['Black Friday Coffee Machine', 'TV'])).toBe(215);
-    expect(categoryWidth(['A product name far too long to fit beside any chart'])).toBe(220);
+    expect(categoryWidth(['Compact Keyboard 820', 'TV'])).toBe(192);
+    expect(categoryWidth(['A product name far too long to fit beside any chart'])).toBe(240);
     expect(categoryWidth([])).toBe(60);
   });
 
   it('keeps names that fit and shortens the others with an ellipsis', () => {
-    expect(fitLabel('Black Friday TV', 220)).toBe('Black Friday TV');
-    expect(fitLabel('A product name far too long to fit beside any chart', 220)).toBe(
-      'A product name far too lon…',
+    expect(fitLabel('Compact Keyboard 820', 240)).toBe('Compact Keyboard 820');
+    expect(fitLabel('A product name far too long to fit beside any chart', 240)).toBe(
+      'A product name far too l…',
     );
   });
 });

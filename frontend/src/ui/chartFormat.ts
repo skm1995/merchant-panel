@@ -1,10 +1,12 @@
 const LOCALE = 'en-US';
 
-// The axis font's average character width, to size the category axis to its longest name.
-const CHARACTER_WIDTH = 7.5;
+/** The font size of the names and values drawn beside bars, in pixels. */
+export const CHART_LABEL_FONT_SIZE = 14;
+// A generous character width at that size, so wide fonts and capitals still fit the axis.
+const CHARACTER_WIDTH = 9;
 const TICK_SPACE = 12;
 const MIN_CATEGORY_WIDTH = 60;
-const MAX_CATEGORY_WIDTH = 220;
+const MAX_CATEGORY_WIDTH = 240;
 const ELLIPSIS = '…';
 
 /**
