@@ -22,10 +22,10 @@ final class CreatePasswordResetTokens extends AbstractMigration
     public function change(): void
     {
         $this->table(self::TOKENS_TABLE)
-            ->addColumn(self::EMAIL_COLUMN, 'string', ['limit' => 255])
-            ->addColumn(self::TOKEN_HASH_COLUMN, 'string', ['limit' => 64])
-            ->addColumn(self::EXPIRES_AT_COLUMN, 'datetime')
-            ->addColumn(self::CREATED_AT_COLUMN, 'datetime')
+            ->addColumn(self::EMAIL_COLUMN, 'string', ['limit' => 255, 'null' => false])
+            ->addColumn(self::TOKEN_HASH_COLUMN, 'string', ['limit' => 64, 'null' => false])
+            ->addColumn(self::EXPIRES_AT_COLUMN, 'datetime', ['null' => false])
+            ->addColumn(self::CREATED_AT_COLUMN, 'datetime', ['null' => false])
             ->addIndex([self::EMAIL_COLUMN], ['unique' => true, 'name' => self::EMAIL_INDEX])
             ->addIndex([self::TOKEN_HASH_COLUMN], ['unique' => true, 'name' => self::TOKEN_HASH_INDEX])
             ->addForeignKey(self::EMAIL_COLUMN, self::USERS_TABLE, self::EMAIL_COLUMN, ['delete' => 'CASCADE'])
