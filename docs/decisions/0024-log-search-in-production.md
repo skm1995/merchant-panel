@@ -36,4 +36,4 @@ dashboards after every deploy and in development alike.
   a week of logs.
 - Vector reads the Docker socket, read-only, to collect the logs; it is the only container
   with access to it.
-- There are still no alerts ([roadmap](../roadmap/roadmap.md#monitoring-and-alerts)).
+- There are still no alerts; [0026](0026-alerts-from-a-scheduled-github-workflow.md) adds them.
