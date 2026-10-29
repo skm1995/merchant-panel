@@ -5,6 +5,8 @@ const CSRF_TOKEN_HEADER = 'X-CSRF-Token';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const SESSION_PATH = '/api/v1/session';
 const UNAUTHORIZED = 401;
+const SERVICE_UNAVAILABLE = 503;
+const UNREACHABLE_DETAIL = 'The server cannot be reached. Check your connection and try again.';
 
 let csrfToken: string | null = null;
 let sessionExpiredListener: (() => void) | null = null;
@@ -52,6 +54,24 @@ const csrfMiddleware: Middleware = {
 };
 
 /**
+ * Turns a request that never got an answer, such as one sent while offline, into a problem
+ * response, so every caller handles it like any other failed call instead of an exception.
+ */
+const networkFailureMiddleware: Middleware = {
+  onError() {
+    return Response.json(
+      {
+        type: 'about:blank',
+        title: 'Service Unavailable',
+        status: SERVICE_UNAVAILABLE,
+        detail: UNREACHABLE_DETAIL,
+      },
+      { status: SERVICE_UNAVAILABLE, headers: { 'Content-Type': 'application/problem+json' } },
+    );
+  },
+};
+
+/**
  * Typed client for the backend API. Paths, parameters, and response bodies come from the
  * types generated from openapi/, so a contract change breaks the build instead of the screen.
  * Requests stay on the page's origin and carry the session cookie. The global fetch is looked
@@ -63,4 +83,4 @@ export const apiClient = createClient<paths>({
   fetch: (request) => globalThis.fetch(request),
 });
 
-apiClient.use(csrfMiddleware, sessionExpiryMiddleware);
+apiClient.use(csrfMiddleware, sessionExpiryMiddleware, networkFailureMiddleware);

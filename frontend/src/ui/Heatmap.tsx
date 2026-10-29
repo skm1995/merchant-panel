@@ -1,3 +1,4 @@
+import { hourLabel, WEEKDAYS } from './chartFormat';
 import { classNames } from './classNames';
 import styles from './Heatmap.module.css';
 
@@ -13,7 +14,6 @@ interface HeatmapProps {
   cells: HeatmapCell[];
 }
 
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const LEVELS = [
   styles.level0,
@@ -24,10 +24,6 @@ const LEVELS = [
   styles.level5,
 ];
 const LABELLED_HOURS = new Set([0, 6, 12, 18]);
-
-function hourLabel(hour: number): string {
-  return `${String(hour).padStart(2, '0')}:00`;
-}
 
 /** Shades a count from 0 (no orders) to 5 (the busiest hour) on the one-hue scale. */
 function level(orders: number, busiest: number): number {

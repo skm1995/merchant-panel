@@ -4,7 +4,13 @@ import { problemMessage } from '../api/problem';
 import type { components } from '../api/schema';
 import { Alert } from '../ui/Alert';
 import { BarChart } from '../ui/BarChart';
-import { formatCompactAmount, formatDays, formatWholeAmount } from '../ui/chartFormat';
+import {
+  formatCompactAmount,
+  formatDays,
+  formatWholeAmount,
+  hourLabel,
+  WEEKDAYS,
+} from '../ui/chartFormat';
 import { ChartPanel } from '../ui/ChartPanel';
 import { DataTable, type Column } from '../ui/DataTable';
 import { Heatmap, type HeatmapCell } from '../ui/Heatmap';
@@ -29,7 +35,6 @@ const HEATMAP_DAYS = 90;
 const LOW_STOCK_DAYS = 7;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const NO_CHANGE = '—';
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -66,7 +71,7 @@ const OUTLOOK_COLUMNS: Column<ProductOutlook>[] = [
 
 const HEATMAP_COLUMNS: Column<HeatmapCell>[] = [
   { header: 'Weekday', cell: (cell) => WEEKDAYS[cell.weekday - 1] },
-  { header: 'Hour (UTC)', cell: (cell) => `${String(cell.hour).padStart(2, '0')}:00` },
+  { header: 'Hour (UTC)', cell: (cell) => hourLabel(cell.hour) },
   { header: 'Orders', cell: (cell) => String(cell.orders) },
 ];
 

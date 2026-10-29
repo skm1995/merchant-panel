@@ -24,12 +24,14 @@ build instead of a screen. It authenticates with the browser session, not tokens
 [openapi-fetch](https://openapi-ts.dev/openapi-fetch/) client typed by
 [`schema.ts`](../../frontend/src/api/schema.ts), which `npm run api:types` generates from
 [`openapi/`](../../openapi). `bin/ci` runs `npm run api:check`, which fails when the file is
-out of date. Two middlewares wrap every request:
+out of date. Three middlewares wrap every request:
 
 - the CSRF middleware adds the session's token in `X-CSRF-Token` to every request that is not
   `GET`, `HEAD`, or `OPTIONS`;
 - the session expiry middleware reports a 401 answer from anything but the session resource
-  itself, which the session provider uses to reload the anonymous session.
+  itself, which the session provider uses to reload the anonymous session;
+- the network failure middleware turns a request that got no answer, such as one sent while
+  offline, into a 503 problem, so pages show its message instead of waiting forever.
 
 Requests stay on the page's own origin with `credentials: 'same-origin'`, so the HttpOnly
 session cookie travels with them and no token is ever stored in JavaScript-readable storage.
@@ -55,8 +57,9 @@ sequenceDiagram
 [`SessionProvider`](../../frontend/src/session/SessionProvider.tsx) loads the session once,
 exposes `signIn` and `signOut`, and replaces the CSRF token whenever the server issues a new
 one, which it does on sign-in. [`RequireMerchant`](../../frontend/src/session/RequireMerchant.tsx)
-guards the panel routes: anonymous visitors go to `/login`, and a signed-in account without
-merchant access sees an explanation and a sign-out button instead of the panel.
+guards the panel routes: anonymous visitors go to `/login`, a signed-in account without
+merchant access sees an explanation and a sign-out button instead of the panel, and a session
+that could not be loaded shows an error asking to reload the page.
 
 ## Pages and patterns
 

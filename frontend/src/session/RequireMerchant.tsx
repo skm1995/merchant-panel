@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router';
+import { Alert } from '../ui/Alert';
 import { Button } from '../ui/Button';
 import { Page } from '../ui/Page';
 import { useSession } from './useSession';
@@ -8,7 +9,15 @@ import { useSession } from './useSession';
  * page; a signed-in account without merchant access learns how to get it.
  */
 export function RequireMerchant() {
-  const { session, signOut } = useSession();
+  const { session, failed, signOut } = useSession();
+
+  if (failed) {
+    return (
+      <Page title="Merchant panel">
+        <Alert tone="error">We could not load your session. Reload the page to try again.</Alert>
+      </Page>
+    );
+  }
 
   if (session === null) {
     return <p aria-busy="true">Loading…</p>;

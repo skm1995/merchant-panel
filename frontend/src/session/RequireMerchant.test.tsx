@@ -1,7 +1,13 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { anonymousSession, noAccessSession, SESSION_PATH, sessionHandler } from '../test/api';
+import {
+  anonymousSession,
+  noAccessSession,
+  problem,
+  SESSION_PATH,
+  sessionHandler,
+} from '../test/api';
 import { renderApp } from '../test/render';
 import { server } from '../test/server';
 
@@ -29,5 +35,19 @@ describe('RequireMerchant', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('says so when the session cannot be loaded instead of loading forever', async () => {
+    server.use(http.get(SESSION_PATH, () => problem(503, 'Service unavailable.')));
+    renderApp('/orders');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load your session/i);
+  });
+
+  it('says so when the API cannot be reached', async () => {
+    server.use(http.get(SESSION_PATH, () => HttpResponse.error()));
+    renderApp('/orders');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load your session/i);
   });
 });

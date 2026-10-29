@@ -57,6 +57,22 @@ export function formatCompactAmount(currency: string): (value: number) => string
   return (value) => format.format(value);
 }
 
+/** ISO weekday names; index 0 is Monday, weekday 1. */
+export const WEEKDAYS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
+/** An hour of the day as "06:00". */
+export function hourLabel(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
 export function formatDays(days: number): string {
   return `${String(days)} ${days === 1 ? 'day' : 'days'}`;
 }

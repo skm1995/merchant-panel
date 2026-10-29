@@ -8,7 +8,10 @@ const ZERO = '0';
 const DECIMAL_POINT = '.';
 const LEADING_ZEROS = /^0+(?=\d)/;
 
-function fractionDigits(currency: string): number {
+/**
+ * How many decimal places amounts in the currency may have.
+ */
+export function decimalPlaces(currency: string): number {
   return (
     new Intl.NumberFormat(DEFAULT_LOCALE, { style: 'currency', currency }).resolvedOptions()
       .maximumFractionDigits ?? 0
@@ -19,7 +22,7 @@ function fractionDigits(currency: string): number {
  * The amount as a plain decimal string, such as "-19.99" for -1999 minor units of PLN.
  */
 function toDecimalString(money: Money): string {
-  const digitsAfterPoint = fractionDigits(money.currency);
+  const digitsAfterPoint = decimalPlaces(money.currency);
   const negative = money.amount.startsWith(MINUS);
   const digits = (negative ? money.amount.slice(MINUS.length) : money.amount).padStart(
     digitsAfterPoint + 1,
@@ -56,7 +59,7 @@ export function toDecimalInput(money: Money): string {
  * null when it is not one or has more decimal places than the currency allows.
  */
 export function toMinorUnits(text: string, currency: string): string | null {
-  const digitsAfterPoint = fractionDigits(currency);
+  const digitsAfterPoint = decimalPlaces(currency);
   const pattern =
     digitsAfterPoint === 0
       ? /^(\d+)$/
@@ -69,13 +72,6 @@ export function toMinorUnits(text: string, currency: string): string | null {
   }
 
   return `${units}${(match?.[2] ?? '').padEnd(digitsAfterPoint, ZERO)}`.replace(LEADING_ZEROS, '');
-}
-
-/**
- * How many decimal places amounts in the currency may have.
- */
-export function decimalPlaces(currency: string): number {
-  return fractionDigits(currency);
 }
 
 /**

@@ -20,7 +20,7 @@ export function useCursorPages<Item, Cursor>(fetchPage: FetchPage<Item, Cursor>)
   const [busy, setBusy] = useState(true);
 
   const append = useCallback(
-    async (cursor: Cursor | null) => {
+    async (cursor: Cursor) => {
       setBusy(true);
       const { page, error: failure } = await fetchPage(cursor);
       setBusy(false);
@@ -31,7 +31,8 @@ export function useCursorPages<Item, Cursor>(fetchPage: FetchPage<Item, Cursor>)
         return;
       }
 
-      setItems((current) => (cursor === null ? page.items : [...current, ...page.items]));
+      setError(null);
+      setItems((current) => [...current, ...page.items]);
       setNextCursor(page.nextCursor);
     },
     [fetchPage],
