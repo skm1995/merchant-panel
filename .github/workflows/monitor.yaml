@@ -1,0 +1,26 @@
+name: Monitor
+
+# Checks the production demo every 15 minutes. GitHub emails a failed scheduled run to whoever
+# last changed the schedule, and disables the schedule after 60 days without a commit.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Check the demo
+        run: bin/monitor
+        env:
+          APP_URL: https://demo.${{ vars.BASE_DOMAIN }}
+          KIBANA_URL: https://mail.${{ vars.BASE_DOMAIN }}/kibana
+          KIBANA_USER: demo
+          KIBANA_PASSWORD: ${{ secrets.MAILPIT_PASSWORD }}

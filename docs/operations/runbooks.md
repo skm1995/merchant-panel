@@ -69,6 +69,24 @@ rows otherwise):
 dc run --rm --no-deps --user www-data php php bin/remove-sales-history.php
 ```
 
+## When the monitor fails
+
+GitHub emails a failed run of the [monitor](observability.md#alerts). Open the run in the
+repository's **Actions** tab; its log names the failing check:
+
+- **The panel or the API does not answer:** check the services with `dc ps` and the logs of
+  the one that is not healthy with `dc logs --since 30m <service>`; a deployment that is still
+  running restarts them for a minute or two.
+- **The logs hold errors:** the log lists the latest ones with their request ids; search
+  `app.extra.request_id : "<id>"` in Kibana's Discover to see the whole request, including the
+  exception's stack trace.
+- **The logs cannot be searched:** Kibana or Elasticsearch is down (`dc ps`), or a Kibana
+  upgrade changed its console proxy.
+
+Run the monitor again with **Run workflow** to confirm a fix. GitHub disables the schedule
+after 60 days without a commit; **Enable workflow** on the Monitor workflow's page turns it
+back on.
+
 ## A deployment failed
 
 Read the failed step in the GitHub Actions log. If the new release does not start, revert the

@@ -37,7 +37,11 @@ configuration of its own:
 - `deploy` runs after `quality` succeeds, only for pushes to `master`, one at a time, and calls
   [`bin/deploy`](../../bin/deploy) with the secrets and variables below.
 
-The workflow's token can only read the repository.
+A second workflow, [`monitor.yaml`](../../.github/workflows/monitor.yaml), checks the demo
+every 15 minutes with [`bin/monitor`](../../bin/monitor), and GitHub emails a failed run
+([Alerts](observability.md#alerts)).
+
+The workflows' tokens can only read the repository.
 
 The audits fail CI when a dependency that reaches the server has a known vulnerability, so a
 newly published advisory stops deployments until the dependency is updated.
@@ -73,7 +77,7 @@ their health, so a release that does not start leaves the demo down until the ne
 | `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `RABBITMQ_PASSWORD` | secrets | service credentials |
 | `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET` | secrets | webhook signing secrets |
 | `REPORTS_API_KEY`, `ORDER_ACCESS_SECRET` | secrets | the reports API key and the order token secret |
-| `MAILPIT_PASSWORD` | secret | the password for the Mailpit page |
+| `MAILPIT_PASSWORD` | secret | the password for the Mailpit page and Kibana, also used by the [monitor](observability.md#alerts) |
 
 ## Commit conventions
 

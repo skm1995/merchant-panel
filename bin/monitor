@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Checks the demo from the outside, as a visitor would: the panel and the API answer, and the
+# logs of the last minutes hold no errors. .github/workflows/monitor.yaml runs it on a schedule,
+# and GitHub emails when a run fails. It runs against a local stack with the same variables.
+
+set -euo pipefail
+
+required=(APP_URL KIBANA_URL KIBANA_USER KIBANA_PASSWORD)
+for name in "${required[@]}"; do
+    if [ -z "${!name:-}" ]; then
+        echo "Required environment variable \"${name}\" is not set." >&2
+        exit 1
+    fi
+done
+
+# Retries ride out a deployment, which restarts the services for a minute or two.
+attempts=10
+retry_delay_seconds=30
+request_timeout_seconds=10
+# Longer than the schedule's 15 minutes, because GitHub may start a scheduled run late.
+error_window=now-20m
+# Monolog's ERROR level: unhandled exceptions and messages the worker failed to handle.
+error_level=400
+shown_errors=5
+
+# Prints the body when the URL answers with a success status and contains the expected text.
+fetch() {
+    local url=$1 expected=$2
+    shift 2
+    local body
+
+    for _ in $(seq 1 "${attempts}"); do
+        if body=$(curl --fail --silent --show-error --max-time "${request_timeout_seconds}" "$@" "${url}") \
+            && grep -qF -- "${expected}" <<< "${body}"; then
+            printf '%s' "${body}"
+            return 0
+        fi
+        sleep "${retry_delay_seconds}"
+    done
+
+    return 1
+}
+
+# Searches the application logs through the Elasticsearch proxy of Kibana's Dev Tools
+# console, which Kibana serves only to requests marked as its own. The password travels in
+# curl's configuration on standard input, not in the process list.
+search_logs() {
+    local query
+    query=$(printf '{"size": %d, "sort": [{"timestamp": "desc"}], "query": {"bool": {"filter": [
+        {"range": {"app.level": {"gte": %d}}},
+        {"range": {"timestamp": {"gte": "%s"}}}
+    ]}}}' "${shown_errors}" "${error_level}" "${error_window}")
+
+    fetch "${KIBANA_URL}/api/console/proxy?path=app-logs-%2A%2F_search&method=POST" '"hits"' \
+        --request POST --header 'kbn-xsrf: true' --header 'x-elastic-internal-origin: Kibana' \
+        --header 'Content-Type: application/json' \
+        --data "${query}" --config - <<< "user = \"${KIBANA_USER}:${KIBANA_PASSWORD}\""
+}
+
+failed=0
+
+if fetch "${APP_URL}/" 'id="root"' > /dev/null; then
+    echo "The panel answers."
+else
+    echo "The panel does not answer at ${APP_URL}/." >&2
+    failed=1
+fi
+
+if fetch "${APP_URL}/api/v1/products?limit=1" '"data"' > /dev/null; then
+    echo "The API answers."
+else
+    echo "The API does not answer at ${APP_URL}/api/v1/products." >&2
+    failed=1
+fi
+
+if result=$(search_logs); then
+    summary=$(python3 -c '
+import json, sys
+
+hits = json.load(sys.stdin)["hits"]
+print(hits["total"]["value"])
+for hit in hits["hits"]:
+    source = hit["_source"]
+    app = source.get("app", {})
+    exception = app.get("context", {}).get("exception", {})
+    reason = exception.get("message", "") if isinstance(exception, dict) else str(exception)
+    request_id = app.get("extra", {}).get("request_id", "none")
+    print("  {} {}: {} (request {})".format(source.get("timestamp"), app.get("message"), reason, request_id))
+' <<< "${result}")
+    errors=$(head -n 1 <<< "${summary}")
+
+    if [ "${errors}" = "0" ]; then
+        echo "The logs of the last 20 minutes hold no errors."
+    else
+        echo "The logs of the last 20 minutes hold ${errors} error(s); the latest:" >&2
+        tail -n +2 <<< "${summary}" >&2
+        failed=1
+    fi
+else
+    echo "The logs cannot be searched at ${KIBANA_URL}." >&2
+    failed=1
+fi
+
+exit "${failed}"

@@ -78,6 +78,25 @@ Production runs the same Vector, Elasticsearch, and Kibana
   in the repository; to change one, edit it in Kibana, export it under Stack Management, Saved
   objects, and replace the file.
 
+## Alerts
+
+[`bin/monitor`](../../bin/monitor) checks the demo from the outside and fails when the panel
+or the API does not answer, or when the logs of the last 20 minutes hold a record at the ERROR
+level: an unhandled exception or a message the worker failed to handle. Refused commands, such
+as checkouts of sold-out products, are warnings and do not count. It retries for up to five
+minutes, so the restarts of a deployment do not alert, and reads the logs through Kibana with
+the demo tools' password.
+
+[`monitor.yaml`](../../.github/workflows/monitor.yaml) runs it every 15 minutes, and GitHub
+emails a failed run ([0026](../decisions/0026-alerts-from-a-scheduled-github-workflow.md)).
+The run's log lists the latest errors with their request ids; the
+[runbook](runbooks.md#when-the-monitor-fails) says what to do next. Locally, the same script
+checks the development stack with the `observability` profile:
+
+```sh
+APP_URL=http://localhost:8080 KIBANA_URL=http://localhost:5601 KIBANA_USER=demo KIBANA_PASSWORD=local bin/monitor
+```
+
 Docker's own rotated log files remain as a fallback:
 
 ```sh
@@ -86,5 +105,6 @@ cd ~/app && sudo docker compose -f compose.prod.yaml logs --since 1h php worker 
 
 ## Limitations
 
-- No alerts: nobody is notified when the demo is down or errors increase.
+- Alerts arrive by email within about 15 minutes and only to the repository's owner; they
+  cover availability and errors, not slow responses.
 - Logs are kept for seven days, on the same server as the application.

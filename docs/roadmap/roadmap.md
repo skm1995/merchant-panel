@@ -9,7 +9,6 @@ solution.
 |---|---|---|
 | 1 | [Password reset](#password-reset) | M |
 | 1 | [Off-site backups](#off-site-backups) | S |
-| 1 | [Monitoring and alerts](#monitoring-and-alerts) | S |
 | 2 | [Images built in CI](#images-built-in-ci) | M |
 | 2 | [Better rate limits](#better-rate-limits) | S |
 | 2 | [Published API reference](#published-api-reference) | S |
@@ -43,15 +42,6 @@ solution.
 Storage, which the Always Free tier includes, with credentials limited to that bucket and a
 lifecycle rule that deletes objects after 30 days. A monthly runbook step restores the latest
 dump into a scratch database to prove the backups work.
-
-## Monitoring and alerts
-
-**Problem:** nobody is notified when the demo is down or failing; the logs are searchable in
-Kibana, but someone has to look.
-
-**Sketch:** a free external uptime check on `https://demo…/api/v1/products?limit=1` that
-emails on failure, and a Kibana rule that mails when server errors or refused commands rise
-above their usual rate.
 
 ## Images built in CI
 
