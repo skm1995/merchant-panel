@@ -29,7 +29,7 @@ security review on 2026-10-27 shaped most of the controls marked as added then.
 | Eavesdropping | HTTPS only, with HSTS; certificates renewed automatically | [Production](operations/production.md) |
 | Revealing internals in errors | Unexpected errors answer a generic 500 with a request id; details only in the logs; no `Server` or `X-Powered-By` versions | [`UnhandledErrorMiddleware`](../backend/src/Shared/Http/Middleware/UnhandledErrorMiddleware.php) |
 | Secrets in the repository or in logs | Secrets live in GitHub and the server's `.env` (mode 600); `compose.prod.yaml` requires every secret, so production never falls back to the public development values in `docker/env/`; gitleaks scans every commit in CI; access logs redact cookies and the API key, order token, and CSRF headers | [CI/CD](operations/ci-cd.md), [`access-log.caddy`](../docker/caddy/access-log.caddy) |
-| A compromised container or CI job doing more | Only Caddy publishes ports; command-line processes run as `www-data`; the CI token is read-only; development ports listen on localhost only | [System](architecture/system.md) |
+| A compromised container or CI job doing more | Only Caddy publishes ports to the internet, and MySQL listens on the server's loopback only, for SSH tunnels; command-line processes run as `www-data`; the CI token is read-only; development ports listen on localhost only | [System](architecture/system.md) |
 
 ## Found and fixed
 

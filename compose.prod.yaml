@@ -187,6 +187,10 @@ services:
     # replicas, point-in-time recovery, or change data capture (backups are dumps), the
     # binary log would only write every change a second time.
     command: ["--innodb-buffer-pool-size=8G", "--innodb-redo-log-capacity=2G", "--disable-log-bin"]
+    # Only on the server's loopback, for a database client through an SSH tunnel; the
+    # firewall and Oracle's security list keep everything but 80 and 443 closed anyway.
+    ports:
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
       MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}

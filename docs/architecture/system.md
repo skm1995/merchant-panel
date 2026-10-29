@@ -56,7 +56,7 @@ flowchart TB
 | `migrate` | same PHP image | Applies Phinx migrations and exits; the PHP services start only after it succeeded. |
 | `seed-demo` | same PHP image | Adds the demo catalog; run by `bin/deploy`, not by `up` (profile `tools`). |
 | `kibana-setup` | `curlimages/curl` | Creates the log index settings, the data view, and the dashboards; run by `bin/deploy` (profile `tools`). |
-| `mysql` | `mysql:8.4` | Orders, products, users, payments, the outbox, and the daily sales summary. |
+| `mysql` | `mysql:8.4` | Orders, products, users, payments, the outbox, and the daily sales summary. Listens on the server's loopback for [database clients through SSH](../operations/production.md#database-access). |
 | `redis` | `redis:7.4-alpine` | Product cache, rate-limit counters, and the state of Black Friday simulations (database 0), and sessions (database 2). |
 | `rabbitmq` | `rabbitmq:4-management` | Queues `emails`, `orders`, `catalog`, `simulation`, and `failed_messages`. |
 | `mailpit` | `axllent/mailpit` | Catches outgoing email, so visitors of the demo can read their confirmation messages. |

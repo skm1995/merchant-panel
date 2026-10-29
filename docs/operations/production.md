@@ -23,8 +23,10 @@ the panel. Deployment creates it once and leaves it alone afterwards.
 
 ## What runs
 
-Caddy publishes ports 80 and 443; MySQL, Redis, RabbitMQ, Mailpit, Elasticsearch, and Kibana
-are reachable only on the Compose network. Elasticsearch gets a 2 GB heap within a 3 GB limit
+Caddy publishes ports 80 and 443 to the internet. MySQL also listens on the server's loopback
+address, `127.0.0.1:3306`, for a database client through an SSH tunnel (see
+[Database access](#database-access)); Redis, RabbitMQ, Mailpit, Elasticsearch, and Kibana are
+reachable only on the Compose network. Elasticsearch gets a 2 GB heap within a 3 GB limit
 and Kibana 1.5 GB, so with MySQL's buffer pool the server keeps several gigabytes free;
 [`provision.sh`](../../docker/server/provision.sh) raises `vm.max_map_count`, which
 Elasticsearch needs. The images contain the code: PHP runs without Xdebug and with OPcache
@@ -39,6 +41,15 @@ recovery, or change data capture would need; PHP-FPM may run up to 48 requests i
 
 The Compose project keeps the repository's earlier name, `vanilla-php-playground`, because
 the volumes holding the database and the other data are named after it.
+
+## Database access
+
+A database client, such as PhpStorm, reaches the production database through an SSH tunnel:
+SSH to the server with the deploy key, then MySQL at `127.0.0.1:3306`, database `app`, user
+`app` with the `MYSQL_PASSWORD` secret. Nothing else can reach that port: it listens on the
+loopback address only, and the firewall and Oracle's security list allow just 80 and 443 from
+outside. The tunnel gives the application's own privileges, so treat writes as changes to the
+live demo.
 
 ## Server setup
 
