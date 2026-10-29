@@ -9,22 +9,26 @@ use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Middleware\UnhandledErrorMiddleware;
 use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use Monolog\Handler\TestHandler;
 use Monolog\Level;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Tests\Unit\Support\HttpHarness;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class UnhandledErrorMiddlewareTest extends TestCase
 {
     private const string PATH = '/api/v1/products';
     private const string SECRET_DETAIL = 'SQLSTATE[HY000]: connection to db.internal refused';
 
-    protected function tearDown(): void
+    private RecordingResponseWriter $response;
+
+    protected function setUp(): void
     {
-        http_response_code(ResponseStatusEnum::OK->value);
+        $this->response = new RecordingResponseWriter();
     }
+
 
     public function testLogsTheFailureAndAnswersWithoutLeakingIt(): void
     {
@@ -40,13 +44,11 @@ final class UnhandledErrorMiddlewareTest extends TestCase
             }
         };
 
-        ob_start();
-        new UnhandledErrorMiddleware(new Logger('test', [$log]), HttpHarness::responder())
+        new UnhandledErrorMiddleware(new Logger('test', [$log]), new Responder($this->response))
             ->process(new Request(HttpMethodEnum::GET->value, self::PATH), $failing);
-        $output = (string) ob_get_clean();
 
-        self::assertSame(ResponseStatusEnum::INTERNAL_SERVER_ERROR->value, http_response_code());
-        self::assertStringNotContainsString(self::SECRET_DETAIL, $output);
+        self::assertSame(ResponseStatusEnum::INTERNAL_SERVER_ERROR->value, $this->response->status);
+        self::assertStringNotContainsString(self::SECRET_DETAIL, $this->response->body);
         self::assertTrue($log->hasRecordThatPasses(
             static fn ($record): bool => $record->level === Level::Error && ($record->context['exception'] ?? null) instanceof RuntimeException,
             Level::Error,

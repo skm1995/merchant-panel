@@ -99,6 +99,14 @@ Controllers are resolved from the container only when their route matches, so a 
 builds no other controller and opens no connections it does not need. The order of the
 middleware is described in [Request lifecycle](request-lifecycle.md).
 
+Controllers and middleware answer through the [`Responder`](../../backend/src/Shared/Http/Responder.php),
+which writes the status, headers, and body through
+[`ResponseWriterInterface`](../../backend/src/Shared/Http/ResponseWriterInterface.php). In
+production [`PhpResponseWriter`](../../backend/src/Shared/Http/PhpResponseWriter.php) is the
+only class that calls `http_response_code()`, `header()`, and `echo`; unit tests pass a
+recording writer and read the response from it, so no test depends on PHP's global response
+state ([0028](../decisions/0028-responses-through-a-writer.md)).
+
 ## Persistence
 
 Repositories use PDO with native prepared statements. Query results are hydrated by

@@ -11,7 +11,7 @@ so a refactoring that keeps the behavior keeps the tests green.
 
 | Layer | Tool | Runs against | Guards |
 |---|---|---|---|
-| Backend unit | PHPUnit | classes built directly, with fakes only for boundaries such as the clock and payment gateways; cross-cutting HTTP behavior through [`HttpHarness`](../../backend/tests/Unit/Support/HttpHarness.php), which dispatches through the real router | calculations, domain rules, validation, error mapping, middleware order, reactions to failing dependencies |
+| Backend unit | PHPUnit | classes built directly, with fakes only for boundaries such as the clock and payment gateways; cross-cutting HTTP behavior through the real router and middleware, reading the response from [`RecordingResponseWriter`](../../backend/tests/Unit/Support/RecordingResponseWriter.php) | calculations, domain rules, validation, error mapping, middleware order, reactions to failing dependencies |
 | Backend functional | PHPUnit with an HTTP client | the test stack through Caddy, a real MySQL, Redis, RabbitMQ, worker, and Mailpit | contracts, SQL, locking and concurrency, messaging, security paths |
 | Frontend unit | Vitest, Testing Library, MSW | components in jsdom, the API faked at the network boundary | screens, the session, the API client |
 | End to end | Playwright | a real browser against the test stack | the main journeys across both sides |

@@ -11,9 +11,10 @@ use App\Shared\Http\Exception\PreconditionRequiredException;
 use App\Shared\Http\Middleware\ErrorMiddleware;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use LogicException;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\HttpHarness;
+use Tests\Unit\Support\RecordingResponseWriter;
 use Throwable;
 
 final class ErrorMiddlewareTest extends TestCase
@@ -22,16 +23,19 @@ final class ErrorMiddlewareTest extends TestCase
     private const string PAGE_PATH = '/login';
     private const string DETAIL = 'The limit must be a positive integer.';
 
-    protected function tearDown(): void
+    private RecordingResponseWriter $response;
+
+    protected function setUp(): void
     {
-        http_response_code(ResponseStatusEnum::OK->value);
+        $this->response = new RecordingResponseWriter();
     }
+
 
     public function testAnswersAnInvalidApiRequestWithABadRequestProblem(): void
     {
         $output = $this->process(self::API_PATH, new InvalidRequestException(self::DETAIL));
 
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $this->response->status);
         self::assertStringContainsString(self::DETAIL, $output);
     }
 
@@ -46,7 +50,7 @@ final class ErrorMiddlewareTest extends TestCase
     {
         $this->process(self::API_PATH, new PreconditionRequiredException(self::DETAIL));
 
-        self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, $this->response->status);
     }
 
     public function testLetsOtherExceptionsPropagate(): void
@@ -69,14 +73,8 @@ final class ErrorMiddlewareTest extends TestCase
             }
         };
 
-        ob_start();
+        new ErrorMiddleware(new Responder($this->response))->process(new Request(HttpMethodEnum::GET->value, $path), $failing);
 
-        try {
-            new ErrorMiddleware(HttpHarness::responder())->process(new Request(HttpMethodEnum::GET->value, $path), $failing);
-        } finally {
-            $output = ob_get_clean();
-        }
-
-        return (string) $output;
+        return $this->response->body;
     }
 }

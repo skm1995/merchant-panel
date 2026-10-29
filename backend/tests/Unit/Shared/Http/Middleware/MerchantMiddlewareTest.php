@@ -8,10 +8,11 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Middleware\MerchantMiddleware;
 use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use App\Shared\Http\SessionUserInterface;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Support\RecordingHandler;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class MerchantMiddlewareTest extends TestCase
 {
@@ -19,10 +20,13 @@ final class MerchantMiddlewareTest extends TestCase
     private const string SIGN_IN_DETAIL = 'Sign in to continue.';
     private const string NO_ACCESS_DETAIL = 'Your account has no access to the merchant panel.';
 
-    protected function tearDown(): void
+    private RecordingResponseWriter $response;
+
+    protected function setUp(): void
     {
-        http_response_code(ResponseStatusEnum::OK->value);
+        $this->response = new RecordingResponseWriter();
     }
+
 
     public function testLetsMerchantsThrough(): void
     {
@@ -40,7 +44,7 @@ final class MerchantMiddlewareTest extends TestCase
         $output = $this->process(false, false, $handler);
 
         self::assertSame([], $handler->handled);
-        self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $this->response->status);
         self::assertStringContainsString(self::SIGN_IN_DETAIL, $output);
     }
 
@@ -51,7 +55,7 @@ final class MerchantMiddlewareTest extends TestCase
         $output = $this->process(true, false, $handler);
 
         self::assertSame([], $handler->handled);
-        self::assertSame(ResponseStatusEnum::FORBIDDEN->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::FORBIDDEN->value, $this->response->status);
         self::assertStringContainsString(self::NO_ACCESS_DETAIL, $output);
     }
 
@@ -61,9 +65,8 @@ final class MerchantMiddlewareTest extends TestCase
         $user->method('isSignedIn')->willReturn($signedIn);
         $user->method('isMerchant')->willReturn($merchant);
 
-        ob_start();
-        new MerchantMiddleware($user, HttpHarness::responder())->process(new Request(HttpMethodEnum::GET->value, self::PATH), $handler);
+        new MerchantMiddleware($user, new Responder($this->response))->process(new Request(HttpMethodEnum::GET->value, self::PATH), $handler);
 
-        return (string) ob_get_clean();
+        return $this->response->body;
     }
 }

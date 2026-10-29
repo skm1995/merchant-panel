@@ -20,7 +20,6 @@ use App\Shared\Http\Responder;
 final readonly class RateLimitMiddleware implements MiddlewareInterface
 {
     private const string UNKNOWN_CLIENT = 'unknown';
-    private const string HEADER_FORMAT = '%s: %d';
     private const string DETAIL_FORMAT = 'Too many requests. Try again in %d seconds.';
 
     public function __construct(
@@ -46,7 +45,7 @@ final readonly class RateLimitMiddleware implements MiddlewareInterface
         );
 
         if ($retryAfter !== null) {
-            header(sprintf(self::HEADER_FORMAT, HeaderNameEnum::RETRY_AFTER->value, $retryAfter));
+            $this->responder->sendHeader(HeaderNameEnum::RETRY_AFTER, (string) $retryAfter);
             $this->responder->error($request, ResponseStatusEnum::TOO_MANY_REQUESTS, sprintf(self::DETAIL_FORMAT, $retryAfter));
 
             return;

@@ -10,10 +10,11 @@ use App\Shared\Http\MapException;
 use App\Shared\Http\Middleware\ExceptionMappingMiddleware;
 use App\Shared\Http\Middleware\RequestHandlerInterface;
 use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use DomainException;
 use LogicException;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\HttpHarness;
+use Tests\Unit\Support\RecordingResponseWriter;
 use Throwable;
 
 final class ExceptionMappingMiddlewareTest extends TestCase
@@ -21,19 +22,20 @@ final class ExceptionMappingMiddlewareTest extends TestCase
     private const string PATH = '/api/v1/products/1';
     private const string DETAIL = 'The product does not exist.';
 
-    protected function tearDown(): void
+    private RecordingResponseWriter $response;
+
+    protected function setUp(): void
     {
-        http_response_code(ResponseStatusEnum::OK->value);
+        $this->response = new RecordingResponseWriter();
     }
+
 
     public function testAnswersADeclaredExceptionWithItsProblemStatus(): void
     {
-        ob_start();
         $this->middleware()->process(new Request(HttpMethodEnum::GET->value, self::PATH), self::failing(new DomainException(self::DETAIL)));
-        $output = (string) ob_get_clean();
 
-        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
-        self::assertStringContainsString(self::DETAIL, $output);
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $this->response->status);
+        self::assertStringContainsString(self::DETAIL, $this->response->body);
     }
 
     public function testLetsUndeclaredExceptionsPropagate(): void
@@ -45,7 +47,7 @@ final class ExceptionMappingMiddlewareTest extends TestCase
 
     private function middleware(): ExceptionMappingMiddleware
     {
-        return new ExceptionMappingMiddleware([new MapException(DomainException::class, ResponseStatusEnum::NOT_FOUND)], HttpHarness::responder());
+        return new ExceptionMappingMiddleware([new MapException(DomainException::class, ResponseStatusEnum::NOT_FOUND)], new Responder($this->response));
     }
 
     private static function failing(Throwable $failure): RequestHandlerInterface

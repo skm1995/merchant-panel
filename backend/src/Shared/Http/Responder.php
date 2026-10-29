@@ -11,10 +11,13 @@ use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use Closure;
 
-final class Responder
+/**
+ * Writes the application's responses: JSON, problem details, redirects, statuses, and the one
+ * server-rendered view, all through the response writer.
+ */
+final readonly class Responder
 {
     private const string VIEW_PATH_FORMAT = '%s/views/%s.php';
-    private const string HEADER_FORMAT = '%s: %s';
     private const string STATUS_BODY_FORMAT = '%d %s';
     private const string PROBLEM_TYPE_KEY = 'type';
     private const string PROBLEM_TITLE_KEY = 'title';
@@ -24,6 +27,10 @@ final class Responder
     // Floats keep their fraction (2.0, not 2), so a number field never changes its JSON type.
     private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION;
 
+    public function __construct(private ResponseWriterInterface $writer)
+    {
+    }
+
     /**
      * Renders a PHP view from views/, which reads its data from $page and escapes every value
      * it prints with $e.
@@ -32,12 +39,20 @@ final class Responder
      */
     public function render(string $view, array $page = []): void
     {
-        self::header(HeaderNameEnum::CONTENT_TYPE, ContentTypeEnum::HTML->value);
+        $this->writer->writeHeader(HeaderNameEnum::CONTENT_TYPE, ContentTypeEnum::HTML->value);
         $viewPath = sprintf(self::VIEW_PATH_FORMAT, dirname(__DIR__, 3), $view);
 
-        (static function (string $viewPath, array $page, Closure $e): void {
-            require $viewPath;
-        })($viewPath, $page, self::escape(...));
+        ob_start();
+
+        try {
+            (static function (string $viewPath, array $page, Closure $e): void {
+                require $viewPath;
+            })($viewPath, $page, self::escape(...));
+        } finally {
+            $html = (string) ob_get_clean();
+        }
+
+        $this->writer->writeBody($html);
     }
 
     /**
@@ -45,7 +60,7 @@ final class Responder
      */
     public function sendHeader(HeaderNameEnum $name, string $value): void
     {
-        self::header($name, $value);
+        $this->writer->writeHeader($name, $value);
     }
 
     public function json(
@@ -54,7 +69,7 @@ final class Responder
         ?EntityTag $entityTag = null,
     ): void {
         if ($entityTag !== null) {
-            self::header(HeaderNameEnum::ETAG, $entityTag->value);
+            $this->writer->writeHeader(HeaderNameEnum::ETAG, $entityTag->value);
         }
 
         $this->writeJson($body->toArray(), $status, ContentTypeEnum::JSON);
@@ -62,7 +77,7 @@ final class Responder
 
     public function created(Arrayable $body, string $location, ?EntityTag $entityTag = null): void
     {
-        self::header(HeaderNameEnum::LOCATION, $location);
+        $this->writer->writeHeader(HeaderNameEnum::LOCATION, $location);
         $this->json($body, ResponseStatusEnum::CREATED, $entityTag);
     }
 
@@ -84,8 +99,8 @@ final class Responder
      */
     public function permanentRedirect(string $location): void
     {
-        http_response_code(ResponseStatusEnum::MOVED_PERMANENTLY->value);
-        self::header(HeaderNameEnum::LOCATION, $location);
+        $this->writer->writeStatus(ResponseStatusEnum::MOVED_PERMANENTLY);
+        $this->writer->writeHeader(HeaderNameEnum::LOCATION, $location);
     }
 
     /**
@@ -93,7 +108,7 @@ final class Responder
      */
     public function withoutBody(ResponseStatusEnum $status): void
     {
-        http_response_code($status->value);
+        $this->writer->writeStatus($status);
     }
 
     /**
@@ -112,26 +127,21 @@ final class Responder
 
     public function status(ResponseStatusEnum $status): void
     {
-        http_response_code($status->value);
-        self::header(HeaderNameEnum::CONTENT_TYPE, ContentTypeEnum::PLAIN->value);
-        echo sprintf(self::STATUS_BODY_FORMAT, $status->value, $status->message());
+        $this->writer->writeStatus($status);
+        $this->writer->writeHeader(HeaderNameEnum::CONTENT_TYPE, ContentTypeEnum::PLAIN->value);
+        $this->writer->writeBody(sprintf(self::STATUS_BODY_FORMAT, $status->value, $status->message()));
     }
 
     /** @param array<string, mixed> $data */
     private function writeJson(array $data, ResponseStatusEnum $status, ContentTypeEnum $contentType): void
     {
-        http_response_code($status->value);
-        self::header(HeaderNameEnum::CONTENT_TYPE, $contentType->value);
-        echo json_encode($data, self::JSON_FLAGS);
+        $this->writer->writeStatus($status);
+        $this->writer->writeHeader(HeaderNameEnum::CONTENT_TYPE, $contentType->value);
+        $this->writer->writeBody(json_encode($data, self::JSON_FLAGS));
     }
 
     private static function escape(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES, CharacterEncodingEnum::UTF8->value);
-    }
-
-    private static function header(HeaderNameEnum $name, string $value): void
-    {
-        header(sprintf(self::HEADER_FORMAT, $name->value, $value));
     }
 }

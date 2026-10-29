@@ -29,6 +29,7 @@ use Psr\Log\NullLogger;
 use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\InMemoryCacheStore;
 use Tests\Unit\Support\MerchantUserRepository;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class RouterTest extends TestCase
 {
@@ -60,6 +61,7 @@ final class RouterTest extends TestCase
     private const string PANEL_PATH = '/api/v1/panel/orders';
     private const string CSRF_HEADER = 'x-csrf-token';
     private CsrfToken $csrfToken;
+    private RecordingResponseWriter $response;
     /** @var array<string, mixed> */
     private array $originalSession;
 
@@ -72,34 +74,36 @@ final class RouterTest extends TestCase
         $this->originalSession = $_SESSION;
         $_SESSION = [];
         $this->csrfToken = new CsrfToken(new Session());
+        $this->response = new RecordingResponseWriter();
     }
 
     protected function tearDown(): void
     {
         $_SESSION = $this->originalSession;
-        http_response_code(ResponseStatusEnum::OK->value);
     }
 
     public function testDispatchesAttributedGetRoute(): void
     {
-        $controller = new class () {
+        $controller = new class ($this->response) {
             public const string PATH = '/';
             public const string MESSAGE = 'route dispatched';
             public bool $called = false;
+
+            public function __construct(private readonly RecordingResponseWriter $response)
+            {
+            }
 
             #[Route(HttpMethodEnum::GET, self::PATH)]
             public function index(): void
             {
                 $this->called = true;
-                echo self::MESSAGE;
+                $this->response->writeBody(self::MESSAGE);
             }
         };
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        ob_start();
-
         $router->handle(new Request(HttpMethodEnum::GET->value, self::ROUTE_PATH));
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
         self::assertTrue($controller->called);
         self::assertSame(self::DISPATCHED_MESSAGE, $output);
@@ -108,26 +112,20 @@ final class RouterTest extends TestCase
     public function testReturnsNotFoundForUnknownRoute(): void
     {
         $router = $this->router();
-        http_response_code(200);
-        ob_start();
-
         $router->handle(new Request(HttpMethodEnum::GET->value, self::MISSING_ROUTE_PATH));
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
-        self::assertSame(404, http_response_code());
+        self::assertSame(404, $this->response->status);
         self::assertSame(self::NOT_FOUND_MESSAGE, $output);
     }
 
     public function testUnknownApiRouteIsNotFoundProblem(): void
     {
         $router = $this->router();
-        ob_start();
-
         $router->handle(new Request(HttpMethodEnum::GET->value, self::MISSING_API_PATH));
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
-        self::assertIsString($output);
-        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $this->response->status);
         self::assertSame(
             ResponseStatusEnum::NOT_FOUND->value,
             json_decode($output, true, flags: JSON_THROW_ON_ERROR)['status'],
@@ -170,12 +168,10 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
 
-        ob_start();
         $router->handle(new Request(HttpMethodEnum::GET->value, self::PANEL_PATH));
-        ob_end_clean();
 
         self::assertSame(0, $controller->calls);
-        self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $this->response->status);
     }
 
     public function testSessionApiRouteRequiresTheCsrfTokenHeader(): void
@@ -194,14 +190,12 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
 
-        ob_start();
         $router->handle(new Request(HttpMethodEnum::POST->value, self::SESSION_API_PATH));
         $router->handle(new Request(
             HttpMethodEnum::POST->value,
             self::SESSION_API_PATH,
             headers: [self::CSRF_HEADER => $this->csrfToken->create()],
         ));
-        ob_end_clean();
 
         self::assertSame(1, $controller->calls);
     }
@@ -224,11 +218,10 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
 
-        ob_start();
         $router->handle(new Request(HttpMethodEnum::DELETE->value, self::PRODUCT_API_PATH));
-        $output = (string) ob_get_clean();
+        $output = $this->response->body;
 
-        self::assertSame(ResponseStatusEnum::METHOD_NOT_ALLOWED->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::METHOD_NOT_ALLOWED->value, $this->response->status);
         self::assertStringContainsString('This path accepts only GET, PATCH.', $output);
     }
 
@@ -287,16 +280,14 @@ final class RouterTest extends TestCase
 
         try {
             $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::CLIENT));
-            ob_start();
             $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::CLIENT));
-            $output = ob_get_clean();
-            self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, http_response_code());
+            $output = $this->response->body;
+            self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, $this->response->status);
             $router->handle(new Request(HttpMethodEnum::POST->value, $controller::PATH, clientAddress: self::OTHER_CLIENT));
         } finally {
             putenv(self::RATE_LIMIT_VARIABLE);
         }
 
-        self::assertIsString($output);
         self::assertStringContainsString(self::RETRY_DETAIL_PREFIX, $output);
         self::assertSame(2, $controller->calls);
     }
@@ -328,17 +319,15 @@ final class RouterTest extends TestCase
             for ($attempt = 0; $attempt < 3; $attempt++) {
                 $router->handle($request(self::LOAD_TEST_KEY));
             }
-            ob_start();
             $router->handle($request('guessed-key'));
             $router->handle($request('guessed-key'));
             $router->handle($request(self::LOAD_TEST_KEY, self::CLIENT));
             $router->handle($request(self::LOAD_TEST_KEY, self::CLIENT));
-            ob_end_clean();
         } finally {
             putenv(self::RATE_LIMIT_VARIABLE);
         }
 
-        self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::TOO_MANY_REQUESTS->value, $this->response->status);
         self::assertSame(5, $controller->calls, 'Three requests with the key pass the limit of one; a wrong key, or the right key from the internet, gets one request through, then 429.');
     }
 
@@ -361,10 +350,8 @@ final class RouterTest extends TestCase
 
         try {
             foreach ([[], ['x-api-key' => 'wrong-key']] as $headers) {
-                ob_start();
                 $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: $headers));
-                ob_end_clean();
-                self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
+                self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $this->response->status);
             }
 
             $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH, headers: ['x-api-key' => self::API_KEY]));
@@ -377,14 +364,18 @@ final class RouterTest extends TestCase
 
     public function testDispatchesAttributedPostRoute(): void
     {
-        $controller = new class () {
+        $controller = new class ($this->response) {
             public const string PATH = '/';
             public const string MESSAGE = 'post route dispatched';
+
+            public function __construct(private readonly RecordingResponseWriter $response)
+            {
+            }
 
             #[Route(HttpMethodEnum::POST, self::PATH)]
             public function submit(): void
             {
-                echo self::MESSAGE;
+                $this->response->writeBody(self::MESSAGE);
             }
         };
         $request = new Request(
@@ -394,10 +385,8 @@ final class RouterTest extends TestCase
         );
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        ob_start();
-
         $router->handle($request);
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
         self::assertSame(self::POST_VALUE, $output);
     }
@@ -438,12 +427,11 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
 
-        ob_start();
         $router->handle(new Request(HttpMethodEnum::POST->value, self::ROUTE_PATH));
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
         self::assertFalse($controller->called);
-        self::assertSame(403, http_response_code());
+        self::assertSame(403, $this->response->status);
         self::assertSame(self::FORBIDDEN_MESSAGE, $output);
     }
 
@@ -462,9 +450,8 @@ final class RouterTest extends TestCase
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
 
-        ob_start();
         $router->handle(new Request(HttpMethodEnum::PUT->value, self::ROUTE_PATH));
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
         self::assertFalse($controller->called);
         self::assertSame(self::FORBIDDEN_MESSAGE, $output);
@@ -502,12 +489,9 @@ final class RouterTest extends TestCase
         };
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        ob_start();
-
         $router->handle(new Request(HttpMethodEnum::GET->value, self::NESTED_PRODUCT_PATH));
-        ob_end_clean();
 
-        self::assertSame(404, http_response_code());
+        self::assertSame(404, $this->response->status);
     }
 
     public function testRejectsRouteMethodWithNonRequestParameter(): void
@@ -539,10 +523,7 @@ final class RouterTest extends TestCase
         };
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        ob_start();
-
         $router->handle(new Request(HttpMethodEnum::GET->value, self::NON_NUMERIC_PRODUCT_PATH));
-        ob_end_clean();
         $router->handle(new Request(HttpMethodEnum::GET->value, self::PRODUCT_PATH));
 
         self::assertTrue($controller->called);
@@ -583,7 +564,7 @@ final class RouterTest extends TestCase
 
         $problem = $this->problemFrom($controller);
 
-        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $this->response->status);
         self::assertSame(self::MAPPED_FAILURE, $problem['detail']);
     }
 
@@ -601,7 +582,7 @@ final class RouterTest extends TestCase
 
         $problem = $this->problemFrom($controller, $controller::PATH);
 
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $this->response->status);
         self::assertSame(self::INVALID_INPUT, $problem['detail']);
     }
 
@@ -619,7 +600,7 @@ final class RouterTest extends TestCase
 
         $problem = $this->problemFrom($controller, $controller::PATH);
 
-        self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, $this->response->status);
         self::assertSame(ResponseStatusEnum::PRECONDITION_REQUIRED->value, $problem['status']);
     }
 
@@ -636,12 +617,10 @@ final class RouterTest extends TestCase
         };
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        ob_start();
-
         $router->handle(new Request(HttpMethodEnum::GET->value, $controller::PATH));
-        $output = ob_get_clean();
+        $output = $this->response->body;
 
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $this->response->status);
         self::assertSame('400 Bad Request', $output);
     }
 
@@ -668,10 +647,8 @@ final class RouterTest extends TestCase
     {
         $router = $this->router();
         $router->registerController($controller::class, static fn (): object => $controller);
-        ob_start();
         $router->handle(new Request(HttpMethodEnum::GET->value, $path));
-        $output = ob_get_clean();
-        self::assertIsString($output);
+        $output = $this->response->body;
         $problem = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($problem);
 
@@ -683,7 +660,7 @@ final class RouterTest extends TestCase
         return new Router(
             $this->csrfToken,
             new Session(),
-            new Responder(),
+            new Responder($this->response),
             new CurrentUser(new Session(), new MerchantUserRepository()),
             new RateLimiter(new InMemoryCacheStore(), new FrozenClock(), new NullLogger()),
             new LoadTestKey(self::LOAD_TEST_KEY),

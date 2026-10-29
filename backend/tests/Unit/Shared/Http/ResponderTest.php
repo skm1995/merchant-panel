@@ -6,11 +6,14 @@ namespace Tests\Unit\Shared\Http;
 
 use App\Shared\Contract\Arrayable;
 use App\Shared\Http\EntityTag;
+use App\Shared\Http\Enum\ContentTypeEnum;
+use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class ResponderTest extends TestCase
 {
@@ -24,35 +27,28 @@ final class ResponderTest extends TestCase
     private const string NAME_KEY = 'name';
     private const string NAME = 'Zażółć/gęślą';
     private const string DETAIL = 'The product does not exist.';
+    private const string NEW_LOCATION = '/products/5/edit';
 
+    private RecordingResponseWriter $response;
     private Responder $responder;
 
     protected function setUp(): void
     {
-        $this->responder = new Responder();
-    }
-
-    protected function tearDown(): void
-    {
-        http_response_code(ResponseStatusEnum::OK->value);
+        $this->response = new RecordingResponseWriter();
+        $this->responder = new Responder($this->response);
     }
 
     public function testRenderEscapesDynamicValues(): void
     {
-        ob_start();
-
         $this->responder->render(self::VIEW, [self::HEADING_KEY => self::MESSAGE, self::ROWS_KEY => [], self::SUMMARY_KEY => self::MESSAGE]);
-        $output = ob_get_clean();
 
-        self::assertIsString($output);
-        self::assertStringContainsString(self::ESCAPED_MESSAGE, $output);
-        self::assertStringNotContainsString(self::MESSAGE, $output);
+        self::assertSame(ContentTypeEnum::HTML->value, $this->response->headers[HeaderNameEnum::CONTENT_TYPE->value]);
+        self::assertStringContainsString(self::ESCAPED_MESSAGE, $this->response->body);
+        self::assertStringNotContainsString(self::MESSAGE, $this->response->body);
     }
 
     public function testJsonWritesUnescapedJsonWithStatus(): void
     {
-        ob_start();
-
         $this->responder->json(new readonly class (self::NAME_KEY, self::NAME) implements Arrayable {
             public function __construct(private string $key, private string $value)
             {
@@ -63,81 +59,70 @@ final class ResponderTest extends TestCase
                 return [$this->key => $this->value];
             }
         });
-        $output = ob_get_clean();
 
-        self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
-        self::assertSame('{"name":"Zażółć/gęślą"}', $output);
+        self::assertSame(ResponseStatusEnum::OK->value, $this->response->status);
+        self::assertSame(ContentTypeEnum::JSON->value, $this->response->headers[HeaderNameEnum::CONTENT_TYPE->value]);
+        self::assertSame('{"name":"Zażółć/gęślą"}', $this->response->body);
     }
 
     public function testJsonCanCarryAnEntityTag(): void
     {
-        ob_start();
         $this->responder->json(new readonly class () implements Arrayable {
             public function toArray(): array
             {
                 return [];
             }
         }, ResponseStatusEnum::OK, EntityTag::fromVersion(3));
-        ob_end_clean();
 
-        self::assertSame(ResponseStatusEnum::OK->value, http_response_code());
+        self::assertSame(EntityTag::fromVersion(3)->value, $this->response->headers[HeaderNameEnum::ETAG->value]);
     }
 
     public function testProblemFollowsRfc9457(): void
     {
-        ob_start();
-
         $this->responder->problem(ResponseStatusEnum::NOT_FOUND, self::DETAIL);
-        $output = ob_get_clean();
 
-        self::assertIsString($output);
-        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::NOT_FOUND->value, $this->response->status);
+        self::assertSame(ContentTypeEnum::PROBLEM_JSON->value, $this->response->headers[HeaderNameEnum::CONTENT_TYPE->value]);
         self::assertSame([
             'type' => 'about:blank',
             'title' => 'Not Found',
             'status' => 404,
             'detail' => self::DETAIL,
-        ], json_decode($output, true, flags: JSON_THROW_ON_ERROR));
+        ], $this->response->json());
     }
 
     public function testStatusWritesPlainStatusLine(): void
     {
-        ob_start();
-
         $this->responder->status(ResponseStatusEnum::BAD_REQUEST);
-        $output = ob_get_clean();
 
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, http_response_code());
-        self::assertSame(self::BAD_REQUEST_BODY, $output);
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $this->response->status);
+        self::assertSame(self::BAD_REQUEST_BODY, $this->response->body);
     }
 
     public function testErrorAnswersApiRequestsWithProblemsAndPagesWithPlainStatus(): void
     {
-        ob_start();
-        $this->responder->error(new Request(HttpMethodEnum::GET->value, '/api/v1/products'), ResponseStatusEnum::NOT_FOUND, self::DETAIL);
-        $problem = (string) ob_get_clean();
-        ob_start();
-        $this->responder->error(new Request(HttpMethodEnum::GET->value, '/login'), ResponseStatusEnum::NOT_FOUND, self::DETAIL);
-        $plain = (string) ob_get_clean();
+        $page = new RecordingResponseWriter();
 
-        self::assertStringContainsString(self::DETAIL, $problem);
-        self::assertSame('404 Not Found', $plain);
+        $this->responder->error(new Request(HttpMethodEnum::GET->value, '/api/v1/products'), ResponseStatusEnum::NOT_FOUND, self::DETAIL);
+        new Responder($page)->error(new Request(HttpMethodEnum::GET->value, '/login'), ResponseStatusEnum::NOT_FOUND, self::DETAIL);
+
+        self::assertSame(self::DETAIL, $this->response->json()['detail']);
+        self::assertSame('404 Not Found', $page->body);
     }
 
     public function testWithoutBodyWritesOnlyTheStatus(): void
     {
-        ob_start();
         $this->responder->withoutBody(ResponseStatusEnum::NO_CONTENT);
-        $output = ob_get_clean();
 
-        self::assertSame(ResponseStatusEnum::NO_CONTENT->value, http_response_code());
-        self::assertSame(0, strlen((string) $output));
+        self::assertSame(ResponseStatusEnum::NO_CONTENT->value, $this->response->status);
+        self::assertSame('', $this->response->body);
     }
 
     public function testPermanentRedirectPointsToTheNewLocation(): void
     {
-        $this->responder->permanentRedirect('/products/5/edit');
+        $this->responder->permanentRedirect(self::NEW_LOCATION);
 
-        self::assertSame(ResponseStatusEnum::MOVED_PERMANENTLY->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::MOVED_PERMANENTLY->value, $this->response->status);
+        self::assertSame(self::NEW_LOCATION, $this->response->headers[HeaderNameEnum::LOCATION->value]);
     }
 }

@@ -9,10 +9,11 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Middleware\CsrfMiddleware;
 use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use App\Shared\Http\Session;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Support\RecordingHandler;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class CsrfMiddlewareTest extends TestCase
 {
@@ -25,6 +26,7 @@ final class CsrfMiddlewareTest extends TestCase
     private array $originalSession;
     private CsrfToken $csrfToken;
     private RecordingHandler $handler;
+    private RecordingResponseWriter $response;
 
     protected function setUp(): void
     {
@@ -34,12 +36,12 @@ final class CsrfMiddlewareTest extends TestCase
         $_SESSION = [];
         $this->csrfToken = new CsrfToken($session);
         $this->handler = new RecordingHandler();
+        $this->response = new RecordingResponseWriter();
     }
 
     protected function tearDown(): void
     {
         $_SESSION = $this->originalSession;
-        http_response_code(ResponseStatusEnum::OK->value);
     }
 
     public function testLetsSafeRequestsThroughWithoutAToken(): void
@@ -65,15 +67,14 @@ final class CsrfMiddlewareTest extends TestCase
         $output = $this->process(new Request(HttpMethodEnum::POST->value, self::API_PATH, headers: [self::CSRF_HEADER => self::WRONG_TOKEN]));
 
         self::assertSame([], $this->handler->handled);
-        self::assertSame(ResponseStatusEnum::FORBIDDEN->value, http_response_code());
+        self::assertSame(ResponseStatusEnum::FORBIDDEN->value, $this->response->status);
         self::assertStringContainsString('CSRF', $output);
     }
 
     private function process(Request $request): string
     {
-        ob_start();
-        new CsrfMiddleware($this->csrfToken, HttpHarness::responder())->process($request, $this->handler);
+        new CsrfMiddleware($this->csrfToken, new Responder($this->response))->process($request, $this->handler);
 
-        return (string) ob_get_clean();
+        return $this->response->body;
     }
 }

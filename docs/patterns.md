@@ -16,6 +16,8 @@ and follow the existing implementation it names.
   parameter the route does not declare is a programming error.
 - Constrain path parameters in the route (`{id:\d+}`) and map domain exceptions with
   `#[MapException]` instead of `try/catch`.
+- Respond only through the `Responder`; never call `header()`, `http_response_code()`, or
+  `echo` directly, so unit tests can read the response from a recording writer.
 - The router wraps every route in middleware: `ErrorMiddleware` answers request parsing
   failures (400, 428), and `#[RequireApiKey]` and `#[MapException]` add their policies.
 - The public JSON API under `/api/` is sessionless: it never reads the session or cookies

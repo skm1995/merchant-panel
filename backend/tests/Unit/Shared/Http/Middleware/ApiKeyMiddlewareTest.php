@@ -9,9 +9,10 @@ use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\Middleware\ApiKeyMiddleware;
 use App\Shared\Http\Request;
 use App\Shared\Http\RequireApiKey;
+use App\Shared\Http\Responder;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\HttpHarness;
 use Tests\Unit\Support\RecordingHandler;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class ApiKeyMiddlewareTest extends TestCase
 {
@@ -20,15 +21,17 @@ final class ApiKeyMiddlewareTest extends TestCase
     private const string PATH = '/api/v1/reports/daily-revenue';
     private const string HEADER = 'x-api-key';
 
+    private RecordingResponseWriter $response;
+
     protected function setUp(): void
     {
         putenv(self::VARIABLE . '=' . self::KEY);
+        $this->response = new RecordingResponseWriter();
     }
 
     protected function tearDown(): void
     {
         putenv(self::VARIABLE);
-        http_response_code(ResponseStatusEnum::OK->value);
     }
 
     public function testLetsRequestsWithTheConfiguredKeyThrough(): void
@@ -48,16 +51,14 @@ final class ApiKeyMiddlewareTest extends TestCase
             $this->process($headers, $handler);
 
             self::assertSame([], $handler->handled);
-            self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, http_response_code());
+            self::assertSame(ResponseStatusEnum::UNAUTHORIZED->value, $this->response->status);
         }
     }
 
     /** @param array<string, string> $headers */
     private function process(array $headers, RecordingHandler $handler): void
     {
-        ob_start();
-        new ApiKeyMiddleware(new RequireApiKey(self::VARIABLE), HttpHarness::responder())
+        new ApiKeyMiddleware(new RequireApiKey(self::VARIABLE), new Responder($this->response))
             ->process(new Request(HttpMethodEnum::GET->value, self::PATH, headers: $headers), $handler);
-        ob_end_clean();
     }
 }

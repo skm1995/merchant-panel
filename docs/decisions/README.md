@@ -33,3 +33,4 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0025](0025-black-friday-through-the-public-api.md) | Black Friday simulation through the public API, from its own process | Accepted |
 | [0026](0026-alerts-from-a-scheduled-github-workflow.md) | Alerts from a scheduled GitHub workflow | Accepted |
 | [0027](0027-password-stamp-ends-sessions.md) | A password stamp in the session ends older sessions | Accepted |
+| [0028](0028-responses-through-a-writer.md) | Responses written through a writer, not PHP's globals | Accepted |

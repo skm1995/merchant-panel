@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Http\Middleware;
 
 use App\Shared\Http\Request;
+use App\Shared\Http\ResponseWriterInterface;
 use Psr\Log\LoggerInterface;
 
 final readonly class AccessLogMiddleware implements MiddlewareInterface
@@ -16,7 +17,7 @@ final readonly class AccessLogMiddleware implements MiddlewareInterface
     private const string DURATION_KEY = 'duration_ms';
     private const int NANOSECONDS_PER_MILLISECOND = 1000000;
 
-    public function __construct(private LoggerInterface $logger)
+    public function __construct(private LoggerInterface $logger, private ResponseWriterInterface $writer)
     {
     }
 
@@ -30,7 +31,7 @@ final readonly class AccessLogMiddleware implements MiddlewareInterface
             $this->logger->info(self::MESSAGE, [
                 self::METHOD_KEY => $request->method,
                 self::PATH_KEY => $request->path,
-                self::STATUS_KEY => http_response_code(),
+                self::STATUS_KEY => $this->writer->writtenStatus(),
                 self::DURATION_KEY => intdiv(hrtime(true) - $startedAt, self::NANOSECONDS_PER_MILLISECOND),
             ]);
         }

@@ -6,6 +6,7 @@ namespace App\Shared\Http\Middleware;
 
 use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use App\Shared\Logging\CorrelationId;
 use Symfony\Component\Uid\Uuid;
 
@@ -16,9 +17,8 @@ use Symfony\Component\Uid\Uuid;
 final readonly class RequestIdMiddleware implements MiddlewareInterface
 {
     private const string ACCEPTED_ID_PATTERN = '/^[A-Za-z0-9-]{8,64}$/';
-    private const string HEADER_FORMAT = '%s: %s';
 
-    public function __construct(private CorrelationId $correlation)
+    public function __construct(private CorrelationId $correlation, private Responder $responder)
     {
     }
 
@@ -28,7 +28,7 @@ final readonly class RequestIdMiddleware implements MiddlewareInterface
         $id = $provided !== null && preg_match(self::ACCEPTED_ID_PATTERN, $provided) === 1 ? $provided : Uuid::v4()->toRfc4122();
 
         $this->correlation->set($id);
-        header(sprintf(self::HEADER_FORMAT, HeaderNameEnum::REQUEST_ID->value, $id));
+        $this->responder->sendHeader(HeaderNameEnum::REQUEST_ID, $id);
         $next->handle($request);
     }
 }

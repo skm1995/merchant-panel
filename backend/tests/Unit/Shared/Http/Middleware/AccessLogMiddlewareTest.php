@@ -13,22 +13,19 @@ use Monolog\Level;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Support\RecordingHandler;
+use Tests\Unit\Support\RecordingResponseWriter;
 
 final class AccessLogMiddlewareTest extends TestCase
 {
     private const string PATH = '/api/v1/products';
 
-    protected function tearDown(): void
-    {
-        http_response_code(ResponseStatusEnum::OK->value);
-    }
-
     public function testLogsEveryRequestWithItsStatusAndDuration(): void
     {
         $log = new TestHandler();
-        http_response_code(ResponseStatusEnum::CREATED->value);
+        $response = new RecordingResponseWriter();
+        $response->writeStatus(ResponseStatusEnum::CREATED);
 
-        new AccessLogMiddleware(new Logger('test', [$log]))
+        new AccessLogMiddleware(new Logger('test', [$log]), $response)
             ->process(new Request(HttpMethodEnum::POST->value, self::PATH), new RecordingHandler());
 
         $record = $log->getRecords()[0] ?? null;
