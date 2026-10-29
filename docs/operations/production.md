@@ -57,7 +57,9 @@ keys only.
 ## Secrets
 
 GitHub stores the secrets and passes them to the deploy job, which writes them into the
-server's `.env` with mode 600; [CI/CD](ci-cd.md) lists them. They never appear in the
+server's `.env` with mode 600; [CI/CD](ci-cd.md) lists them. `compose.prod.yaml` requires
+each one, so a deployment missing a secret fails to start instead of falling back to the
+public development value in `docker/env/`. They never appear in the
 repository, in logs, or in workflow output, and gitleaks checks every commit for secrets.
 
 ## Nightly maintenance
