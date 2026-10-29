@@ -11,6 +11,7 @@ use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use PDO;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Tests\Functional\Support\ApiClient;
@@ -28,6 +29,7 @@ final class CheckoutApiTest extends TestCase
     private const string WRONG_TOKEN = '0000000000000000000000000000000000000000000000000000000000000000';
     private const string CHECKOUT_SPECIFICATION_PATH = '/api/v1/carts/{id}/checkout';
     private const string ORDER_SPECIFICATION_PATH = '/api/v1/orders/{id}';
+    private const string ITEM_SPECIFICATION_PATH = '/api/v1/carts/{id}/items/{productId}';
     private const string IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
     private const int PRICE_IN_GROSZE = 2500;
     private const int CONCURRENT_BUYERS = 10;
@@ -106,6 +108,55 @@ final class CheckoutApiTest extends TestCase
         self::assertSame(ResponseStatusEnum::UNPROCESSABLE_CONTENT->value, $reused->getStatusCode());
         self::assertSame(ResponseStatusEnum::CONFLICT->value, $checkedOutAgain->getStatusCode());
         ApiClient::assertMatchesSpecification(self::CHECKOUT_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $reused);
+    }
+
+    /**
+     * The shop removes its own generated and simulated orders by these key prefixes, so a
+     * customer's order must never carry one.
+     */
+    #[DataProvider('reservedKeyPrefixes')]
+    public function testRefusesKeysReservedForTheShopsOwnOrders(string $prefix): void
+    {
+        [$product] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, 5);
+        $cartId = $this->cartWith([$product => 1]);
+
+        $response = $this->checkout($cartId, $prefix . uniqid());
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $response->getStatusCode(), (string) $response->getBody());
+        ApiClient::assertMatchesSpecification(self::CHECKOUT_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $response);
+        self::assertSame(0, $this->products->findById($product)?->reserved, 'No stock is reserved for a refused checkout.');
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function reservedKeyPrefixes(): iterable
+    {
+        yield 'generated sales history' => ['history:'];
+        yield 'Black Friday simulation, without the simulator key' => ['simulation:'];
+    }
+
+    public function testRequiresAnIdempotencyKey(): void
+    {
+        [$productId] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, 5);
+        $cartId = $this->cartWith([$productId => 1]);
+
+        $response = ApiClient::send(HttpMethodEnum::POST, sprintf(self::CHECKOUT_PATH_FORMAT, $cartId));
+
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $response->getStatusCode());
+        ApiClient::assertMatchesSpecification(self::CHECKOUT_SPECIFICATION_PATH, HttpMethodEnum::POST->value, $response);
+        self::assertSame(0, $this->products->findById($productId)?->reserved);
+    }
+
+    public function testCheckedOutCartRefusesChanges(): void
+    {
+        [$productId] = TestProductData::create($this->pdo, $this->prefix, 1, self::PRICE_IN_GROSZE, 5);
+        $cartId = $this->cartWith([$productId => 1]);
+        $this->checkout($cartId, self::uniqueKey());
+
+        $response = ApiClient::send(HttpMethodEnum::PUT, sprintf(self::ITEM_PATH_FORMAT, $cartId, $productId), ['quantity' => 2]);
+
+        self::assertSame(ResponseStatusEnum::CONFLICT->value, $response->getStatusCode());
+        ApiClient::assertMatchesSpecification(self::ITEM_SPECIFICATION_PATH, HttpMethodEnum::PUT->value, $response);
+        self::assertSame(1, $this->products->findById($productId)?->reserved, 'The order keeps the quantity it reserved.');
     }
 
     public function testRejectsEmptyCartAndMissingStock(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Simulation\Infrastructure;
 
+use App\Order\Enum\ReservedOrderKeyPrefixEnum;
 use App\Payment\ValueObject\FakePaySignature;
 use App\Shared\DependencyInjection\Env;
 use App\Shared\Http\Enum\HeaderNameEnum;
@@ -15,8 +16,8 @@ use App\Simulation\ReadModel\SimulationRun;
 use App\Simulation\Repository\SimulationStoreInterface;
 use App\Simulation\Service\LoadGeneratorInterface;
 use Psr\Clock\ClockInterface;
-use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Exception\TransportException;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -35,7 +36,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
     private const string CHECKOUT_PATH_FORMAT = '/api/v1/carts/%s/checkout';
     private const string PAYMENTS_PATH_FORMAT = '/api/v1/orders/%s/payments';
     private const string WEBHOOK_PATH = '/api/v1/payments/webhooks/fakepay';
-    private const string ORDER_NUMBER_FORMAT = 'simulation:%s:%d-%d';
+    private const string ORDER_NUMBER_FORMAT = ReservedOrderKeyPrefixEnum::SIMULATION->value . '%s:%d-%d';
     private const string PAYMENT_KEY_FORMAT = '%s:payment';
     private const string EVENT_ID_FORMAT = 'evt_%s';
     private const string PROVIDER_PAYMENT_PATTERN = '/fp_[a-f0-9]+$/';

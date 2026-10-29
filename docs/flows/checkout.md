@@ -38,7 +38,11 @@ checked out (409).
 ## Checkout
 
 `POST /api/v1/carts/{id}/checkout` requires an `Idempotency-Key` header of 1 to 255
-printable characters and has its own rate limit (`CHECKOUT_RATE_LIMIT`).
+printable characters and has its own rate limit (`CHECKOUT_RATE_LIMIT`). Keys starting with
+`history:` or `simulation:` are reserved for the shop's own orders and answer 400
+([`ReservedOrderKeyPrefixEnum`](../../backend/src/Order/Enum/ReservedOrderKeyPrefixEnum.php)):
+the shop removes those orders by their prefix, so a customer's order must never carry one.
+Only the [Black Friday simulator](black-friday.md) may use `simulation:`.
 [`PlaceOrderHandler`](../../backend/src/Order/Command/PlaceOrderHandler.php) runs one READ
 COMMITTED transaction:
 

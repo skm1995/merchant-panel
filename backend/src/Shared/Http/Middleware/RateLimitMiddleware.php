@@ -8,8 +8,8 @@ use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\LoadTestKey;
 use App\Shared\Http\RateLimit;
-use App\Shared\Http\RateLimitPolicy;
 use App\Shared\Http\RateLimiter;
+use App\Shared\Http\RateLimitPolicy;
 use App\Shared\Http\Request;
 use App\Shared\Http\Responder;
 
@@ -33,7 +33,7 @@ final readonly class RateLimitMiddleware implements MiddlewareInterface
 
     public function process(Request $request, RequestHandlerInterface $next): void
     {
-        if ($this->loadTestKey->exempts($request->header(HeaderNameEnum::LOAD_TEST_KEY->value), $request->clientAddress)) {
+        if ($this->loadTestKey->identifiesSimulator($request)) {
             $next->handle($request);
 
             return;

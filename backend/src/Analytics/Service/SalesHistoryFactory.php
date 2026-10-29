@@ -9,6 +9,7 @@ use App\Analytics\ValueObject\HistoryOrder;
 use App\Analytics\ValueObject\HistoryProduct;
 use App\Analytics\ValueObject\SalesDay;
 use App\Order\Enum\OrderStatusEnum;
+use App\Order\Enum\ReservedOrderKeyPrefixEnum;
 use DateTimeImmutable;
 use LogicException;
 use Money\Money;
@@ -23,7 +24,7 @@ use Random\Randomizer;
 final readonly class SalesHistoryFactory
 {
     public const string SKU_PREFIX = 'history-';
-    public const string KEY_PREFIX = 'history:';
+    public const string KEY_PREFIX = ReservedOrderKeyPrefixEnum::HISTORY->value;
     private const string SKU_FORMAT = self::SKU_PREFIX . '%04d';
     private const string NAME_FORMAT = '%s %s %d';
     private const string SEED_FORMAT = 'Ymd';

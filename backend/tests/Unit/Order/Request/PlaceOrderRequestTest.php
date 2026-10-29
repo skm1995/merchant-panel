@@ -20,7 +20,7 @@ final class PlaceOrderRequestTest extends TestCase
 
     public function testBuildsCommandFromCartIdAndIdempotencyKey(): void
     {
-        $command = PlaceOrderRequest::toCommand(self::request(['idempotency-key' => OrderFixtures::IDEMPOTENCY_KEY]));
+        $command = PlaceOrderRequest::toCommand(self::request(['idempotency-key' => OrderFixtures::IDEMPOTENCY_KEY]), fromSimulator: false);
 
         self::assertSame(CartFixtures::CART_ID, $command->cartId->value);
         self::assertSame(OrderFixtures::IDEMPOTENCY_KEY, $command->idempotencyKey);
@@ -40,7 +40,30 @@ final class PlaceOrderRequestTest extends TestCase
     {
         $this->expectException(InvalidRequestException::class);
 
-        PlaceOrderRequest::toCommand(self::request($headers));
+        PlaceOrderRequest::toCommand(self::request($headers), fromSimulator: false);
+    }
+
+    /** @return iterable<string, array{string, bool}> */
+    public static function reservedKeys(): iterable
+    {
+        yield 'history, from a customer' => ['history:1', false];
+        yield 'history, even from the simulator' => ['history:1', true];
+        yield 'simulation, from a customer' => ['simulation:run:1-1', false];
+    }
+
+    #[DataProvider('reservedKeys')]
+    public function testRefusesKeysReservedForTheShopsOwnOrders(string $key, bool $fromSimulator): void
+    {
+        $this->expectException(InvalidRequestException::class);
+
+        PlaceOrderRequest::toCommand(self::request(['idempotency-key' => $key]), $fromSimulator);
+    }
+
+    public function testLetsTheSimulatorUseItsReservedKeys(): void
+    {
+        $command = PlaceOrderRequest::toCommand(self::request(['idempotency-key' => 'simulation:run:1-1']), fromSimulator: true);
+
+        self::assertSame('simulation:run:1-1', $command->idempotencyKey);
     }
 
     /** @param array<string, string> $headers */

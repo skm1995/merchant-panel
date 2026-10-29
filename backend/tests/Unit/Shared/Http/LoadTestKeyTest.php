@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Shared\Http;
 
+use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\LoadTestKey;
+use App\Shared\Http\Request;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -13,9 +15,9 @@ final class LoadTestKeyTest extends TestCase
     private const string KEY = 'test-load-test-key';
 
     #[DataProvider('internalAddresses')]
-    public function testExemptsTheRightKeyFromInsideTheServer(string $address): void
+    public function testIdentifiesTheRightKeyFromInsideTheServer(string $address): void
     {
-        self::assertTrue(new LoadTestKey(self::KEY)->exempts(self::KEY, $address));
+        self::assertTrue(new LoadTestKey(self::KEY)->identifiesSimulator(self::request(self::KEY, $address)));
     }
 
     /** @return iterable<string, array{string}> */
@@ -32,7 +34,7 @@ final class LoadTestKeyTest extends TestCase
     #[DataProvider('refusals')]
     public function testRefusesAWrongKeyOrAnAddressFromTheInternet(string $key, ?string $address): void
     {
-        self::assertFalse(new LoadTestKey(self::KEY)->exempts($key, $address));
+        self::assertFalse(new LoadTestKey(self::KEY)->identifiesSimulator(self::request($key, $address)));
     }
 
     /** @return iterable<string, array{string, ?string}> */
@@ -45,8 +47,13 @@ final class LoadTestKeyTest extends TestCase
         yield 'empty key from inside' => ['', '172.18.0.7'];
     }
 
-    public function testAnEmptyConfiguredKeyExemptsNobody(): void
+    public function testAnEmptyConfiguredKeyIdentifiesNobody(): void
     {
-        self::assertFalse(new LoadTestKey('')->exempts('', '172.18.0.7'));
+        self::assertFalse(new LoadTestKey('')->identifiesSimulator(self::request('', '172.18.0.7')));
+    }
+
+    private static function request(string $key, ?string $address): Request
+    {
+        return new Request(HttpMethodEnum::POST->value, '/api/v1/carts', headers: ['x-load-test-key' => $key], clientAddress: $address);
     }
 }

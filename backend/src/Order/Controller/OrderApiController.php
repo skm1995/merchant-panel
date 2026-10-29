@@ -27,14 +27,15 @@ use App\Shared\Http\EntityTag;
 use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Shared\Http\LoadTestKey;
 use App\Shared\Http\MapException;
 use App\Shared\Http\RateLimit;
 use App\Shared\Http\Request;
-use App\Shared\Messaging\Bus\CommandBusInterface;
-use App\Shared\Messaging\Bus\QueryBusInterface;
 use App\Shared\Http\RequireMerchant;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
+use App\Shared\Messaging\Bus\CommandBusInterface;
+use App\Shared\Messaging\Bus\QueryBusInterface;
 
 final readonly class OrderApiController
 {
@@ -49,6 +50,7 @@ final readonly class OrderApiController
         private CommandBusInterface $commands,
         private QueryBusInterface $queries,
         private Responder $responder,
+        private LoadTestKey $loadTestKey,
     ) {
     }
 
@@ -61,7 +63,7 @@ final readonly class OrderApiController
     #[MapException(IdempotencyKeyReusedException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function checkout(Request $request): void
     {
-        $placed = $this->commands->dispatch(PlaceOrderRequest::toCommand($request));
+        $placed = $this->commands->dispatch(PlaceOrderRequest::toCommand($request, $this->loadTestKey->identifiesSimulator($request)));
         $order = $this->queries->ask(new GetOrderQuery($placed->orderId, $placed->accessToken));
 
         $this->responder->sendHeader(HeaderNameEnum::ORDER_TOKEN, $placed->accessToken);

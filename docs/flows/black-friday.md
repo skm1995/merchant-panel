@@ -61,8 +61,9 @@ buyer:
 When an order ends (paid, refused because the stock ran out, or failed), the buyer starts the
 next one, until the run's time is up.
 
-The requests carry the `X-Load-Test-Key` header, which skips the rate limits and nothing else;
-otherwise one address would be refused after twenty checkouts an hour. `bin/deploy` draws a new
+The requests carry the `X-Load-Test-Key` header, which skips the rate limits and lets checkout
+accept the reserved `simulation:` key prefix, and nothing else; otherwise one address would be
+refused after twenty checkouts an hour. `bin/deploy` draws a new
 random key on every deployment and gives it only to PHP and the simulator, and production
 refuses to start without one rather than use the development key.
 [`LoadTestKey`](../../backend/src/Shared/Http/LoadTestKey.php) accepts it only from private or
@@ -106,6 +107,7 @@ removes the simulation's orders together with the generated history.
 | `SIMULATION_SECONDS` | 60 | 3 |
 | `SIMULATION_COOLDOWN_SECONDS` | 300 | 1 |
 | `SIMULATION_BUYERS` | 50 | 4 |
+| `SIMULATION_PRODUCTS` | 5 | 5 |
 | `SIMULATION_STOCK` | 400 units per product | 6 |
 
 ## Tests

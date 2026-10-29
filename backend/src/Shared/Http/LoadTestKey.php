@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Shared\Http;
 
 use App\Shared\DependencyInjection\Env;
+use App\Shared\Http\Enum\HeaderNameEnum;
 
 /**
- * The key that lets the Black Friday simulator send many requests from one address: a
- * request carrying it in X-Load-Test-Key skips the rate limits, and nothing else. The key
- * counts only from inside the server's networks, so even a leaked key gives nobody on the
- * internet a way around the limits. bin/deploy draws a new random key on every deployment.
+ * The key that identifies the Black Friday simulator's requests: a request carrying it in
+ * X-Load-Test-Key skips the rate limits, and its checkout may use the simulation's reserved
+ * order keys. The key counts only from inside the server's networks, so even a leaked key
+ * gives nobody on the internet either. bin/deploy draws a new random key on every deployment.
  */
 final readonly class LoadTestKey
 {
@@ -20,12 +21,14 @@ final readonly class LoadTestKey
     {
     }
 
-    public function exempts(?string $candidate, ?string $clientAddress): bool
+    public function identifiesSimulator(Request $request): bool
     {
+        $candidate = $request->header(HeaderNameEnum::LOAD_TEST_KEY->value);
+
         return $this->value !== ''
             && $candidate !== null
             && hash_equals($this->value, $candidate)
-            && self::isInternal($clientAddress);
+            && self::isInternal($request->clientAddress);
     }
 
     /**

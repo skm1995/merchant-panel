@@ -47,6 +47,10 @@ paths:
         - name: Idempotency-Key
           in: header
           required: true
+          description: >-
+            A key of the client's choosing, such as a UUID, so a retried checkout places the
+            order once. Keys starting with "history:" or "simulation:" are reserved for the
+            shop's own orders and refused with 400.
           schema:
             type: string
             minLength: 1

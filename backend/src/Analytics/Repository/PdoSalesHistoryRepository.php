@@ -7,6 +7,7 @@ namespace App\Analytics\Repository;
 use App\Analytics\ValueObject\HistoryLine;
 use App\Analytics\ValueObject\HistoryOrder;
 use App\Analytics\ValueObject\HistoryProduct;
+use App\Order\Enum\ReservedOrderKeyPrefixEnum;
 use App\Shared\Database\SqlDateTime;
 use App\Shared\Database\SqlPlaceholders;
 use PDO;
@@ -14,11 +15,12 @@ use PDO;
 /**
  * Stores the sales history with multi-row INSERTs, a thousand rows per statement instead of
  * a statement per row, and removes it in batches. Every query here is a plain INSERT,
- * SELECT, or DELETE; LIKE 'history:%' uses the unique index on the idempotency key.
+ * SELECT, or DELETE; LIKE 'history:%' uses the unique index on the idempotency key, and the
+ * prefixes come from ReservedOrderKeyPrefixEnum.
  */
 final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
 {
-    private const string HAS_HISTORY_QUERY = "SELECT 1 FROM orders WHERE idempotency_key LIKE 'history:%' LIMIT 1";
+    private const string HAS_HISTORY_QUERY = 'SELECT 1 FROM orders WHERE idempotency_key LIKE :history_keys LIMIT 1';
     private const string INSERT_PRODUCTS_QUERY_FORMAT = 'INSERT INTO products (sku, name, price_amount, price_currency, stock) VALUES %s';
     private const string PRODUCT_IDS_QUERY_FORMAT = 'SELECT sku, id FROM products WHERE sku IN (%s)';
     private const string INSERT_CARTS_QUERY_FORMAT = "INSERT INTO carts (id, status, created_at) VALUES %s";
@@ -35,7 +37,7 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
     // Generated history and the orders of Black Friday simulations, both found by key prefix.
     private const string BATCH_QUERY = <<<'SQL'
         SELECT id, cart_id FROM orders
-        WHERE idempotency_key LIKE 'history:%' OR idempotency_key LIKE 'simulation:%'
+        WHERE idempotency_key LIKE :history_keys OR idempotency_key LIKE :simulation_keys
         LIMIT :limit
         SQL;
     private const string DELETE_PAYMENTS_QUERY_FORMAT = 'DELETE FROM payments WHERE order_id IN (%s)';
@@ -59,6 +61,8 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
     private const int VERSION_AFTER_LAST_CHANGE = 2;
     private const string ID_KEY = 'id';
     private const string LIMIT_PARAMETER = 'limit';
+    private const string HISTORY_KEYS_PARAMETER = 'history_keys';
+    private const string SIMULATION_KEYS_PARAMETER = 'simulation_keys';
     private const string CART_ID_KEY = 'cart_id';
 
     public function __construct(private readonly PDO $pdo)
@@ -68,7 +72,7 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
     public function hasHistory(): bool
     {
         $statement = $this->pdo->prepare(self::HAS_HISTORY_QUERY);
-        $statement->execute();
+        $statement->execute([self::HISTORY_KEYS_PARAMETER => ReservedOrderKeyPrefixEnum::HISTORY->likePattern()]);
 
         return $statement->fetchColumn() !== false;
     }
@@ -131,6 +135,8 @@ final class PdoSalesHistoryRepository implements SalesHistoryRepositoryInterface
     public function removeBatch(int $limit): int
     {
         $statement = $this->pdo->prepare(self::BATCH_QUERY);
+        $statement->bindValue(self::HISTORY_KEYS_PARAMETER, ReservedOrderKeyPrefixEnum::HISTORY->likePattern());
+        $statement->bindValue(self::SIMULATION_KEYS_PARAMETER, ReservedOrderKeyPrefixEnum::SIMULATION->likePattern());
         $statement->bindValue(self::LIMIT_PARAMETER, $limit, PDO::PARAM_INT);
         $statement->execute();
         $batch = $statement->fetchAll(PDO::FETCH_ASSOC);

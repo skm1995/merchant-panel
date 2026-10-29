@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Simulation\Repository;
 
 use App\Order\Enum\OrderStatusEnum;
+use App\Order\Enum\ReservedOrderKeyPrefixEnum;
 use App\Shared\Database\RecordFetcher;
 use App\Shared\Database\SqlPlaceholders;
 use App\Simulation\ReadModel\SimulationProduct;
@@ -53,10 +54,9 @@ final readonly class PdoSimulationCatalog implements SimulationCatalogInterface
     private const string DELETE_PAYMENTS_QUERY_FORMAT = 'DELETE FROM payments WHERE order_id IN (%s)';
     private const string DELETE_ORDERS_QUERY_FORMAT = 'DELETE FROM orders WHERE id IN (%s)';
     private const string DELETE_CARTS_QUERY_FORMAT = 'DELETE FROM carts WHERE id IN (%s)';
-    private const string ALL_RUNS_KEY_PREFIX = 'simulation:%';
     private const int DELETE_BATCH_SIZE = 1000;
     private const string SKU_FORMAT = 'bf-%d';
-    private const string KEY_PREFIX_FORMAT = 'simulation:%s:%%';
+    private const string KEY_PREFIX_FORMAT = ReservedOrderKeyPrefixEnum::SIMULATION->value . '%s:%%';
     private const string SKU_PARAMETER = 'sku';
     private const string NAME_PARAMETER = 'name';
     private const string PRICE_PARAMETER = 'price_amount';
@@ -119,7 +119,7 @@ final readonly class PdoSimulationCatalog implements SimulationCatalogInterface
     {
         $statement = $this->pdo->prepare(self::PAID_DAYS_QUERY);
         $statement->execute([
-            self::KEY_PREFIX_PARAMETER => self::ALL_RUNS_KEY_PREFIX,
+            self::KEY_PREFIX_PARAMETER => ReservedOrderKeyPrefixEnum::SIMULATION->likePattern(),
             self::STATUS_PARAMETER => OrderStatusEnum::PAID->value,
         ]);
 
@@ -133,7 +133,7 @@ final readonly class PdoSimulationCatalog implements SimulationCatalogInterface
     {
         $orders = $this->pdo->prepare(self::FINISHED_ORDERS_QUERY);
         $orders->execute([
-            self::KEY_PREFIX_PARAMETER => self::ALL_RUNS_KEY_PREFIX,
+            self::KEY_PREFIX_PARAMETER => ReservedOrderKeyPrefixEnum::SIMULATION->likePattern(),
             self::STATUS_PARAMETER => OrderStatusEnum::PENDING_PAYMENT->value,
         ]);
         /** @var list<int> $orderIds */
