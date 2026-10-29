@@ -9,6 +9,7 @@ use App\Shared\Database\TransactionRunnerInterface;
 use App\Shared\DependencyInjection\Env;
 use App\Shared\Messaging\Outbox\OutboxInterface;
 use App\Simulation\Exception\SimulationUnavailableException;
+use App\Simulation\Message\SimulationOrdersRemovedMessage;
 use App\Simulation\ReadModel\SimulationProduct;
 use App\Simulation\ReadModel\SimulationRun;
 use App\Simulation\Repository\SimulationCatalogInterface;
@@ -16,8 +17,9 @@ use App\Simulation\Repository\SimulationStoreInterface;
 use Psr\Clock\ClockInterface;
 
 /**
- * Starts a Black Friday simulation: takes the one slot for its run and cool-down, resets the
- * stock of its products, and records the run for the simulator through the outbox, in the
+ * Starts a Black Friday simulation: takes the one slot for its run and cool-down, removes the
+ * finished orders of earlier runs so the demo's database does not grow with every run, resets
+ * the stock of its products, and records the run for the simulator through the outbox, in the
  * same transaction as the new stock.
  */
 final readonly class StartSimulationHandler
@@ -49,6 +51,13 @@ final readonly class StartSimulationHandler
 
         $now = $this->clock->now();
         $products = $this->transactions->run(function () use ($id, $now): array {
+            $paidOrderDays = $this->catalog->paidOrderDays();
+            $this->catalog->removeFinishedOrders();
+
+            if ($paidOrderDays !== []) {
+                $this->outbox->add(new SimulationOrdersRemovedMessage($paidOrderDays), $now);
+            }
+
             $products = $this->catalog->prepareProducts($this->products, $this->stock);
             $this->outbox->add(
                 new ProductStockChangedMessage(array_map(static fn (SimulationProduct $product): int => $product->productId, $products)),

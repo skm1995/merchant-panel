@@ -6,7 +6,9 @@ namespace App\Simulation\Repository;
 
 use App\Order\Enum\OrderStatusEnum;
 use App\Shared\Database\RecordFetcher;
+use App\Shared\Database\SqlPlaceholders;
 use App\Simulation\ReadModel\SimulationProduct;
+use DateTimeImmutable;
 use PDO;
 
 final readonly class PdoSimulationCatalog implements SimulationCatalogInterface
@@ -29,6 +31,30 @@ final readonly class PdoSimulationCatalog implements SimulationCatalogInterface
         JOIN order_items ON order_items.order_id = orders.id
         WHERE orders.idempotency_key LIKE :key_prefix AND orders.status = :status
         SQL;
+    private const string PAID_DAYS_QUERY = <<<'SQL'
+        SELECT DISTINCT DATE(created_at)
+        FROM orders
+        WHERE idempotency_key LIKE :key_prefix AND status = :status
+        SQL;
+    private const string FINISHED_ORDERS_QUERY = <<<'SQL'
+        SELECT id
+        FROM orders
+        WHERE idempotency_key LIKE :key_prefix AND status <> :status
+        SQL;
+    // A simulation cart without an order: its order was removed, or its buyer found no stock.
+    private const string CARTS_WITHOUT_ORDERS_QUERY = <<<'SQL'
+        SELECT cart_items.cart_id
+        FROM cart_items
+        JOIN products ON products.id = cart_items.product_id
+        LEFT JOIN orders ON orders.cart_id = cart_items.cart_id
+        WHERE products.sku LIKE 'bf-%' AND orders.id IS NULL
+        GROUP BY cart_items.cart_id
+        SQL;
+    private const string DELETE_PAYMENTS_QUERY_FORMAT = 'DELETE FROM payments WHERE order_id IN (%s)';
+    private const string DELETE_ORDERS_QUERY_FORMAT = 'DELETE FROM orders WHERE id IN (%s)';
+    private const string DELETE_CARTS_QUERY_FORMAT = 'DELETE FROM carts WHERE id IN (%s)';
+    private const string ALL_RUNS_KEY_PREFIX = 'simulation:%';
+    private const int DELETE_BATCH_SIZE = 1000;
     private const string SKU_FORMAT = 'bf-%d';
     private const string KEY_PREFIX_FORMAT = 'simulation:%s:%%';
     private const string SKU_PARAMETER = 'sku';
@@ -87,5 +113,48 @@ final readonly class PdoSimulationCatalog implements SimulationCatalogInterface
         ]);
 
         return (int) $statement->fetchColumn();
+    }
+
+    public function paidOrderDays(): array
+    {
+        $statement = $this->pdo->prepare(self::PAID_DAYS_QUERY);
+        $statement->execute([
+            self::KEY_PREFIX_PARAMETER => self::ALL_RUNS_KEY_PREFIX,
+            self::STATUS_PARAMETER => OrderStatusEnum::PAID->value,
+        ]);
+
+        /** @var list<string> $days */
+        $days = $statement->fetchAll(PDO::FETCH_COLUMN);
+
+        return array_map(static fn (string $day): DateTimeImmutable => new DateTimeImmutable($day), $days);
+    }
+
+    public function removeFinishedOrders(): void
+    {
+        $orders = $this->pdo->prepare(self::FINISHED_ORDERS_QUERY);
+        $orders->execute([
+            self::KEY_PREFIX_PARAMETER => self::ALL_RUNS_KEY_PREFIX,
+            self::STATUS_PARAMETER => OrderStatusEnum::PENDING_PAYMENT->value,
+        ]);
+        /** @var list<int> $orderIds */
+        $orderIds = $orders->fetchAll(PDO::FETCH_COLUMN);
+
+        // A payment keeps its order, and an order keeps its cart, so they go in this order.
+        $this->deleteInBatches(self::DELETE_PAYMENTS_QUERY_FORMAT, $orderIds);
+        $this->deleteInBatches(self::DELETE_ORDERS_QUERY_FORMAT, $orderIds);
+
+        $carts = $this->pdo->prepare(self::CARTS_WITHOUT_ORDERS_QUERY);
+        $carts->execute();
+        /** @var list<int> $cartIds */
+        $cartIds = $carts->fetchAll(PDO::FETCH_COLUMN);
+        $this->deleteInBatches(self::DELETE_CARTS_QUERY_FORMAT, $cartIds);
+    }
+
+    /** @param list<int> $ids */
+    private function deleteInBatches(string $queryFormat, array $ids): void
+    {
+        foreach (array_chunk($ids, self::DELETE_BATCH_SIZE) as $batch) {
+            $this->pdo->prepare(sprintf($queryFormat, SqlPlaceholders::positional(count($batch))))->execute($batch);
+        }
     }
 }

@@ -86,8 +86,18 @@ left, and the check. The **Black Friday** dashboard in [Kibana](../operations/ob
 shows the same minute from the logs: requests, p95 latency, server errors, and commands handled
 and refused.
 
-The simulation's orders count in the reports like any others; `bin/remove-sales-history.php`
-removes them together with the generated history.
+The simulation's orders count in the reports like any others until the next simulation
+starts. Every run leaves over a thousand orders and as many carts of buyers who found the
+shelves empty, and the demo account is public, so
+[`StartSimulationHandler`](../../backend/src/Simulation/Command/StartSimulationHandler.php)
+removes them first, in the transaction that resets the stock: the orders of past runs that no
+longer wait for payment, their payments, and every cart of simulation products without an
+order. Orders still waiting for payment hold reserved stock, so a later run removes them once
+they expire. A `SimulationOrdersRemovedMessage` through the outbox then has the worker
+recompute the days of the removed paid orders in the daily sales summary, so the reports never
+count an order that no longer exists. A visitor's own open cart with Black Friday products is
+removed too; those products exist only for the simulation. `bin/remove-sales-history.php`
+removes the simulation's orders together with the generated history.
 
 ## Configuration
 
