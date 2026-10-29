@@ -17,6 +17,10 @@ final class SecurityHeadersTest extends TestCase
     private const string CONTENT_SECURITY_POLICY = 'content-security-policy';
     private const string FRAME_ANCESTORS_NONE = "frame-ancestors 'none'";
     private const string SCRIPTS_FROM_OWN_ORIGIN = "script-src 'self'";
+    private const string CARTS_PATH = '/api/v1/carts';
+    private const string POST_METHOD = 'POST';
+    private const int OVERSIZED_BODY_BYTES = 2 * 1024 * 1024;
+    private const int PAYLOAD_TOO_LARGE = 413;
 
     /** @return array<string, array{string}> */
     public static function paths(): array
@@ -38,5 +42,18 @@ final class SecurityHeadersTest extends TestCase
         self::assertStringContainsString(self::SCRIPTS_FROM_OWN_ORIGIN, $policy);
         self::assertArrayNotHasKey('server', $headers);
         self::assertArrayNotHasKey('x-powered-by', $headers);
+    }
+
+    /**
+     * The API takes JSON of a few kilobytes, so the proxy refuses large bodies before PHP
+     * reads them into memory.
+     */
+    public function testRefusesOversizedRequestBodies(): void
+    {
+        $response = HttpClient::create()->request(self::POST_METHOD, Browser::url(self::CARTS_PATH), [
+            'body' => str_repeat('a', self::OVERSIZED_BODY_BYTES),
+        ]);
+
+        self::assertSame(self::PAYLOAD_TOO_LARGE, $response->getStatusCode());
     }
 }

@@ -20,6 +20,15 @@
 }
 
 {$MAIL_DOMAIN} {
+	# Not the panel's policy: Mailpit and Kibana run their own scripts and styles.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+		-Server
+	}
+
 	basic_auth {
 		demo {$MAILPIT_PASSWORD_HASH}
 	}

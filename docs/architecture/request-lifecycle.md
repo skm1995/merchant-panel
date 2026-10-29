@@ -35,7 +35,8 @@ sequenceDiagram
 Caddy terminates HTTPS and handles the request according to
 [`docker/caddy/backend.caddy`](../../docker/caddy/backend.caddy): every path under `/api/`
 and `/legacy/` is rewritten to `/index.php` and sent to PHP-FPM over FastCGI, while PHP still
-sees the original `REQUEST_URI`. Every other path serves the React app's files. On the way
+sees the original `REQUEST_URI`; a body over 1 MB gets 413 before PHP reads it. Every other
+path serves the React app's files. On the way
 back, [`headers.caddy`](../../docker/caddy/headers.caddy) adds the Content-Security-Policy and
 the other security headers and removes headers that reveal software versions.
 

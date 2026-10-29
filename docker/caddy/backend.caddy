@@ -4,6 +4,10 @@
 # Caddy never looks for the file itself; PHP still sees the original request URI.
 @backend path /api/* /legacy/*
 handle @backend {
+	# The API takes JSON of a few kilobytes; larger bodies get 413 before PHP reads them.
+	request_body {
+		max_size 1MB
+	}
 	root * /app/backend/public
 	rewrite * /index.php
 	reverse_proxy {args[0]} {
