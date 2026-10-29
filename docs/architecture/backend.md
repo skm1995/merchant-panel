@@ -46,7 +46,7 @@ example an application service cannot reach for the HTTP session: it depends on 
 as [`CurrentUserInterface`](../../backend/src/Auth/Service/CurrentUserInterface.php), which
 the session adapter in `Auth/Infrastructure` implements.
 
-`Order` and `Payment` split writes from reads (CQRS): `Command/` handlers change state through
+`Order`, `Payment`, and `Simulation` split writes from reads (CQRS): `Command/` handlers change state through
 entities and repositories, while `Query/` handlers return read models that the API serializes
 directly, such as [`OrderView`](../../backend/src/Order/ReadModel/OrderView.php).
 Controllers send commands and queries through two Messenger buses that find the handler by

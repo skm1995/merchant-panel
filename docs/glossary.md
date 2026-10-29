@@ -13,7 +13,7 @@ Terms used in the code and in this documentation, with where they matter in the 
 | **Conditional update** | An `UPDATE … WHERE` that repeats a business rule, so the database refuses a change that breaks it | Stock reservation and status changes; [ADR 0007](decisions/0007-prevent-overselling-in-the-database.md) |
 | **Content-Security-Policy (CSP)** | A response header that tells the browser which sources may provide scripts, styles, and other content | [`headers.caddy`](../docker/caddy/headers.caddy) |
 | **Correlation id, request id** | An identifier that follows one request through every process and log line | [Observability](operations/observability.md) |
-| **CQRS** | Command query responsibility segregation: separate code paths for changing state and for reading it | `Command/` and `Query/` in `Order` and `Payment`; see [CQRS](architecture/cqrs.md) |
+| **CQRS** | Command query responsibility segregation: separate code paths for changing state and for reading it | `Command/` and `Query/` in `Order`, `Payment`, and `Simulation`; see [CQRS](architecture/cqrs.md) |
 | **CSRF** | Cross-site request forgery: another site makes the browser send an authenticated request | Prevented with a token in a custom header; [Authentication](flows/authentication.md) |
 | **Cursor pagination** | Paging by "items after this one" instead of page numbers, stable while items are added | Orders and products lists |
 | **Deptrac** | A tool that checks the dependencies between architectural layers | [`deptrac.yaml`](../backend/deptrac.yaml) |

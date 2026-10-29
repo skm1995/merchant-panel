@@ -27,7 +27,7 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0019](0019-merged-coverage-with-a-ratchet.md) | Merged coverage of all suites, with a minimum that only rises | Accepted |
 | [0020](0020-every-route-in-the-contract-and-the-tests.md) | Every route is in the contract and called by a functional test | Accepted |
 | [0021](0021-recharts-for-charts.md) | Recharts for the panel's charts | Accepted |
-| [0022](0022-cqrs-only-for-orders-and-payments.md) | CQRS only for orders and payments | Accepted, amended by 0023 |
+| [0022](0022-cqrs-only-for-orders-and-payments.md) | CQRS only for orders and payments | Accepted, amended by 0023 and 0025 |
 | [0023](0023-commands-and-queries-through-messenger-buses.md) | Commands and queries through Messenger buses | Accepted |
 | [0024](0024-log-search-in-production.md) | Log search in production, under the demo's tools domain | Accepted |
 | [0025](0025-black-friday-through-the-public-api.md) | Black Friday simulation through the public API, from its own process | Accepted |

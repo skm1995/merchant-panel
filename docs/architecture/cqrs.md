@@ -1,9 +1,12 @@
-# CQRS: separate paths for changing and reading orders and payments
+# CQRS: separate paths for changing and reading state
 
 Command query responsibility segregation (CQRS) means that code changing state and code
-reading it take different paths, with different models. The project uses it in two features,
-[`Order`](../../backend/src/Order) and [`Payment`](../../backend/src/Payment), and on purpose
-nowhere else ([0022](../decisions/0022-cqrs-only-for-orders-and-payments.md)).
+reading it take different paths, with different models. The project uses it in
+[`Order`](../../backend/src/Order) and [`Payment`](../../backend/src/Payment)
+([0022](../decisions/0022-cqrs-only-for-orders-and-payments.md)), and in
+[`Simulation`](../../backend/src/Simulation), whose run is an asynchronous command
+([0025](../decisions/0025-black-friday-through-the-public-api.md)); the other features do
+without it.
 
 ## The two paths
 

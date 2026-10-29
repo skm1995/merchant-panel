@@ -1,6 +1,7 @@
 # 0022. CQRS only for orders and payments
 
-Accepted, 2026-10-25; recorded 2026-10-28.
+Accepted, 2026-10-25; recorded 2026-10-28. Amended by
+[0025](0025-black-friday-through-the-public-api.md), which adds the Black Friday simulation.
 
 ## Context
 

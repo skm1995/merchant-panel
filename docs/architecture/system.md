@@ -51,12 +51,13 @@ flowchart TB
 |---|---|---|
 | `caddy` | built from [`docker/caddy/Dockerfile`](../../docker/caddy/Dockerfile) | The only container with published ports. Obtains HTTPS certificates, adds security headers, serves the built React app, and sends `/api/` and `/legacy/` to PHP-FPM over FastCGI. Mailpit is served on its own domain behind a password. |
 | `php` | `prod` stage of [`docker/php/Dockerfile`](../../docker/php/Dockerfile) | PHP-FPM running the JSON API through the front controller [`backend/public/index.php`](../../backend/public/index.php). |
-| `worker` | same PHP image | Consumes RabbitMQ messages: sends emails, expires unpaid orders, and invalidates cached products. Runs as `www-data`. |
+| `worker` | same PHP image | Consumes RabbitMQ messages: sends emails, expires unpaid orders, invalidates cached products, and recomputes the daily sales summary after a payment. Runs as `www-data`. |
 | `outbox-relay` | same PHP image | Publishes messages stored in the outbox table to RabbitMQ. Runs as `www-data`. |
 | `migrate` | same PHP image | Applies Phinx migrations and exits; the PHP services start only after it succeeded. |
 | `seed-demo` | same PHP image | Adds the demo catalog; run by `bin/deploy`, not by `up` (profile `tools`). |
-| `mysql` | `mysql:8.4` | Orders, products, users, payments, and the outbox. |
-| `redis` | `redis:7.4-alpine` | Product cache (database 0), sessions (database 2), and rate-limit counters. |
+| `kibana-setup` | `curlimages/curl` | Creates the log index settings, the data view, and the dashboards; run by `bin/deploy` (profile `tools`). |
+| `mysql` | `mysql:8.4` | Orders, products, users, payments, the outbox, and the daily sales summary. |
+| `redis` | `redis:7.4-alpine` | Product cache, rate-limit counters, and the state of Black Friday simulations (database 0), and sessions (database 2). |
 | `rabbitmq` | `rabbitmq:4-management` | Queues `emails`, `orders`, `catalog`, `simulation`, and `failed_messages`. |
 | `mailpit` | `axllent/mailpit` | Catches outgoing email, so visitors of the demo can read their confirmation messages. |
 | `simulator` | same PHP image | Consumes only the `simulation` queue and runs [Black Friday simulations](../flows/black-friday.md): its buyers shop through Caddy like customers. Runs as `www-data`. |
@@ -89,7 +90,7 @@ mounted into the containers, plus:
 - `frontend`: the Vite development server with hot reload, reached through Caddy on
   `http://localhost:8080`;
 - a test stack in the `test` profile (`php-test-web`, `worker-test`, `outbox-relay-test`,
-  `caddy-test` on port 8081, and `migrate-test`), which uses the `app_test` database, Redis
+  `simulator-test`, `caddy-test` on port 8081, and `migrate-test`), which uses the `app_test` database, Redis
   databases 1 and 3, and separate queues, so tests never touch development data;
 - one-off tool containers in the `tools` profile: `php-test` (PHPUnit and the static checks),
   `frontend-test` (the frontend toolchain), `e2e` (Playwright), and `k6`;

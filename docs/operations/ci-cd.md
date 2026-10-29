@@ -47,10 +47,12 @@ The workflow's token can only read the repository.
 2. runs [`docker/server/provision.sh`](../../docker/server/provision.sh) over SSH, which
    installs Docker, log rotation, firewall rules, and the nightly cron jobs, and does nothing
    when they are already in place;
-3. uploads the commit with `git archive` and writes the server's `.env` with mode 600;
+3. uploads the commit with `git archive` and writes the server's `.env` with mode 600,
+   including a new random `LOAD_TEST_KEY` for the [Black Friday simulator](../flows/black-friday.md);
 4. builds the images on the server and starts [`compose.prod.yaml`](../../compose.prod.yaml),
    waiting for every service to be healthy;
-5. adds the demo catalog and creates the shared demo account if it is missing;
+5. adds the demo catalog, prepares Elasticsearch and Kibana (`kibana-setup`), and creates the
+   shared demo account if it is missing;
 6. checks that `https://demo.<domain>/api/v1/products` answers.
 
 A failed step fails the job with its output. Compose replaces the containers before checking
