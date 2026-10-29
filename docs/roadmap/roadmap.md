@@ -11,7 +11,6 @@ solution.
 | 1 | [Off-site backups](#off-site-backups) | S |
 | 1 | [Monitoring and alerts](#monitoring-and-alerts) | S |
 | 2 | [Images built in CI](#images-built-in-ci) | M |
-| 2 | [Dependency scanning](#dependency-scanning) | S |
 | 2 | [Better rate limits](#better-rate-limits) | S |
 | 2 | [Published API reference](#published-api-reference) | S |
 | 3 | [Roles and permissions](#roles-and-permissions) | M |
@@ -64,13 +63,6 @@ building. Rolling back becomes deploying the previous tag, and a staging stack o
 server can run the next tag before it reaches the demo. The same registry would let `bin/ci`
 on GitHub reuse the test images instead of building them on every run, which takes about
 half of its four minutes now; `docker compose build` cannot use the Actions cache directly.
-
-## Dependency scanning
-
-**Problem:** a library with a known vulnerability would go unnoticed.
-
-**Sketch:** run `composer audit` and `npm audit --omit=dev` in `bin/ci`, and enable Dependabot
-for Composer, npm, Docker, and GitHub Actions.
 
 ## Better rate limits
 

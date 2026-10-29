@@ -27,6 +27,7 @@ security review on 2026-10-27 shaped most of the controls marked as added then.
 | Cross-site scripting | The React app escapes output; the one server-rendered page escapes every value; a strict Content-Security-Policy allows no inline scripts or styles | [`headers.caddy`](../docker/caddy/headers.caddy) |
 | Clickjacking, MIME sniffing, leaking URLs | `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`; the demo tools' domain gets the same headers except the panel's Content-Security-Policy, because Mailpit and Kibana run their own scripts | [`headers.caddy`](../docker/caddy/headers.caddy), [`prod.Caddyfile`](../docker/caddy/prod.Caddyfile) |
 | Forged or replayed payment webhooks | HMAC signatures checked before anything else; QuickPay signatures expire after 5 minutes; event ids are recorded once; amounts are compared | [Payments](flows/payments.md) |
+| A dependency with a known vulnerability | CI audits the production Composer and npm dependencies and fails on any advisory, which stops deployment; Dependabot proposes updates of packages, base images, and actions every week | [CI/CD](operations/ci-cd.md), [`dependabot.yml`](../.github/dependabot.yml) |
 | Double processing of retried requests | Idempotency keys for checkout and payments, optimistic locking for edits | [ADR 0008](decisions/0008-idempotency-keys-and-optimistic-locking.md) |
 | Eavesdropping | HTTPS only, with HSTS; certificates renewed automatically | [Production](operations/production.md) |
 | Revealing internals in errors | Unexpected errors answer a generic 500 with a request id; details only in the logs; no `Server` or `X-Powered-By` versions | [`UnhandledErrorMiddleware`](../backend/src/Shared/Http/Middleware/UnhandledErrorMiddleware.php) |
@@ -58,4 +59,5 @@ links on the [personal site](https://szymonkozlowski.is-a.dev).
 - There is no multi-factor authentication, password reset, or account lockout notification.
 - Order tokens cannot be revoked one by one.
 - Secrets are stored in a plain file on the server rather than a secret manager.
-- Dependencies are not scanned for known vulnerabilities in CI.
+- The audits cover published advisories of packages, not the system packages inside the
+  base images.

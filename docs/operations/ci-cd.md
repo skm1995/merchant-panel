@@ -13,11 +13,11 @@ server automatically.
    panel; then the test stack starts and waits until every service is healthy.
 3. **Backend and frontend at the same time**, each writing its own log that is printed when
    both are done:
-   - backend: `composer validate`, OpenAPI validation, unit and functional tests with
-     coverage, the check that the functional tests called every API operation, PHPStan,
-     Deptrac, and the code style check;
-   - frontend: the generated API types are up to date, `tsc`, ESLint, Prettier, and the Vitest
-     suite with its coverage minimums.
+   - backend: `composer validate`, `composer audit --no-dev`, OpenAPI validation, unit and
+     functional tests with coverage, the check that the functional tests called every API
+     operation, PHPStan, Deptrac, and the code style check;
+   - frontend: `npm audit --omit=dev`, the generated API types are up to date, `tsc`, ESLint,
+     Prettier, and the Vitest suite with its coverage minimums.
 4. **End to end:** the demo merchant is recreated in the test database, and Playwright runs.
 5. **Coverage:** the coverage of all backend suites, including the requests of the
    functional and end-to-end tests, is merged and checked against its minimum
@@ -38,6 +38,12 @@ configuration of its own:
   [`bin/deploy`](../../bin/deploy) with the secrets and variables below.
 
 The workflow's token can only read the repository.
+
+The audits fail CI when a dependency that reaches the server has a known vulnerability, so a
+newly published advisory stops deployments until the dependency is updated.
+[Dependabot](../../.github/dependabot.yml) proposes updates every week as pull requests, which
+run the same CI: Composer and npm packages, grouped by ecosystem for minor and patch versions,
+the base images of the Dockerfiles and Compose files, and the GitHub Actions.
 
 ## Deployment
 

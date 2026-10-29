@@ -20,8 +20,10 @@ docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0 git /repo --config 
 # Coverage of every suite, including requests the test web server handles, is merged at the end.
 "${run[@]}" composer coverage-prepare
 "${compose[@]}" up --detach --wait
+# The audits cover what reaches the server; Dependabot also proposes updates of the tools.
 backend_checks() {
     "${run[@]}" composer validate --no-check-publish
+    "${run[@]}" composer audit --no-dev
     "${run[@]}" composer openapi-validate
     "${run[@]}" composer coverage-unit
     "${run[@]}" composer api-calls-reset
@@ -33,6 +35,7 @@ backend_checks() {
 }
 
 frontend_checks() {
+    "${node[@]}" npm audit --omit=dev
     "${node[@]}" npm run api:check
     "${node[@]}" npm run typecheck
     "${node[@]}" npm run lint

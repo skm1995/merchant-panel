@@ -25,7 +25,7 @@ with their consequences. Items that are planned to change link to the
 | Order tokens are derived from one secret | They cannot be revoked one by one; rotating the secret revokes all | Customer accounts with the [storefront](roadmap.md#storefront) |
 | No multi-factor authentication | A stolen password is enough to sign in | [Password reset](roadmap.md#password-reset) adds the email infrastructure it needs |
 | Secrets in a plain `.env` file on the server | Anyone with access to the server can read them | Acceptable for one server |
-| Dependencies are not scanned in CI | A vulnerable library would go unnoticed | [Dependency scanning](roadmap.md#dependency-scanning) |
+| The base images' system packages are not scanned | A vulnerable OS library inside an image would go unnoticed until Dependabot proposes a new image tag | Acceptable for a demo |
 
 ## Operations
 
