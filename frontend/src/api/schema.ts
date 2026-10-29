@@ -63,6 +63,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/password-resets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a link to set a new password
+         * @description Answers 202 whether or not the address has an account, so it never reveals which addresses are registered. A confirmed account gets a link that works for an hour and replaces any earlier one; a new request within five minutes of the last sends nothing more.
+         */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/password-reset-confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a new password with the token from the reset email
+         * @description Uses the token once and ends every session of the account, so whoever knew the old password is signed out. An invalid, expired, or used token and a password that breaks the rules answer 422.
+         */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products": {
         parameters: {
             query?: never;
@@ -577,6 +617,17 @@ export interface components {
         EmailConfirmation: {
             token: string;
         };
+        PasswordResetRequest: {
+            email: string;
+        };
+        PasswordReset: {
+            token: string;
+            /**
+             * Format: password
+             * @description At least 8 characters and at most 72 bytes, without NUL characters, like a registration's password.
+             */
+            password: string;
+        };
         Money: {
             /**
              * @description Amount in minor currency units.
@@ -968,6 +1019,57 @@ export interface operations {
         };
         responses: {
             /** @description The email address is confirmed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description A reset link is on its way if the address has a confirmed account. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordReset"];
+            };
+        };
+        responses: {
+            /** @description The password is changed. */
             204: {
                 headers: {
                     [name: string]: unknown;

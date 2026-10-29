@@ -5,7 +5,7 @@ const MAILPIT_URL_VARIABLE = 'E2E_MAILPIT_URL';
 const MERCHANT_EMAIL_VARIABLE = 'DEMO_MERCHANT_EMAIL';
 const MERCHANT_PASSWORD_VARIABLE = 'DEMO_MERCHANT_PASSWORD';
 const PASSWORD = 'e2e-merchant-password';
-const TOKEN_PATTERN = /confirm\?token=([a-f0-9]{64})/;
+const TOKEN_PATTERN = /\?token=([a-f0-9]{64})/;
 const MAIL_TIMEOUT_MILLISECONDS = 15000;
 
 interface MailpitSearch {
@@ -27,10 +27,14 @@ export function uniqueEmail(prefix: string): string {
 export { PASSWORD };
 
 /**
- * Waits for the confirmation email sent through the outbox, worker, and Mailpit, deletes it,
- * and returns the confirmation link path with its token.
+ * Waits for the email with a link to the page at the path, sent through the outbox, worker, and
+ * Mailpit, deletes it, and returns the link's path with its token.
  */
-export async function confirmationLink(request: APIRequestContext, email: string): Promise<string> {
+export async function emailedLink(
+  request: APIRequestContext,
+  email: string,
+  path: '/confirm' | '/reset-password',
+): Promise<string> {
   let token: string | null = null;
 
   await expect
@@ -57,7 +61,7 @@ export async function confirmationLink(request: APIRequestContext, email: string
     )
     .not.toBeNull();
 
-  return `/confirm?token=${String(token)}`;
+  return `${path}?token=${String(token)}`;
 }
 
 export interface Credentials {

@@ -23,6 +23,7 @@ final class LoginUserServiceTest extends TestCase
 
     /** @var array<string, mixed> */
     private array $originalSession;
+    private UserRepositoryInterface $users;
     private CurrentUser $currentUser;
 
     protected function setUp(): void
@@ -31,7 +32,16 @@ final class LoginUserServiceTest extends TestCase
         $session->start();
         $this->originalSession = $_SESSION;
         $_SESSION = [];
-        $this->currentUser = new CurrentUser($session, $this->createStub(UserRepositoryInterface::class));
+        $user = new User(
+            self::EMAIL,
+            CheapPasswordHash::of(self::PASSWORD),
+            new DateTimeImmutable(),
+            new DateTimeImmutable(),
+        );
+        $users = $this->createStub(UserRepositoryInterface::class);
+        $users->method('findByEmail')->willReturn($user);
+        $this->users = $users;
+        $this->currentUser = new CurrentUser($session, $this->users);
     }
 
     protected function tearDown(): void
@@ -58,15 +68,6 @@ final class LoginUserServiceTest extends TestCase
 
     private function service(): LoginUserService
     {
-        $user = new User(
-            self::EMAIL,
-            CheapPasswordHash::of(self::PASSWORD),
-            new DateTimeImmutable(),
-            new DateTimeImmutable(),
-        );
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findByEmail')->willReturn($user);
-
-        return new LoginUserService(new UserAuthService($users), $this->currentUser);
+        return new LoginUserService(new UserAuthService($this->users), $this->currentUser);
     }
 }

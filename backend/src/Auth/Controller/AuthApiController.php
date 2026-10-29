@@ -9,16 +9,21 @@ use App\Auth\Exception\EmailNotVerifiedException;
 use App\Auth\Exception\InvalidConfirmationTokenException;
 use App\Auth\Exception\InvalidCredentialsException;
 use App\Auth\Exception\InvalidEmailException;
+use App\Auth\Exception\InvalidResetTokenException;
 use App\Auth\Exception\ResendLimitReachedException;
 use App\Auth\Exception\UnsupportedPasswordException;
 use App\Auth\Exception\WeakPasswordException;
 use App\Auth\Request\ConfirmationTokenRequest;
 use App\Auth\Request\CredentialsRequest;
+use App\Auth\Request\NewPasswordRequest;
+use App\Auth\Request\ResetLinkRequest;
 use App\Auth\Response\SessionResponse;
 use App\Auth\Service\ConfirmEmailService;
 use App\Auth\Service\CurrentUserInterface;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
+use App\Auth\Service\RequestPasswordResetService;
+use App\Auth\Service\ResetPasswordService;
 use App\Shared\Http\CsrfToken;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
@@ -38,11 +43,15 @@ final readonly class AuthApiController
     private const string SESSION_ROUTE_PATH = '/api/v1/session';
     private const string REGISTRATIONS_ROUTE_PATH = '/api/v1/registrations';
     private const string EMAIL_CONFIRMATIONS_ROUTE_PATH = '/api/v1/email-confirmations';
+    private const string PASSWORD_RESETS_ROUTE_PATH = '/api/v1/password-resets';
+    private const string PASSWORD_RESET_CONFIRMATIONS_ROUTE_PATH = '/api/v1/password-reset-confirmations';
 
     public function __construct(
         private RegisterUserService $registerUser,
         private LoginUserService $loginUser,
         private ConfirmEmailService $confirmEmail,
+        private RequestPasswordResetService $requestPasswordReset,
+        private ResetPasswordService $resetPassword,
         private CurrentUserInterface $currentUser,
         private CsrfToken $csrfToken,
         private Responder $responder,
@@ -101,6 +110,30 @@ final readonly class AuthApiController
     public function confirmEmail(Request $request): void
     {
         $this->confirmEmail->execute(ConfirmationTokenRequest::fromJson($request)->token);
+
+        $this->responder->withoutBody(ResponseStatusEnum::NO_CONTENT);
+    }
+
+    #[Route(HttpMethodEnum::POST, self::PASSWORD_RESETS_ROUTE_PATH)]
+    #[UsesSession]
+    #[RateLimit(AuthRateLimitEnum::PASSWORD_RESET->value)]
+    #[MapException(InvalidEmailException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    public function requestPasswordReset(Request $request): void
+    {
+        $this->requestPasswordReset->execute(ResetLinkRequest::fromJson($request)->email);
+
+        $this->responder->withoutBody(ResponseStatusEnum::ACCEPTED);
+    }
+
+    #[Route(HttpMethodEnum::POST, self::PASSWORD_RESET_CONFIRMATIONS_ROUTE_PATH)]
+    #[UsesSession]
+    #[MapException(InvalidResetTokenException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    #[MapException(WeakPasswordException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    #[MapException(UnsupportedPasswordException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    public function resetPassword(Request $request): void
+    {
+        $newPassword = NewPasswordRequest::fromJson($request);
+        $this->resetPassword->execute($newPassword->token, $newPassword->password);
 
         $this->responder->withoutBody(ResponseStatusEnum::NO_CONTENT);
     }

@@ -18,7 +18,7 @@ sequenceDiagram
     U->>API: POST /api/v1/session {email, password} + X-CSRF-Token
     API->>API: rate limit, CSRF check
     API->>DB: find the user, verify the bcrypt hash
-    API->>R: new session id, user email, new CSRF token
+    API->>R: new session id, user email, password stamp, new CSRF token
     API-->>U: {authenticated: true, merchant: true, csrf_token}
     U->>API: GET /api/v1/panel/orders
     API->>R: load the session
@@ -58,7 +58,10 @@ custom header, and `SameSite=Lax` keeps the cookie off cross-site POST requests 
 3. A wrong password or unknown address answers 401 with the same message; an unconfirmed
    address answers 403.
 4. [`CurrentUser::signIn()`](../../backend/src/Auth/Infrastructure/Session/CurrentUser.php)
-   regenerates the session id, which defeats session fixation, and stores the email.
+   regenerates the session id, which defeats session fixation, and stores the email with the
+   account's password stamp. A session whose stamp no longer matches the account, because
+   the password was [reset](password-reset.md), counts as signed out
+   ([0027](../decisions/0027-password-stamp-ends-sessions.md)).
 5. The response carries a new CSRF token, so a token planted before sign-in is useless.
 
 `DELETE /api/v1/session` removes the user from the session and regenerates its id.

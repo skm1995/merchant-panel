@@ -62,4 +62,15 @@ describe('LoginPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Create an account' })).toBeInTheDocument();
   });
+
+  it('leads to resetting a forgotten password', async () => {
+    server.use(sessionHandler(anonymousSession()));
+    renderApp('/login');
+
+    await userEvent
+      .setup()
+      .click(await screen.findByRole('link', { name: 'Forgot your password?' }));
+
+    expect(screen.getByRole('heading', { name: 'Reset your password' })).toBeInTheDocument();
+  });
 });

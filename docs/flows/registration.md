@@ -105,4 +105,4 @@ registrations keep no personal data.
 ## Limitations
 
 - Emails are plain text and go to Mailpit; the demo sends no real email.
-- There is no password reset yet.
+- A forgotten password is [reset by email](password-reset.md).

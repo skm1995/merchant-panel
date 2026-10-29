@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace Tests\Functional\Auth;
 
 use App\Auth\Repository\PdoUserRepository;
-use App\Shared\Config\Environment;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\HttpClient;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Tests\Functional\Support\Browser;
+use Tests\Functional\Support\Mailpit;
 use Tests\Functional\Support\SessionApiClient;
 use Tests\Functional\Support\TestUserData;
 
@@ -27,20 +26,11 @@ final class AsyncConfirmationFlowTest extends TestCase
     private const string CREDENTIALS_FORMAT = '{"email":"%s","password":"%s"}';
     private const string TOKEN_BODY_FORMAT = '{"token":"%s"}';
     private const string CONFIRM_PATH = '/confirm';
-    private const string MAILPIT_API_BASE_URL_ENVIRONMENT_KEY = 'MAILPIT_API_BASE_URL';
-    private const string MAILPIT_SEARCH_PATH = '/api/v1/search';
-    private const string MAILPIT_SEARCH_QUERY_FORMAT = 'to:"%s"';
-    private const string MAILPIT_MESSAGE_PATH = '/api/v1/message/%s';
-    private const string MAILPIT_MESSAGES_PATH = '/api/v1/messages';
-    private const string URL_PATH_SEPARATOR = '/';
-    private const string DELETE_METHOD = 'DELETE';
-    private const int MESSAGE_WAIT_TIMEOUT_SECONDS = 15;
-    private const int MESSAGE_POLL_INTERVAL_MICROSECONDS = 100000;
 
     private string $email;
     private PDO $pdo;
     private SessionApiClient $client;
-    private HttpClientInterface $mailpit;
+    private Mailpit $mailpit;
     private ?string $mailpitMessageId = null;
 
     protected function setUp(): void
@@ -48,10 +38,7 @@ final class AsyncConfirmationFlowTest extends TestCase
         $this->pdo = DatabaseConnection::createFromEnvironment();
         $this->email = TestUserData::uniqueEmail(self::EMAIL_PREFIX);
         $this->client = new SessionApiClient();
-        $this->mailpit = HttpClient::createForBaseUri(rtrim(
-            Environment::get(self::MAILPIT_API_BASE_URL_ENVIRONMENT_KEY),
-            self::URL_PATH_SEPARATOR,
-        ));
+        $this->mailpit = new Mailpit();
     }
 
     protected function tearDown(): void
@@ -59,9 +46,7 @@ final class AsyncConfirmationFlowTest extends TestCase
         TestUserData::delete($this->pdo, $this->email);
 
         if ($this->mailpitMessageId !== null) {
-            $this->mailpit->request(self::DELETE_METHOD, self::MAILPIT_MESSAGES_PATH, [
-                'json' => ['IDs' => [$this->mailpitMessageId]],
-            ])->getStatusCode();
+            $this->mailpit->delete($this->mailpitMessageId);
         }
     }
 
@@ -71,7 +56,8 @@ final class AsyncConfirmationFlowTest extends TestCase
         self::assertSame(ResponseStatusEnum::ACCEPTED->value, $registration->getStatusCode());
 
         $linkPattern = sprintf(self::CONFIRMATION_LINK_PATTERN, preg_quote(Browser::url(self::CONFIRM_PATH), '#'));
-        $messageBody = $this->waitForMail();
+        $this->mailpitMessageId = $this->mailpit->waitForMessageTo($this->email);
+        $messageBody = $this->mailpit->text($this->mailpitMessageId);
         self::assertSame(1, preg_match($linkPattern, $messageBody, $matches));
 
         $page = HttpClient::create()->request(HttpMethodEnum::GET->value, $matches[0]);
@@ -93,37 +79,5 @@ final class AsyncConfirmationFlowTest extends TestCase
         self::assertNotNull($user);
 
         return $user->isVerified();
-    }
-
-    private function waitForMail(): string
-    {
-        $deadline = microtime(true) + self::MESSAGE_WAIT_TIMEOUT_SECONDS;
-
-        do {
-            $data = $this->mailpit->request(HttpMethodEnum::GET->value, self::MAILPIT_SEARCH_PATH, [
-                'query' => ['query' => sprintf(self::MAILPIT_SEARCH_QUERY_FORMAT, $this->email)],
-            ])->toArray();
-            $message = $data['messages'][0] ?? null;
-            $messageId = is_array($message) ? ($message['ID'] ?? null) : null;
-
-            if (is_string($messageId)) {
-                $this->mailpitMessageId = $messageId;
-
-                return $this->messageText($messageId);
-            }
-
-            usleep(self::MESSAGE_POLL_INTERVAL_MICROSECONDS);
-        } while (microtime(true) < $deadline);
-
-        self::fail('Timed out waiting for the confirmation email in Mailpit.');
-    }
-
-    private function messageText(string $messageId): string
-    {
-        $text = $this->mailpit->request(HttpMethodEnum::GET->value, sprintf(self::MAILPIT_MESSAGE_PATH, rawurlencode($messageId)))
-            ->toArray()['Text'] ?? null;
-        self::assertIsString($text);
-
-        return $text;
     }
 }

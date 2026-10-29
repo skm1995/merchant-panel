@@ -8,6 +8,8 @@ use DateTimeImmutable;
 
 final readonly class User
 {
+    private const string PASSWORD_STAMP_ALGORITHM = 'sha256';
+
     public function __construct(
         public string $email,
         public string $passwordHash,
@@ -30,5 +32,14 @@ final readonly class User
     public function passwordMatches(string $password): bool
     {
         return password_verify($password, $this->passwordHash);
+    }
+
+    /**
+     * A fingerprint of the current password hash, which changes whenever the password does.
+     * A session keeps the stamp it signed in with, so changing the password ends it.
+     */
+    public function passwordStamp(): string
+    {
+        return hash(self::PASSWORD_STAMP_ALGORITHM, $this->passwordHash);
     }
 }

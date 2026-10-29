@@ -10,13 +10,13 @@ use DateTimeImmutable;
 use LogicException;
 
 /**
- * User repository for controller tests that are not about access control: everyone who
- * signs in is a verified merchant. MerchantMiddlewareTest covers who is refused.
+ * User repository for routing and middleware tests that are not about access control: everyone
+ * who signs in is a verified merchant. MerchantMiddlewareTest covers who is refused.
  */
 final class MerchantUserRepository implements UserRepositoryInterface
 {
     private const string PASSWORD_HASH = 'merchant-password-hash';
-    private const string READ_ONLY_MESSAGE = 'Controller tests only look merchants up.';
+    private const string READ_ONLY_MESSAGE = 'These tests only look merchants up.';
 
     public function findByEmail(string $email): User
     {
@@ -26,6 +26,11 @@ final class MerchantUserRepository implements UserRepositoryInterface
     }
 
     public function create(string $email, string $passwordHash): User
+    {
+        throw new LogicException(self::READ_ONLY_MESSAGE);
+    }
+
+    public function changePassword(string $email, string $passwordHash): void
     {
         throw new LogicException(self::READ_ONLY_MESSAGE);
     }

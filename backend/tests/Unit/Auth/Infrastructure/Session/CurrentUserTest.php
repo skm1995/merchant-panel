@@ -15,6 +15,8 @@ final class CurrentUserTest extends TestCase
 {
     private const string EMAIL = 'person@example.com';
     private const string PASSWORD_HASH = 'password-hash';
+    private const string NEW_PASSWORD_HASH = 'new-password-hash';
+    private const string EMAIL_SESSION_KEY = 'user_email';
 
     /** @var array<string, mixed> */
     private array $originalSession;
@@ -44,7 +46,8 @@ final class CurrentUserTest extends TestCase
 
     public function testRemembersSignedInUserUntilSignOut(): void
     {
-        $this->currentUser->signIn(new User(self::EMAIL, self::PASSWORD_HASH, new DateTimeImmutable()));
+        $this->storedUser = self::user(self::PASSWORD_HASH);
+        $this->currentUser->signIn($this->storedUser);
 
         self::assertSame(self::EMAIL, $this->currentUser->email());
 
@@ -57,7 +60,8 @@ final class CurrentUserTest extends TestCase
     {
         self::assertFalse($this->currentUser->isSignedIn());
 
-        $this->currentUser->signIn(new User('merchant@example.com', 'hash', new DateTimeImmutable()));
+        $this->storedUser = self::user(self::PASSWORD_HASH);
+        $this->currentUser->signIn($this->storedUser);
 
         self::assertTrue($this->currentUser->isSignedIn());
     }
@@ -73,5 +77,41 @@ final class CurrentUserTest extends TestCase
 
         $this->storedUser = new User(self::EMAIL, self::PASSWORD_HASH, $now, $now, $now);
         self::assertTrue($this->currentUser->isMerchant(), 'Access granted after sign-in applies to the next request.');
+    }
+
+    public function testEndsTheSessionWhenThePasswordChanges(): void
+    {
+        $now = new DateTimeImmutable();
+        $this->storedUser = new User(self::EMAIL, self::PASSWORD_HASH, $now, $now, $now);
+        $this->currentUser->signIn($this->storedUser);
+
+        $this->storedUser = new User(self::EMAIL, self::NEW_PASSWORD_HASH, $now, $now, $now);
+
+        self::assertFalse($this->currentUser->isSignedIn());
+        self::assertNull($this->currentUser->email());
+        self::assertFalse($this->currentUser->isMerchant());
+    }
+
+    public function testEndsTheSessionWhenTheAccountIsGone(): void
+    {
+        $this->storedUser = self::user(self::PASSWORD_HASH);
+        $this->currentUser->signIn($this->storedUser);
+
+        $this->storedUser = null;
+
+        self::assertFalse($this->currentUser->isSignedIn());
+    }
+
+    public function testDoesNotTrustASessionWithoutAPasswordStamp(): void
+    {
+        $this->storedUser = self::user(self::PASSWORD_HASH);
+        $_SESSION = [self::EMAIL_SESSION_KEY => self::EMAIL];
+
+        self::assertFalse($this->currentUser->isSignedIn());
+    }
+
+    private static function user(string $passwordHash): User
+    {
+        return new User(self::EMAIL, $passwordHash, new DateTimeImmutable());
     }
 }

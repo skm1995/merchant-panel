@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { confirmationLink, PASSWORD, signIn, uniqueEmail } from './merchant';
+import { emailedLink, PASSWORD, signIn, uniqueEmail } from './merchant';
 
 test('a new account registers, confirms the email, and waits for panel access', async ({
   page,
@@ -13,7 +13,7 @@ test('a new account registers, confirms the email, and waits for panel access', 
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('status')).toHaveText(`We sent a confirmation link to ${email}.`);
 
-  await page.goto(await confirmationLink(request, email));
+  await page.goto(await emailedLink(request, email, '/confirm'));
   await page.getByRole('button', { name: 'Confirm email' }).click();
   await expect(page.getByRole('status')).toHaveText('Your email address is confirmed.');
 

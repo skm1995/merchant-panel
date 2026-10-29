@@ -27,24 +27,14 @@ final class UserAuthService
     public function register(string $email, string $password): User
     {
         $normalizedEmail = self::normalizeEmail($email);
-
-        if (filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL) === false) {
-            throw new InvalidEmailException();
-        }
-
-        if (strlen($password) < self::MINIMUM_PASSWORD_LENGTH) {
-            throw new WeakPasswordException(self::MINIMUM_PASSWORD_LENGTH);
-        }
-
-        if (strlen($password) > self::MAXIMUM_PASSWORD_BYTES || str_contains($password, self::NUL_CHARACTER)) {
-            throw new UnsupportedPasswordException(self::MAXIMUM_PASSWORD_BYTES);
-        }
+        self::requireValidEmail($normalizedEmail);
+        self::requireValidPassword($password);
 
         if ($this->users->findByEmail($normalizedEmail) !== null) {
             throw new DuplicateEmailException();
         }
 
-        return $this->users->create($normalizedEmail, password_hash($password, PASSWORD_DEFAULT));
+        return $this->users->create($normalizedEmail, self::hashPassword($password));
     }
 
     public function authenticate(string $email, string $password): User
@@ -79,6 +69,33 @@ final class UserAuthService
         }
 
         return $user->passwordMatches($password) ? $user : null;
+    }
+
+    public static function requireValidEmail(string $normalizedEmail): void
+    {
+        if (filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidEmailException();
+        }
+    }
+
+    /**
+     * At least 8 characters and at most the 72 bytes bcrypt hashes, without NUL characters,
+     * which bcrypt would cut the password at.
+     */
+    public static function requireValidPassword(string $password): void
+    {
+        if (strlen($password) < self::MINIMUM_PASSWORD_LENGTH) {
+            throw new WeakPasswordException(self::MINIMUM_PASSWORD_LENGTH);
+        }
+
+        if (strlen($password) > self::MAXIMUM_PASSWORD_BYTES || str_contains($password, self::NUL_CHARACTER)) {
+            throw new UnsupportedPasswordException(self::MAXIMUM_PASSWORD_BYTES);
+        }
+    }
+
+    public static function hashPassword(string $password): string
+    {
+        return password_hash($password, PASSWORD_DEFAULT);
     }
 
     public static function normalizeEmail(string $email): string

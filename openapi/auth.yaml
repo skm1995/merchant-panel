@@ -99,6 +99,59 @@ paths:
           $ref: 'shared.yaml#/responses/Problem'
         '422':
           $ref: 'shared.yaml#/responses/Problem'
+  passwordResets:
+    post:
+      operationId: requestPasswordReset
+      summary: Email a link to set a new password
+      description: >-
+        Answers 202 whether or not the address has an account, so it never reveals which
+        addresses are registered. A confirmed account gets a link that works for an hour and
+        replaces any earlier one; a new request within five minutes of the last sends nothing
+        more.
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/PasswordResetRequest'
+      responses:
+        '202':
+          description: A reset link is on its way if the address has a confirmed account.
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
+        '429':
+          $ref: 'shared.yaml#/responses/TooManyRequests'
+  passwordResetConfirmations:
+    post:
+      operationId: resetPassword
+      summary: Set a new password with the token from the reset email
+      description: >-
+        Uses the token once and ends every session of the account, so whoever knew the old
+        password is signed out. An invalid, expired, or used token and a password that breaks
+        the rules answer 422.
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/PasswordReset'
+      responses:
+        '204':
+          description: The password is changed.
+        '400':
+          $ref: 'shared.yaml#/responses/Problem'
+        '403':
+          $ref: 'shared.yaml#/responses/Problem'
+        '422':
+          $ref: 'shared.yaml#/responses/Problem'
 schemas:
   Session:
     type: object
@@ -140,3 +193,24 @@ schemas:
       token:
         type: string
         minLength: 1
+  PasswordResetRequest:
+    type: object
+    additionalProperties: false
+    required: [email]
+    properties:
+      email:
+        type: string
+  PasswordReset:
+    type: object
+    additionalProperties: false
+    required: [token, password]
+    properties:
+      token:
+        type: string
+        minLength: 1
+      password:
+        type: string
+        format: password
+        description: >-
+          At least 8 characters and at most 72 bytes, without NUL characters, like a
+          registration's password.

@@ -20,7 +20,8 @@ security review on 2026-10-27 shaped most of the controls marked as added then.
 | Cross-site request forgery | CSRF token in a custom header for every state change, compared with `hash_equals`; `SameSite=Lax` cookie | [`CsrfMiddleware`](../backend/src/Shared/Http/Middleware/CsrfMiddleware.php) |
 | Session theft or fixation | HttpOnly, Secure, `SameSite=Lax` cookie; strict session ids; the id is regenerated and a new CSRF token issued on sign-in | [`Session`](../backend/src/Shared/Http/Session.php), [`CurrentUser`](../backend/src/Auth/Infrastructure/Session/CurrentUser.php) |
 | Password guessing | Rate limits on sign-in and registration per client address, before any password check; bcrypt hashes | [`RateLimitMiddleware`](../backend/src/Shared/Http/Middleware/RateLimitMiddleware.php) |
-| Learning which accounts exist | Registration answers the same for new and existing addresses and notifies the owner; sign-in takes the same time for unknown addresses | [Registration](flows/registration.md) |
+| Learning which accounts exist | Registration and password reset answer the same for every address, and registration notifies the owner; sign-in takes the same time for unknown addresses | [Registration](flows/registration.md), [Password reset](flows/password-reset.md) |
+| Taking over an account through a reset link | Only the SHA-256 hash of a random 32-byte token is stored; a link works once and for an hour; requests are rate-limited and spaced five minutes apart per account; the reset ends every session of the account | [Password reset](flows/password-reset.md), [ADR 0027](decisions/0027-password-stamp-ends-sessions.md) |
 | Passwords that bcrypt cuts or rejects | Registration refuses passwords over 72 bytes or containing NUL | [`UserAuthService`](../backend/src/Auth/Service/UserAuthService.php) |
 | Reserving all stock with many carts | Rate limits on cart creation and checkout | [Checkout](flows/checkout.md) |
 | SQL injection | Native prepared statements everywhere; the legacy pages that built SQL from input were replaced, and tests prove injected input changes nothing | [Legacy](flows/legacy.md) |
@@ -56,7 +57,8 @@ links on the [personal site](https://szymonkozlowski.is-a.dev).
 
 - Rate limits count per client address in fixed windows: many addresses can still try many
   passwords, and visitors behind one address share a limit.
-- There is no multi-factor authentication, password reset, or account lockout notification.
+- There is no multi-factor authentication, password change while signed in, or account lockout
+  notification.
 - Order tokens cannot be revoked one by one.
 - Secrets are stored in a plain file on the server rather than a secret manager.
 - The audits cover published advisories of packages, not the system packages inside the

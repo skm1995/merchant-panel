@@ -7,7 +7,6 @@ solution.
 
 | Priority | Item | Effort |
 |---|---|---|
-| 1 | [Password reset](#password-reset) | M |
 | 2 | [Images built in CI](#images-built-in-ci) | M |
 | 2 | [Better rate limits](#better-rate-limits) | S |
 | 2 | [Published API reference](#published-api-reference) | S |
@@ -16,22 +15,6 @@ solution.
 | 3 | [Multi-tenancy](#multi-tenancy) | L |
 | 3 | [Performance](#performance) | S |
 | 3 | [Test depth](#test-depth) | M |
-
-## Password reset
-
-**Problem:** a merchant who forgets the password depends on an operator.
-
-**Sketch:**
-
-1. `POST /api/v1/password-resets {email}` answers 202 for every address, like registration,
-   and is rate-limited.
-2. For an existing account, store the SHA-256 hash of a random token with a 1-hour expiry, and
-   send the link through the outbox, reusing the confirmation email's machinery.
-3. `POST /api/v1/password-resets/confirm {token, password}` applies the password rules,
-   stores the new hash, deletes every reset token of the account, and ends its other
-   sessions, which needs an index of session ids per user in Redis.
-4. The React panel gets "Forgot password" and "Set a new password" pages; tests follow the
-   registration flow's: unit, functional through Mailpit, and one end-to-end journey.
 
 ## Images built in CI
 

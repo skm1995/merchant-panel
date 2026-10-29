@@ -32,3 +32,4 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0024](0024-log-search-in-production.md) | Log search in production, under the demo's tools domain | Accepted |
 | [0025](0025-black-friday-through-the-public-api.md) | Black Friday simulation through the public API, from its own process | Accepted |
 | [0026](0026-alerts-from-a-scheduled-github-workflow.md) | Alerts from a scheduled GitHub workflow | Accepted |
+| [0027](0027-password-stamp-ends-sessions.md) | A password stamp in the session ends older sessions | Accepted |

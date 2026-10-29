@@ -1,8 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { ConfirmEmailPage } from './auth/ConfirmEmailPage';
+import { ForgotPasswordPage } from './auth/ForgotPasswordPage';
 import { LoginPage } from './auth/LoginPage';
 import { RegisterPage } from './auth/RegisterPage';
+import { ResetPasswordPage } from './auth/ResetPasswordPage';
 import { OrdersPage } from './panel/OrdersPage';
 import { PanelLayout } from './panel/PanelLayout';
 import { ProductEditPage } from './panel/ProductEditPage';
@@ -30,6 +32,8 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/confirm" element={<ConfirmEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<RequireMerchant />}>
         <Route element={<PanelLayout />}>
           <Route index element={<Navigate to="/orders" replace />} />

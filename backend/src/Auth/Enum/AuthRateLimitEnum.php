@@ -11,4 +11,5 @@ enum AuthRateLimitEnum: string
 {
     case SIGN_IN = 'SIGN_IN_RATE_LIMIT';
     case REGISTRATION = 'REGISTRATION_RATE_LIMIT';
+    case PASSWORD_RESET = 'PASSWORD_RESET_RATE_LIMIT';
 }

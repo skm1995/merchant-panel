@@ -16,6 +16,7 @@ final class TestUserData
     private const string CREATE_MERCHANT_QUERY = 'INSERT INTO users (email, password, created_at, email_verified_at, merchant_since) VALUES (:email, :password, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)';
     private const array CLEANUP_QUERIES = [
         'DELETE FROM email_verification_tokens WHERE email = :email',
+        'DELETE FROM password_reset_tokens WHERE email = :email',
         'DELETE FROM users WHERE email = :email',
     ];
 

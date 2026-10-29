@@ -5,7 +5,7 @@ info:
   description: >-
     Shop and merchant panel API. Shop routes are sessionless; a cart id is an
     unguessable UUID that grants access to the cart. Panel routes (session,
-    registrations, email confirmations) use the browser session cookie and require
+    registrations, email confirmations, password resets) use the browser session cookie and require
     the session's CSRF token in the X-CSRF-Token header for state changes. Monetary amounts are strings in minor currency units
     (for example grosze) with an ISO 4217 currency code. Errors use RFC 9457
     problem details.
@@ -16,6 +16,10 @@ paths:
     $ref: 'auth.yaml#/paths/registrations'
   /api/v1/email-confirmations:
     $ref: 'auth.yaml#/paths/emailConfirmations'
+  /api/v1/password-resets:
+    $ref: 'auth.yaml#/paths/passwordResets'
+  /api/v1/password-reset-confirmations:
+    $ref: 'auth.yaml#/paths/passwordResetConfirmations'
   /api/v1/products:
     $ref: 'catalog.yaml#/paths/products'
   /api/v1/products/{id}:

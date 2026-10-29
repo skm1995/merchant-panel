@@ -49,7 +49,7 @@ The [documentation](docs/README.md) explains how the system works and why it is 
 way:
 
 - [Overview](docs/overview.md) and [architecture](docs/architecture/system.md)
-- [Business flows](docs/flows/checkout.md): registration, authentication, checkout, payments,
+- [Business flows](docs/flows/checkout.md): registration, authentication, password reset, checkout, payments,
   the panel, and replacing legacy code
 - [Architecture decisions](docs/decisions/README.md) with the alternatives considered
 - [Operations](docs/operations/ci-cd.md), [security](docs/security.md), and the

@@ -21,6 +21,7 @@ by path rather than copied, so every claim can be checked against the source.
 3. Flows: what happens, step by step, in each business process.
    - [Registration and email confirmation](flows/registration.md)
    - [Authentication and access](flows/authentication.md)
+   - [Password reset](flows/password-reset.md)
    - [Cart, checkout, and order expiry](flows/checkout.md)
    - [Payments and webhooks](flows/payments.md)
    - [Merchant panel and reports](flows/panel.md)

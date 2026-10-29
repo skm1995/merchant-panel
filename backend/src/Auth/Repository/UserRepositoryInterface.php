@@ -13,12 +13,14 @@ interface UserRepositoryInterface
 
     public function create(string $email, string $passwordHash): User;
 
+    public function changePassword(string $email, string $passwordHash): void;
+
+    public function markEmailConfirmed(string $email, DateTimeImmutable $confirmedAt): void;
+
     /**
      * Gives a confirmed account access to the merchant panel; an unconfirmed account and one
      * that already has access stay as they are.
      */
-    public function markEmailConfirmed(string $email, DateTimeImmutable $confirmedAt): void;
-
     public function grantMerchantAccess(string $email, DateTimeImmutable $grantedAt): void;
 
     /**
