@@ -20,7 +20,7 @@ final class OrderFixtures
     public const int VERSION = 1;
     public const string CREATED_AT = '2026-10-25T12:00:00+00:00';
     public const string RESERVATION_EXPIRES_AT = '2026-10-25T12:15:00+00:00';
-    public const string ACCESS_SECRET = 'test-order-access-secret';
+    private const string ACCESS_SECRET = 'test-order-access-secret';
     public const string WRONG_ACCESS_TOKEN = '0000000000000000000000000000000000000000000000000000000000000000';
 
     public static function access(): OrderAccess

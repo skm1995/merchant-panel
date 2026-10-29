@@ -97,17 +97,16 @@ compares with `hash_equals` against `REPORTS_API_KEY`.
 
 ## Tests
 
-- [`AuthApiControllerTest`](../../backend/tests/Unit/Auth/Controller/AuthApiControllerTest.php)
-  and [`RouterTest`](../../backend/tests/Unit/Shared/Http/RouterTest.php): sign-in and
-  sign-out, CSRF rejection, token rotation, merchant checks, rate limits, and the order of
-  the middleware.
 - [`AuthApiTest`](../../backend/tests/Functional/Auth/AuthApiTest.php),
   [`PanelApiTest`](../../backend/tests/Functional/Order/PanelApiTest.php), and
-  [`SessionStorageTest`](../../backend/tests/Functional/Http/SessionStorageTest.php): the same
-  through the web server, including sessions stored in Redis.
+  [`SessionStorageTest`](../../backend/tests/Functional/Http/SessionStorageTest.php), through
+  the web server: sign-in and sign-out, CSRF rejection, token rotation, wrong passwords,
+  unconfirmed accounts, invalid registrations, merchant checks, and sessions stored in Redis.
+- [`RouterTest`](../../backend/tests/Unit/Shared/Http/RouterTest.php): merchant checks, rate
+  limits, and the order of the middleware.
 - [`SessionProvider.test.tsx`](../../frontend/src/session/SessionProvider.test.tsx) and
   [`RequireMerchant.test.tsx`](../../frontend/src/session/RequireMerchant.test.tsx): the
-  panel's side, including an expired session.
+  panel's side, including an expired session and one that cannot be loaded.
 
 ## Limitations
 

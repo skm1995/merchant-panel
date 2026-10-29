@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Catalog;
 
+use App\Catalog\Service\ProductCatalog;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Http\Enum\ContentTypeEnum;
 use App\Shared\Http\Enum\HeaderNameEnum;
@@ -83,9 +84,12 @@ final class ProductApiTest extends TestCase
 
     public function testInvalidPaginationIsBadRequestProblem(): void
     {
-        $response = ApiClient::get(self::PRODUCTS_PATH, [self::LIMIT => self::INVALID_LIMIT]);
+        $notANumber = ApiClient::get(self::PRODUCTS_PATH, [self::LIMIT => self::INVALID_LIMIT]);
+        $aboveMaximum = ApiClient::get(self::PRODUCTS_PATH, [self::LIMIT => (string) (ProductCatalog::MAXIMUM_PAGE_SIZE + 1)]);
 
-        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $response->getStatusCode());
-        ApiClient::assertMatchesSpecification(self::PRODUCTS_PATH, HttpMethodEnum::GET->value, $response);
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $notANumber->getStatusCode());
+        self::assertSame(ResponseStatusEnum::BAD_REQUEST->value, $aboveMaximum->getStatusCode());
+        ApiClient::assertMatchesSpecification(self::PRODUCTS_PATH, HttpMethodEnum::GET->value, $notANumber);
+        ApiClient::assertMatchesSpecification(self::PRODUCTS_PATH, HttpMethodEnum::GET->value, $aboveMaximum);
     }
 }

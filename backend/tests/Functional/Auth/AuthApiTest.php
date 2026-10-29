@@ -22,6 +22,10 @@ final class AuthApiTest extends TestCase
     private const string EMAIL_PREFIX = 'auth-api-';
     private const string PASSWORD = 'functional-password-123';
     private const string CREDENTIALS_FORMAT = '{"email":"%s","password":"%s"}';
+    private const string WRONG_PASSWORD = 'not-the-password-123';
+    private const string INVALID_EMAIL = 'not-an-email-address';
+    // bcrypt reads only the first 72 bytes, so a longer password would be cut silently.
+    private const int TOO_LONG_PASSWORD_BYTES = 73;
     private const string UNKNOWN_TOKEN_BODY = '{"token":"unknown-confirmation-token"}';
     private const string USER_EXISTS_QUERY = 'SELECT COUNT(*) FROM users WHERE email = :email AND email_verified_at IS NULL';
 
@@ -54,6 +58,46 @@ final class AuthApiTest extends TestCase
         $response = $this->client->sendWithoutCsrfToken(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, $this->credentials());
 
         $this->assertResponse(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, ResponseStatusEnum::FORBIDDEN, $response);
+        self::assertSame(0, $this->countUnverifiedUsers());
+    }
+
+    public function testRejectsASignInWithoutTheCsrfToken(): void
+    {
+        TestUserData::createVerified($this->pdo, $this->email, self::PASSWORD);
+
+        $response = $this->client->sendWithoutCsrfToken(HttpMethodEnum::POST, self::SESSION_PATH, $this->credentials());
+
+        $this->assertResponse(HttpMethodEnum::POST, self::SESSION_PATH, ResponseStatusEnum::FORBIDDEN, $response);
+        self::assertFalse(ApiClient::json($this->client->get(self::SESSION_PATH))['authenticated']);
+    }
+
+    public function testRejectsAWrongPassword(): void
+    {
+        TestUserData::createVerified($this->pdo, $this->email, self::PASSWORD);
+
+        $response = $this->client->send(HttpMethodEnum::POST, self::SESSION_PATH, $this->credentials(self::WRONG_PASSWORD));
+
+        $this->assertResponse(HttpMethodEnum::POST, self::SESSION_PATH, ResponseStatusEnum::UNAUTHORIZED, $response);
+        self::assertFalse(ApiClient::json($this->client->get(self::SESSION_PATH))['authenticated']);
+    }
+
+    public function testRefusesToSignInAnAccountWhoseEmailIsNotConfirmed(): void
+    {
+        $this->client->send(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, $this->credentials());
+
+        $response = $this->client->send(HttpMethodEnum::POST, self::SESSION_PATH, $this->credentials());
+
+        $this->assertResponse(HttpMethodEnum::POST, self::SESSION_PATH, ResponseStatusEnum::FORBIDDEN, $response);
+        self::assertFalse(ApiClient::json($this->client->get(self::SESSION_PATH))['authenticated']);
+    }
+
+    public function testRejectsRegistrationsWithAnInvalidEmailOrAPasswordBcryptWouldCut(): void
+    {
+        $invalidEmail = $this->client->send(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, sprintf(self::CREDENTIALS_FORMAT, self::INVALID_EMAIL, self::PASSWORD));
+        $tooLongPassword = $this->client->send(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, $this->credentials(str_repeat('p', self::TOO_LONG_PASSWORD_BYTES)));
+
+        $this->assertResponse(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, ResponseStatusEnum::UNPROCESSABLE_CONTENT, $invalidEmail);
+        $this->assertResponse(HttpMethodEnum::POST, self::REGISTRATIONS_PATH, ResponseStatusEnum::UNPROCESSABLE_CONTENT, $tooLongPassword);
         self::assertSame(0, $this->countUnverifiedUsers());
     }
 
@@ -91,9 +135,9 @@ final class AuthApiTest extends TestCase
         return (string) $response->getBody() === (string) null ? [] : ApiClient::json($response);
     }
 
-    private function credentials(): string
+    private function credentials(string $password = self::PASSWORD): string
     {
-        return sprintf(self::CREDENTIALS_FORMAT, $this->email, self::PASSWORD);
+        return sprintf(self::CREDENTIALS_FORMAT, $this->email, $password);
     }
 
     private function countUnverifiedUsers(): int
