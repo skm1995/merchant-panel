@@ -62,3 +62,4 @@ jobs:
           REPORTS_API_KEY: ${{ secrets.REPORTS_API_KEY }}
           ORDER_ACCESS_SECRET: ${{ secrets.ORDER_ACCESS_SECRET }}
           MAILPIT_PASSWORD: ${{ secrets.MAILPIT_PASSWORD }}
+          BACKUP_UPLOAD_URL: ${{ secrets.BACKUP_UPLOAD_URL }}

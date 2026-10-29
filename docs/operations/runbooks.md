@@ -25,6 +25,11 @@ dc run --rm --no-deps --user www-data -e MERCHANT_PASSWORD='…' php php bin/cre
 
 ## Restore the database from a backup
 
+The last week of dumps is on the server; older ones, or all of them after losing the server,
+are in the `merchant-panel-backups` bucket: download one in the Oracle Cloud console
+(**Storage → Buckets → merchant-panel-backups**, the object's menu, **Download**) and copy it
+to the server with `scp`. Then:
+
 ```sh
 ls -lt ~/backups
 gunzip -c ~/backups/app-<timestamp>.sql.gz | dc exec -T mysql \
@@ -33,6 +38,23 @@ gunzip -c ~/backups/app-<timestamp>.sql.gz | dc exec -T mysql \
 
 The dump replaces the tables it contains. Take a fresh backup first
 (`~/app/docker/server/backup-database.sh`) if the current data may still be needed.
+
+## Check that the backups restore
+
+Once a month, restore the latest dump into a scratch database and compare it with the live
+one; a backup is only as good as its last restore:
+
+```sh
+mysql_root() { dc exec -T mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$@"' sh "$@"; }
+latest=$(ls -t ~/backups/app-*.sql.gz | head -n 1)
+mysql_root -e 'CREATE DATABASE restore_check'
+gunzip -c "${latest}" | mysql_root restore_check
+mysql_root -e 'SELECT COUNT(*) FROM restore_check.orders; SELECT COUNT(*) FROM app.orders'
+mysql_root -e 'DROP DATABASE restore_check'
+```
+
+The counts differ only by the orders placed since the dump. In the bucket, the newest object
+should be from last night.
 
 ## Retry failed messages
 
@@ -106,6 +128,7 @@ Some secrets need more:
 | `RABBITMQ_PASSWORD` | The same: change it with `rabbitmqctl change_password` first. |
 | `ORDER_ACCESS_SECRET` | Every existing order token stops working; guests lose access to their open orders. |
 | `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET` | Update the provider at the same time, or its webhooks are rejected. |
+| `BACKUP_UPLOAD_URL` | Create a new pre-authenticated request first ([Off-site backups](production.md#off-site-backups)); after the deployment, delete the old one in the bucket. |
 
 ## Redis is down
 

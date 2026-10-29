@@ -8,7 +8,6 @@ solution.
 | Priority | Item | Effort |
 |---|---|---|
 | 1 | [Password reset](#password-reset) | M |
-| 1 | [Off-site backups](#off-site-backups) | S |
 | 2 | [Images built in CI](#images-built-in-ci) | M |
 | 2 | [Better rate limits](#better-rate-limits) | S |
 | 2 | [Published API reference](#published-api-reference) | S |
@@ -33,15 +32,6 @@ solution.
    sessions, which needs an index of session ids per user in Redis.
 4. The React panel gets "Forgot password" and "Set a new password" pages; tests follow the
    registration flow's: unit, functional through Mailpit, and one end-to-end journey.
-
-## Off-site backups
-
-**Problem:** the nightly dumps stay on the server they protect.
-
-**Sketch:** after `backup-database.sh` writes a dump, upload it to Oracle Cloud Object
-Storage, which the Always Free tier includes, with credentials limited to that bucket and a
-lifecycle rule that deletes objects after 30 days. A monthly runbook step restores the latest
-dump into a scratch database to prove the backups work.
 
 ## Images built in CI
 

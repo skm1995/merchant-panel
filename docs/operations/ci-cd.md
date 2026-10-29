@@ -78,6 +78,7 @@ their health, so a release that does not start leaves the demo down until the ne
 | `FAKEPAY_WEBHOOK_SECRET`, `QUICKPAY_WEBHOOK_SECRET` | secrets | webhook signing secrets |
 | `REPORTS_API_KEY`, `ORDER_ACCESS_SECRET` | secrets | the reports API key and the order token secret |
 | `MAILPIT_PASSWORD` | secret | the password for the Mailpit page and Kibana, also used by the [monitor](observability.md#alerts) |
+| `BACKUP_UPLOAD_URL` | secret | the pre-authenticated request that uploads the nightly dumps to [Object Storage](production.md#off-site-backups) |
 
 ## Commit conventions
 

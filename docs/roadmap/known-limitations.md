@@ -32,7 +32,7 @@ with their consequences. Items that are planned to change link to the
 | Limitation | Consequence | Plan |
 |---|---|---|
 | One server, no failover, and the provider may reclaim an idle free machine | A server problem takes the demo down | Acceptable for a demo; [rebuild runbook](../operations/runbooks.md#rebuild-the-server-from-scratch) |
-| Backups stay on the same server | They do not survive losing the server | [Off-site backups](roadmap.md#off-site-backups) |
+| Backup failures show only in the server's system log | A broken backup goes unnoticed until someone looks | Acceptable for a demo; the [monthly restore check](../operations/runbooks.md#check-that-the-backups-restore) catches it |
 | Alerts check every 15 minutes, by email to the owner only, and ignore slow responses | An outage can last a quarter of an hour before anyone knows | Acceptable for a demo; [ADR 0026](../decisions/0026-alerts-from-a-scheduled-github-workflow.md) |
 | Images are built on the server | Deploys take minutes, a failed release leaves the demo down, and rollback means reverting a commit | [Images in CI](roadmap.md#images-built-in-ci) |
 | No staging environment | Every green commit goes straight to the demo | [Images in CI](roadmap.md#images-built-in-ci) makes one cheap |
