@@ -30,6 +30,7 @@ final class PanelProductApiTest extends TestCase
     private const string PASSWORD = 'functional-password-123';
     private const string CREDENTIALS_FORMAT = '{"email":"%s","password":"%s"}';
     private const string EDIT_FORMAT = '{"price":{"amount":"%s","currency":"PLN"},"stock":%d}';
+    private const string OTHER_CURRENCY_EDIT = '{"price":{"amount":"2500","currency":"USD"},"stock":12}';
     private const string ETAG_HEADER = 'ETag';
     private const string IF_MATCH_HEADER = 'If-Match';
     private const int CACHE_WAIT_TIMEOUT_SECONDS = 15;
@@ -58,9 +59,12 @@ final class PanelProductApiTest extends TestCase
 
     public function testRequiresASignedInMerchant(): void
     {
-        $response = $this->client->get($this->path());
+        $read = $this->client->get($this->path());
+        $edit = $this->client->send(HttpMethodEnum::PATCH, $this->path(), sprintf(self::EDIT_FORMAT, '2500', 12), [self::IF_MATCH_HEADER => '"1"']);
 
-        $this->assertResponse(HttpMethodEnum::GET, ResponseStatusEnum::UNAUTHORIZED, $response);
+        $this->assertResponse(HttpMethodEnum::GET, ResponseStatusEnum::UNAUTHORIZED, $read);
+        $this->assertResponse(HttpMethodEnum::PATCH, ResponseStatusEnum::UNAUTHORIZED, $edit);
+        self::assertSame(['amount' => '1999', 'currency' => 'PLN'], ApiClient::json(ApiClient::get(sprintf(self::PUBLIC_PRODUCT_PATH, $this->productId)))['price']);
     }
 
     public function testEditsWithOptimisticLockingAndRefreshesTheCatalogCache(): void
@@ -83,6 +87,23 @@ final class PanelProductApiTest extends TestCase
         self::assertSame(12, $body['stock']);
         self::assertNotSame($etag, $edited->getHeaderLine(self::ETAG_HEADER));
         self::assertSame('2500', $this->publicPriceAfterInvalidation());
+    }
+
+    /**
+     * Carts and orders add up prices, which only works within one currency, so a product keeps
+     * the currency it has.
+     */
+    public function testRefusesToChangeTheProductsCurrency(): void
+    {
+        $this->signIn();
+        $etag = $this->client->get($this->path())->getHeaderLine(self::ETAG_HEADER);
+
+        $response = $this->client->send(HttpMethodEnum::PATCH, $this->path(), self::OTHER_CURRENCY_EDIT, [self::IF_MATCH_HEADER => $etag]);
+
+        $this->assertResponse(HttpMethodEnum::PATCH, ResponseStatusEnum::UNPROCESSABLE_CONTENT, $response);
+        $product = $this->assertResponse(HttpMethodEnum::GET, ResponseStatusEnum::OK, $this->client->get($this->path()));
+        self::assertSame(['amount' => '1999', 'currency' => 'PLN'], $product['price']);
+        self::assertSame($etag, $this->client->get($this->path())->getHeaderLine(self::ETAG_HEADER), 'The refused edit changed nothing.');
     }
 
     private function signIn(): void

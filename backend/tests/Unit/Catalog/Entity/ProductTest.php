@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Catalog\Entity;
 
-use InvalidArgumentException;
+use App\Catalog\Exception\ProductCurrencyChangeException;
 use App\Catalog\Exception\StockBelowReservationsException;
+use InvalidArgumentException;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Catalog\ProductFactory;
@@ -49,5 +50,12 @@ final class ProductTest extends TestCase
         $this->expectException(StockBelowReservationsException::class);
 
         ProductFactory::create(self::PRODUCT_ID, 10, 3)->withPriceAndStock(Money::PLN(2500), 2);
+    }
+
+    public function testRefusesAPriceInAnotherCurrency(): void
+    {
+        $this->expectException(ProductCurrencyChangeException::class);
+
+        ProductFactory::create(self::PRODUCT_ID, 10, 3)->withPriceAndStock(Money::USD(2500), 10);
     }
 }

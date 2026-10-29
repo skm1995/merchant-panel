@@ -6,6 +6,7 @@ namespace App\Catalog\Controller;
 
 use App\Catalog\Entity\Product;
 use App\Catalog\Exception\InvalidPageSizeException;
+use App\Catalog\Exception\ProductCurrencyChangeException;
 use App\Catalog\Exception\ProductNotFoundException;
 use App\Catalog\Exception\ProductVersionMismatchException;
 use App\Catalog\Exception\StockBelowReservationsException;
@@ -71,6 +72,7 @@ final readonly class ProductApiController
     #[MapException(ProductNotFoundException::class, ResponseStatusEnum::NOT_FOUND)]
     #[MapException(ProductVersionMismatchException::class, ResponseStatusEnum::PRECONDITION_FAILED)]
     #[MapException(StockBelowReservationsException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
+    #[MapException(ProductCurrencyChangeException::class, ResponseStatusEnum::UNPROCESSABLE_CONTENT)]
     public function edit(Request $request): void
     {
         $edit = EditProductRequest::fromRequest($request);

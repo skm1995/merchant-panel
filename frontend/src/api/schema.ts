@@ -286,7 +286,7 @@ export interface paths {
         head?: never;
         /**
          * Change a product's price and stock
-         * @description Uses optimistic locking: send the ETag from the last read in If-Match. A missing header returns 428, a stale one 412, and stock below the reserved units 422. Replaces the retired /legacy/product-stock.php page, whose links now redirect to the panel's product editor.
+         * @description Uses optimistic locking: send the ETag from the last read in If-Match. A missing header returns 428, a stale one 412, and stock below the reserved units or a price in another currency than the product's 422. Replaces the retired /legacy/product-stock.php page, whose links now redirect to the panel's product editor.
          */
         patch: operations["editPanelProduct"];
         trace?: never;
@@ -1110,6 +1110,7 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
+                /** @description A key of the client's choosing, such as a UUID, so a retried checkout places the order once. Keys starting with "history:" or "simulation:" are reserved for the shop's own orders and refused with 400. */
                 "Idempotency-Key": string;
             };
             path: {

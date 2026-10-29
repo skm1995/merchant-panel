@@ -38,9 +38,10 @@ sequenceDiagram
 price and stock with optimistic locking. The `ETag` carries the product's version, the panel
 sends it back in `If-Match`, and the update applies only to that version. When someone else
 saved first, the merchant gets 412 with a message to reload, instead of silently overwriting
-their change. Stock may not drop below what open orders have reserved (422); the
-[`Product`](../../backend/src/Catalog/Entity/Product.php) entity enforces it, and the SQL
-update repeats the condition. After the change commits, an outbox message makes the worker
+their change. Stock may not drop below what open orders have reserved, and the price keeps
+the product's currency, because carts and orders add prices up (422 for either); the
+[`Product`](../../backend/src/Catalog/Entity/Product.php) entity enforces both, and the SQL
+update repeats the stock condition. After the change commits, an outbox message makes the worker
 remove the product from the Redis cache, so the public catalog shows the new values. The
 cache's own expiry bounds how stale a value can get if a message is ever lost.
 [Request lifecycle](../architecture/request-lifecycle.md) follows this request through every

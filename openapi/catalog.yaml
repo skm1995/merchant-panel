@@ -78,7 +78,8 @@ paths:
       summary: Change a product's price and stock
       description: >-
         Uses optimistic locking: send the ETag from the last read in If-Match. A missing
-        header returns 428, a stale one 412, and stock below the reserved units 422.
+        header returns 428, a stale one 412, and stock below the reserved units or a price in
+        another currency than the product's 422.
         Replaces the retired /legacy/product-stock.php page, whose links now redirect to
         the panel's product editor.
       parameters:

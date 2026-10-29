@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Entity;
 
+use App\Catalog\Exception\ProductCurrencyChangeException;
 use App\Catalog\Exception\StockBelowReservationsException;
 use InvalidArgumentException;
 use Money\Money;
@@ -27,10 +28,15 @@ final readonly class Product
     }
 
     /**
-     * The product with a new price and stock; the stock must still cover the reserved units.
+     * The product with a new price and stock. The price keeps the product's currency, because
+     * carts and orders add prices up, and the stock must still cover the reserved units.
      */
     public function withPriceAndStock(Money $price, int $stock): self
     {
+        if (!$price->isSameCurrency($this->price)) {
+            throw new ProductCurrencyChangeException($this->price->getCurrency()->getCode());
+        }
+
         if ($stock < $this->reserved) {
             throw new StockBelowReservationsException($this->reserved);
         }
