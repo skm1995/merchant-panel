@@ -77,6 +77,18 @@ final class StampedeProtectedCacheTest extends TestCase
         self::assertSame(0, $this->computations);
     }
 
+    public function testUsesTheValueAnotherProcessStoredBeforeItGotTheLock(): void
+    {
+        $this->cache(self::NEVER_EARLY)->remember(self::OTHER_KEY, self::TTL, static fn (): string => self::STALE);
+        $this->store->valuesAppearingAfterRead[self::KEY] = $this->store->values[self::OTHER_KEY];
+
+        $value = $this->cache(self::NEVER_EARLY)->remember(self::KEY, self::TTL, $this->compute(...));
+
+        self::assertSame(self::STALE, $value, 'The process that read a cold cache checks it again once it holds the lock.');
+        self::assertSame(0, $this->computations);
+        self::assertSame([], $this->store->locked);
+    }
+
     public function testWaitsForTheProcessHoldingTheLockOnAColdCache(): void
     {
         $this->cache(self::NEVER_EARLY)->remember(self::OTHER_KEY, self::TTL, static fn (): string => self::STALE);

@@ -86,6 +86,13 @@ final readonly class StampedeProtectedCache
         }
 
         try {
+            // Another process may have stored the value between the read and the lock.
+            $stored = $entry === null ? $this->read($key) : null;
+
+            if ($stored !== null) {
+                return $stored->value;
+            }
+
             $startedAt = $this->now();
             $value = $compute();
             $finishedAt = $this->now();
