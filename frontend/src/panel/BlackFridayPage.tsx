@@ -111,93 +111,91 @@ export function BlackFridayPage() {
 
   return (
     <Page title="Black Friday">
-      <div className={styles.page}>
-        <p className={styles.intro}>
-          Simulated buyers shop through the public API for a minute, as customers would on Black
-          Friday: they check out, pay, and empty the shelves. Afterwards the panel compares the
-          stock that left the shelves with the orders that were paid.
-        </p>
-        <div>
-          <Button onClick={() => void start()} busy={busy || running}>
-            Start Black Friday
-          </Button>
-        </div>
-        {error !== null && <Alert tone="error">{error}</Alert>}
-        {simulation !== null && (
-          <>
-            <StatList
-              label="Simulation counters"
-              stats={[
-                { label: 'Buyers', value: formatCount(simulation.buyers) },
-                { label: 'Orders placed', value: formatCount(simulation.counters.orders_placed) },
-                { label: 'Orders paid', value: formatCount(simulation.counters.orders_paid) },
-                { label: 'Sold out', value: formatCount(simulation.counters.sold_out) },
-                {
-                  label: 'Failed requests',
-                  value: formatCount(simulation.counters.failed_requests),
-                },
-              ]}
-            />
-            {simulation.check !== null &&
-              (simulation.check.consistent ? (
-                <Alert tone="success">
-                  Consistent: {formatCount(simulation.check.units_sold)} units left the shelves and{' '}
-                  {formatCount(simulation.check.units_paid)} units were paid for; no product was
-                  sold twice or below zero.
-                </Alert>
-              ) : (
-                <Alert tone="error">
-                  Inconsistent: {formatCount(simulation.check.units_sold)} units left the shelves,
-                  but {formatCount(simulation.check.units_paid)} units were paid for.
-                </Alert>
-              ))}
-            {pace.length > 0 && (
-              <ChartPanel
-                title="Orders per second"
-                howItsComputed="The panel asks for the simulation's counters every second and plots how many orders were placed since the last answer."
-                data={
-                  <DataTable
-                    caption="Orders per second"
-                    columns={PACE_COLUMNS}
-                    rows={pace}
-                    rowKey={(point) => String(point.second)}
-                  />
-                }
-              >
-                <LineChart
-                  data={pace.map((point) => ({
-                    label: String(point.second),
-                    orders: point.orders,
-                  }))}
-                  series={[{ key: 'orders', name: 'Orders per second' }]}
-                  format={formatCount}
-                />
-              </ChartPanel>
-            )}
+      <p className={styles.intro}>
+        Simulated buyers shop through the public API for a minute, as customers would on Black
+        Friday: they check out, pay, and empty the shelves. Afterwards the panel compares the stock
+        that left the shelves with the orders that were paid.
+      </p>
+      <div>
+        <Button onClick={() => void start()} busy={busy || running}>
+          Start Black Friday
+        </Button>
+      </div>
+      {error !== null && <Alert tone="error">{error}</Alert>}
+      {simulation !== null && (
+        <>
+          <StatList
+            label="Simulation counters"
+            stats={[
+              { label: 'Buyers', value: formatCount(simulation.buyers) },
+              { label: 'Orders placed', value: formatCount(simulation.counters.orders_placed) },
+              { label: 'Orders paid', value: formatCount(simulation.counters.orders_paid) },
+              { label: 'Sold out', value: formatCount(simulation.counters.sold_out) },
+              {
+                label: 'Failed requests',
+                value: formatCount(simulation.counters.failed_requests),
+              },
+            ]}
+          />
+          {simulation.check !== null &&
+            (simulation.check.consistent ? (
+              <Alert tone="success">
+                Consistent: {formatCount(simulation.check.units_sold)} units left the shelves and{' '}
+                {formatCount(simulation.check.units_paid)} units were paid for; no product was sold
+                twice or below zero.
+              </Alert>
+            ) : (
+              <Alert tone="error">
+                Inconsistent: {formatCount(simulation.check.units_sold)} units left the shelves, but{' '}
+                {formatCount(simulation.check.units_paid)} units were paid for.
+              </Alert>
+            ))}
+          {pace.length > 0 && (
             <ChartPanel
-              title="Stock left"
-              howItsComputed="Checkouts reserve stock under row locks with a conditional update, and payments turn reservations into sold stock, so stock never goes below zero however many buyers arrive at once."
+              title="Orders per second"
+              howItsComputed="The panel asks for the simulation's counters every second and plots how many orders were placed since the last answer."
               data={
                 <DataTable
-                  caption="Stock left"
-                  columns={PRODUCT_COLUMNS}
-                  rows={simulation.products}
-                  rowKey={(product) => String(product.product_id)}
+                  caption="Orders per second"
+                  columns={PACE_COLUMNS}
+                  rows={pace}
+                  rowKey={(point) => String(point.second)}
                 />
               }
             >
-              <BarChart
-                horizontal
-                data={simulation.products.map((product) => ({
-                  label: product.name,
-                  value: product.stock,
+              <LineChart
+                data={pace.map((point) => ({
+                  label: String(point.second),
+                  orders: point.orders,
                 }))}
+                series={[{ key: 'orders', name: 'Orders per second' }]}
                 format={formatCount}
               />
             </ChartPanel>
-          </>
-        )}
-      </div>
+          )}
+          <ChartPanel
+            title="Stock left"
+            howItsComputed="Checkouts reserve stock under row locks with a conditional update, and payments turn reservations into sold stock, so stock never goes below zero however many buyers arrive at once."
+            data={
+              <DataTable
+                caption="Stock left"
+                columns={PRODUCT_COLUMNS}
+                rows={simulation.products}
+                rowKey={(product) => String(product.product_id)}
+              />
+            }
+          >
+            <BarChart
+              horizontal
+              data={simulation.products.map((product) => ({
+                label: product.name,
+                value: product.stock,
+              }))}
+              format={formatCount}
+            />
+          </ChartPanel>
+        </>
+      )}
     </Page>
   );
 }

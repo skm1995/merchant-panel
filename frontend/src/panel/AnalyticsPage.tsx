@@ -111,7 +111,7 @@ export function AnalyticsPage() {
       {error !== null && <Alert tone="error">{error}</Alert>}
       {reports === null && error === null && <p>Loading reports…</p>}
       {reports !== null && (
-        <div className={styles.reports}>
+        <>
           <ChartPanel
             title="Products that sell out first"
             howItsComputed={`SQL adds up each product's units sold in the last ${String(reports.outlook.days_measured)} full days from the daily sales summary, joins the available stock, and sorts by stock per unit sold with LIMIT. PHP turns the result into units per day and whole days of stock left.`}
@@ -173,7 +173,7 @@ export function AnalyticsPage() {
               formatAxis={formatCompactAmount(reports.monthly.currency)}
             />
           </ChartPanel>
-        </div>
+        </>
       )}
     </Page>
   );
