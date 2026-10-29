@@ -18,6 +18,7 @@ test('a merchant who forgot the password sets a new one through the emailed link
 
   await page.goto('/login');
   await page.getByRole('link', { name: 'Forgot your password?' }).click();
+  await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible();
   await page.getByLabel('Email').fill(email);
   await page.getByRole('button', { name: 'Send reset link' }).click();
   await expect(page.getByRole('status')).toContainText('a reset link is on its way');
