@@ -2,7 +2,8 @@
 # Dumps the production database into ~/backups, keeps a week of daily dumps there, and uploads
 # each dump to Oracle Object Storage, so the backups survive losing the server; cron runs it
 # (see provision.sh). BACKUP_UPLOAD_URL in ~/app/.env is a pre-authenticated request that may
-# only write objects into the backup bucket, whose lifecycle rule deletes them after 30 days.
+# only write objects into the backup bucket, whose lifecycle rule deletes them after 7 days,
+# staying well within the Always Free tier's 10 GB limit.
 # Restore a dump with:
 #   gunzip -c ~/backups/<file>.sql.gz | sudo docker compose -f ~/app/compose.prod.yaml exec -T mysql \
 #     sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'

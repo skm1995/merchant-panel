@@ -25,7 +25,7 @@ dc run --rm --no-deps --user www-data -e MERCHANT_PASSWORD='…' php php bin/cre
 
 ## Restore the database from a backup
 
-The last week of dumps is on the server; older ones, or all of them after losing the server,
+The last week of dumps is on the server; after losing the server, the dumps of the last week
 are in the `merchant-panel-backups` bucket: download one in the Oracle Cloud console
 (**Storage → Buckets → merchant-panel-backups**, the object's menu, **Download**) and copy it
 to the server with `scp`. Then:

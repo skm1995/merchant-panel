@@ -89,14 +89,16 @@ Every dump is also uploaded to a private bucket in Oracle Cloud Object Storage, 
 Always Free tier includes, so the backups survive losing the server. The server holds only a
 pre-authenticated request that may write objects into the bucket: it cannot list, read, or
 delete the earlier backups, so a compromised server cannot destroy them. The bucket's
-lifecycle rule deletes dumps after 30 days. Setting it up once, in the Oracle Cloud console:
+lifecycle rule deletes dumps after 7 days, so the bucket stays well within the Always Free
+tier's 10 GB limit. Setting it up once, in the Oracle Cloud console:
 
 1. **Identity & Security → Policies**, in the root compartment: create a policy with the
    statement `Allow service objectstorage-<region> to manage object-family in tenancy`, with
    the server's region identifier, such as `eu-frankfurt-1`. Lifecycle rules need it.
 2. **Storage → Buckets → Create Bucket:** name `merchant-panel-backups`, the Standard tier,
    Oracle-managed encryption.
-3. In the bucket, **Lifecycle Policy Rules → Create Rule:** action Delete, after 30 days.
+3. In the bucket, **Lifecycle Policy Rules → Create Rule:** name `delete-after-7-days`, action
+   Delete, after 7 days.
 4. In the bucket, **Pre-Authenticated Requests → Create Pre-Authenticated Request:** target
    Bucket, access type **Permit object writes**, and an expiration date a year or more ahead.
    Copy the URL, which ends with `/o/`; it is shown only once.
