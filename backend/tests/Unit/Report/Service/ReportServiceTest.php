@@ -10,8 +10,8 @@ use App\Report\Service\ReportService;
 use DateTimeImmutable;
 use Money\Currency;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Report\ReportFixtures;
+use Tests\Unit\Support\FrozenClock;
 
 final class ReportServiceTest extends TestCase
 {

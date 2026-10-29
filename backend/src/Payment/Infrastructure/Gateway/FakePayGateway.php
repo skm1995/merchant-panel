@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Payment\Infrastructure\Gateway;
 
-use App\Payment\ValueObject\FakePaySignature;
 use App\Payment\Entity\PaymentId;
 use App\Payment\Enum\PaymentOutcomeEnum;
 use App\Payment\Exception\InvalidWebhookPayloadException;
@@ -12,6 +11,7 @@ use App\Payment\Exception\InvalidWebhookSignatureException;
 use App\Payment\Gateway\GatewayPayment;
 use App\Payment\Gateway\PaymentGatewayInterface;
 use App\Payment\Gateway\PaymentWebhookEvent;
+use App\Payment\ValueObject\FakePaySignature;
 use Money\Currency;
 use Money\Money;
 

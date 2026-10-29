@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Shared\Messaging;
 
-use App\Shared\DependencyInjection\ServiceFactory;
 use App\Shared\Config\Environment;
+use App\Shared\DependencyInjection\ServiceFactory;
+use App\Shared\Messaging\Exception\UnknownTransportException;
+use App\Shared\Messaging\Outbox\OutboxMessageInterface;
+use App\Shared\Messaging\Outbox\OutboxMessageTypes;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Bridge\Amqp\Transport\AmqpTransportFactory;
 use Symfony\Component\Messenger\EventListener\SendFailedMessageForRetryListener;
@@ -18,9 +21,6 @@ use Symfony\Component\Messenger\Middleware\SendMessageMiddleware;
 use Symfony\Component\Messenger\Retry\MultiplierRetryStrategy;
 use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use Symfony\Component\Messenger\Transport\TransportInterface;
-use App\Shared\Messaging\Exception\UnknownTransportException;
-use App\Shared\Messaging\Outbox\OutboxMessageInterface;
-use App\Shared\Messaging\Outbox\OutboxMessageTypes;
 use Symfony\Component\Messenger\Worker;
 
 /**

@@ -13,12 +13,15 @@ const PROGRESS_FORMAT = "\rGenerated %d of %d orders (%d%%) in %ds.";
 const SUMMARY_FORMAT = '%sDone.%s';
 const ERROR_FORMAT = '%s%s';
 const USAGE_FORMAT = 'Usage: php bin/generate-sales-history.php [orders, default %d]%s';
+const ORDERS_ARGUMENT = 1;
+const INVALID_ARGUMENT = 2;
+const ALREADY_EXISTS = 3;
 
-$orders = (int) ($argv[1] ?? DEFAULT_ORDERS);
+$orders = (int) ($argv[ORDERS_ARGUMENT] ?? DEFAULT_ORDERS);
 
 if ($orders < 1) {
     fwrite(STDERR, sprintf(USAGE_FORMAT, DEFAULT_ORDERS, PHP_EOL));
-    exit(2);
+    exit(INVALID_ARGUMENT);
 }
 
 $startedAt = time();
@@ -32,7 +35,7 @@ try {
     );
 } catch (SalesHistoryAlreadyExists $exception) {
     fwrite(STDERR, sprintf(ERROR_FORMAT, $exception->getMessage(), PHP_EOL));
-    exit(3);
+    exit(ALREADY_EXISTS);
 }
 
 fwrite(STDOUT, sprintf(SUMMARY_FORMAT, PHP_EOL, PHP_EOL));

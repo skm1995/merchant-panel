@@ -23,7 +23,6 @@ final readonly class Request
 
     /**
      * @param array<mixed> $query
-     * @param array<mixed> $post
      * @param array<string, string> $headers header values keyed by lowercase name
      * @param array<string, string> $routeParameters
      */
@@ -31,7 +30,6 @@ final readonly class Request
         public string $method,
         public string $path,
         private array $query = [],
-        private array $post = [],
         private array $headers = [],
         private ?string $body = null,
         private array $routeParameters = [],
@@ -49,7 +47,6 @@ final readonly class Request
             is_string($method) ? $method : HttpMethodEnum::GET->value,
             is_string($path) ? $path : self::ROOT_PATH,
             $_GET,
-            $_POST,
             self::headersFromServer(),
             file_get_contents(self::BODY_STREAM) ?: null,
             clientAddress: self::stringValue($_SERVER, ServerParameterEnum::REMOTE_ADDR->value),
@@ -71,11 +68,6 @@ final readonly class Request
         return self::stringValue($this->query, $key);
     }
 
-    public function post(string $key): ?string
-    {
-        return self::stringValue($this->post, $key);
-    }
-
     /** @param array<string, string> $parameters */
     public function withRouteParameters(array $parameters): self
     {
@@ -83,7 +75,6 @@ final readonly class Request
             $this->method,
             $this->path,
             $this->query,
-            $this->post,
             $this->headers,
             $this->body,
             $parameters,

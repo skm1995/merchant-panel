@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Auth\Infrastructure\Messenger;
 
-use App\Auth\Message\ConfirmationEmailMessage;
 use App\Auth\Infrastructure\Messenger\SendConfirmationEmailHandler;
+use App\Auth\Message\ConfirmationEmailMessage;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;

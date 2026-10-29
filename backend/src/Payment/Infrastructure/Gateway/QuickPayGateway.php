@@ -14,8 +14,8 @@ use App\Payment\Gateway\PaymentWebhookEvent;
 use Money\Currencies\ISOCurrencies;
 use Money\Currency;
 use Money\Exception\ParserException;
-use Money\Parser\DecimalMoneyParser;
 use Money\Money;
+use Money\Parser\DecimalMoneyParser;
 use Psr\Clock\ClockInterface;
 
 /**

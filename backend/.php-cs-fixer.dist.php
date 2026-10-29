@@ -31,5 +31,7 @@ $finder->append([__DIR__ . $phpMigrationConfiguration]);
 return new Config()
     ->setRules([
         $phpCodingStandard => true,
+        'ordered_imports' => ['sort_algorithm' => 'alpha', 'imports_order' => ['class', 'function', 'const']],
+        'no_unused_imports' => true,
     ])
     ->setFinder($finder);

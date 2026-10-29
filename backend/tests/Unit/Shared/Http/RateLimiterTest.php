@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Shared\Http;
 
-use App\Shared\Http\RateLimitPolicy;
 use App\Shared\Http\RateLimiter;
+use App\Shared\Http\RateLimitPolicy;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;

@@ -13,14 +13,14 @@ use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\ConfirmationToken;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
-use DateTimeImmutable;
 use App\Shared\Database\Enum\IsolationLevelEnum;
+use DateTimeImmutable;
 use DomainException;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Support\CheapPasswordHash;
+use Tests\Unit\Support\FrozenClock;
 use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\RecordingOutbox;
-use Tests\Unit\Support\FrozenClock;
 
 final class RegisterUserServiceTest extends TestCase
 {

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Auth\Service;
 
 use App\Auth\Entity\User;
-use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Infrastructure\Session\CurrentUser;
+use App\Auth\Repository\UserRepositoryInterface;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\UserAuthService;
 use App\Shared\Http\Session;

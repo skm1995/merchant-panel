@@ -13,8 +13,8 @@ use App\Catalog\Exception\InsufficientStockException;
 use App\Catalog\Repository\ProductRepositoryInterface;
 use App\Catalog\Service\ProductCatalog;
 use App\Catalog\Service\StockReservation;
-use App\Order\Command\PlaceOrderCommand;
 use App\Order\Command\ExpireOrderReservationCommand;
+use App\Order\Command\PlaceOrderCommand;
 use App\Order\Command\PlaceOrderHandler;
 use App\Order\Entity\Order;
 use App\Order\Entity\OrderPlacement;
@@ -30,8 +30,8 @@ use PHPUnit\Framework\TestCase;
 use Tests\Unit\Cart\CartFixtures;
 use Tests\Unit\Catalog\ProductFactory;
 use Tests\Unit\Order\OrderFixtures;
-use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class PlaceOrderHandlerTest extends TestCase
 {

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Payment\Command;
 
+use App\Payment\Enum\PaymentProviderEnum;
 use App\Payment\Enum\WebhookResultEnum;
 use App\Shared\Messaging\Bus\CommandInterface;
-use App\Payment\Enum\PaymentProviderEnum;
 
 /** @implements CommandInterface<WebhookResultEnum> */
 final readonly class HandlePaymentWebhookCommand implements CommandInterface

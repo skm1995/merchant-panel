@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Report;
 
-use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailyRevenue;
 use App\Report\ReadModel\DailySales;
 use App\Report\ReadModel\MonthRevenue;
 use App\Report\ReadModel\ProductPace;
 use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\TopProduct;
+use App\Report\ValueObject\ReportPeriod;
 use DateTimeImmutable;
 use Money\Currency;
 use Money\Money;

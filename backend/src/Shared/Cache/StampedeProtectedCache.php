@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Cache;
 
-use Closure;
 use App\Shared\Cache\Exception\CacheUnavailableException;
+use Closure;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 

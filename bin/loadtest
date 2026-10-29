@@ -17,10 +17,13 @@ settle_timeout_seconds=60
 "${compose[@]}" up --detach --wait
 
 echo "Seeding ${products} products with ${initial_stock} units each (${prefix})..."
+rows=()
+for n in $(seq 1 "${products}"); do
+    rows+=("('${prefix}-${n}', 'Black Friday deal ${n}', $((1999 + n)), 'PLN', ${initial_stock}, 0)")
+done
 "${mysql[@]}" <<SQL
 INSERT INTO products (sku, name, price_amount, price_currency, stock, reserved)
-WITH RECURSIVE sequence (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM sequence WHERE n < ${products})
-SELECT CONCAT('${prefix}-', n), CONCAT('Black Friday deal ', n), 1999 + n, 'PLN', ${initial_stock}, 0 FROM sequence;
+VALUES $(IFS=,; echo "${rows[*]}");
 SQL
 product_ids=$("${mysql[@]}" <<< "SELECT GROUP_CONCAT(id) FROM products WHERE sku LIKE '${prefix}-%';")
 

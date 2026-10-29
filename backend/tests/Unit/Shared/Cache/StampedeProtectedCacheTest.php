@@ -8,8 +8,8 @@ use App\Shared\Cache\StampedeProtectedCache;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
-use Tests\Unit\Support\InMemoryCacheStore;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\InMemoryCacheStore;
 
 final class StampedeProtectedCacheTest extends TestCase
 {

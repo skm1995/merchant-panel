@@ -12,9 +12,9 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use stdClass;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBus;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
 use Symfony\Component\Messenger\Middleware\StackInterface;
-use Symfony\Component\Messenger\MessageBus;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 
 final class MessageLogMiddlewareTest extends TestCase

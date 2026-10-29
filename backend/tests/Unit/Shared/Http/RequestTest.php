@@ -28,21 +28,17 @@ final class RequestTest extends TestCase
     private array $originalServer;
     /** @var array<mixed> */
     private array $originalGet;
-    /** @var array<mixed> */
-    private array $originalPost;
 
     protected function setUp(): void
     {
         $this->originalServer = $_SERVER;
         $this->originalGet = $_GET;
-        $this->originalPost = $_POST;
     }
 
     protected function tearDown(): void
     {
         $_SERVER = $this->originalServer;
         $_GET = $this->originalGet;
-        $_POST = $this->originalPost;
     }
 
     public function testReadsMethodPathAndInputFromGlobals(): void
@@ -50,14 +46,12 @@ final class RequestTest extends TestCase
         $_SERVER[ServerParameterEnum::REQUEST_METHOD->value] = HttpMethodEnum::POST->value;
         $_SERVER[ServerParameterEnum::REQUEST_URI->value] = self::URI;
         $_GET = [self::FIELD => self::VALUE];
-        $_POST = [self::FIELD => self::VALUE];
 
         $request = Request::fromGlobals();
 
         self::assertSame(HttpMethodEnum::POST->value, $request->method);
         self::assertSame(self::PATH, $request->path);
         self::assertSame(self::VALUE, $request->query(self::FIELD));
-        self::assertSame(self::VALUE, $request->post(self::FIELD));
     }
 
     public function testFallsBackToRootGetRequestForInvalidServerParameters(): void
@@ -133,9 +127,9 @@ final class RequestTest extends TestCase
 
     public function testReturnsNullForMissingOrNonStringInput(): void
     {
-        $request = new Request(HttpMethodEnum::POST->value, self::PATH, [], [self::FIELD => [self::VALUE]]);
+        $request = new Request(HttpMethodEnum::POST->value, self::PATH, [self::FIELD => [self::VALUE]]);
 
         self::assertNull($request->query(self::FIELD));
-        self::assertNull($request->post(self::FIELD));
+        self::assertNull($request->query('missing'));
     }
 }

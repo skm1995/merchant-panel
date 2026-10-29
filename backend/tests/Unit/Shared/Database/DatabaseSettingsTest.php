@@ -6,8 +6,8 @@ namespace Tests\Unit\Shared\Database;
 
 use App\Shared\Config\Exception\InvalidEnvironmentVariableException;
 use App\Shared\Config\Exception\MissingEnvironmentVariableException;
-use App\Shared\Database\Enum\DatabaseEnvironmentEnum;
 use App\Shared\Database\DatabaseSettings;
+use App\Shared\Database\Enum\DatabaseEnvironmentEnum;
 use PHPUnit\Framework\TestCase;
 
 final class DatabaseSettingsTest extends TestCase

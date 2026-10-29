@@ -6,10 +6,10 @@ namespace Tests\Unit\Shared\Http;
 
 use App\Shared\Contract\Arrayable;
 use App\Shared\Http\EntityTag;
-use App\Shared\Http\Enum\ResponseStatusEnum;
-use App\Shared\Http\Responder;
-use App\Shared\Http\Request;
 use App\Shared\Http\Enum\HttpMethodEnum;
+use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Shared\Http\Request;
+use App\Shared\Http\Responder;
 use PHPUnit\Framework\TestCase;
 
 final class ResponderTest extends TestCase

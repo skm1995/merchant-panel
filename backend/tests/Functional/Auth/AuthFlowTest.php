@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Auth;
 
+use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Auth\Repository\PdoEmailVerificationTokenRepository;
 use App\Auth\Repository\PdoUserRepository;
 use App\Auth\Service\ConfirmationToken;
-use App\Auth\Infrastructure\Session\CurrentUser;
 use App\Auth\Service\LoginUserService;
 use App\Auth\Service\RegisterUserService;
 use App\Auth\Service\UserAuthService;
+use App\Shared\Clock\SystemClock;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Database\PdoTransactionRunner;
 use App\Shared\Http\Session;
+use App\Shared\Messaging\Outbox\OutboxInterface;
 use DateTimeImmutable;
 use DomainException;
 use PDO;
 use PDOStatement;
-use App\Shared\Messaging\Outbox\OutboxInterface;
 use PHPUnit\Framework\TestCase;
-use App\Shared\Clock\SystemClock;
 use Tests\Functional\Support\TestUserData;
 
 final class AuthFlowTest extends TestCase

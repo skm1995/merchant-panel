@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Report\Repository;
 
 use App\Order\Enum\OrderStatusEnum;
-use App\Report\ValueObject\ReportPeriod;
 use App\Report\ReadModel\DailySales;
 use App\Report\ReadModel\HeatmapCell;
 use App\Report\ReadModel\MonthRevenue;
 use App\Report\ReadModel\ProductPace;
 use App\Report\ReadModel\ProductSales;
 use App\Report\ReadModel\ReportedOrder;
+use App\Report\ValueObject\ReportPeriod;
 use App\Shared\Database\RecordFetcher;
 use App\Shared\Database\SqlDateTime;
 use DateTimeImmutable;

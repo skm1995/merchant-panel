@@ -9,13 +9,13 @@ use App\Shared\Http\Enum\CharacterEncodingEnum;
 use App\Shared\Http\Enum\ContentTypeEnum;
 use App\Shared\Http\Enum\HeaderNameEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use Closure;
 
 final class Responder
 {
     private const string VIEW_PATH_FORMAT = '%s/views/%s.php';
     private const string HEADER_FORMAT = '%s: %s';
     private const string STATUS_BODY_FORMAT = '%d %s';
-    private const string ESCAPE_DATA_KEY = 'e';
     private const string PROBLEM_TYPE_KEY = 'type';
     private const string PROBLEM_TITLE_KEY = 'title';
     private const string PROBLEM_STATUS_KEY = 'status';
@@ -24,17 +24,28 @@ final class Responder
     // Floats keep their fraction (2.0, not 2), so a number field never changes its JSON type.
     private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION;
 
-    /** @param array<string, mixed> $data */
-    public function render(string $view, array $data = []): void
+    /**
+     * Renders a PHP view from views/, which reads its data from $page and escapes every value
+     * it prints with $e.
+     *
+     * @param array<string, mixed> $page
+     */
+    public function render(string $view, array $page = []): void
     {
         self::header(HeaderNameEnum::CONTENT_TYPE, ContentTypeEnum::HTML->value);
-        $data[self::ESCAPE_DATA_KEY] = self::escape(...);
         $viewPath = sprintf(self::VIEW_PATH_FORMAT, dirname(__DIR__, 3), $view);
 
-        (static function (string $viewPath, array $data): void {
-            extract($data, EXTR_SKIP);
+        (static function (string $viewPath, array $page, Closure $e): void {
             require $viewPath;
-        })($viewPath, $data);
+        })($viewPath, $page, self::escape(...));
+    }
+
+    /**
+     * Adds a response header that the other methods do not write, before the body is written.
+     */
+    public function sendHeader(HeaderNameEnum $name, string $value): void
+    {
+        self::header($name, $value);
     }
 
     public function json(
@@ -117,14 +128,6 @@ final class Responder
     private static function escape(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES, CharacterEncodingEnum::UTF8->value);
-    }
-
-    /**
-     * Adds a response header that the other methods do not write, before the body is written.
-     */
-    public function sendHeader(HeaderNameEnum $name, string $value): void
-    {
-        self::header($name, $value);
     }
 
     private static function header(HeaderNameEnum $name, string $value): void

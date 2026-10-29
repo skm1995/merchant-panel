@@ -15,8 +15,8 @@ use RuntimeException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
-use Tests\Unit\Support\ImmediateTransactionRunner;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\ImmediateTransactionRunner;
 
 final class OutboxRelayTest extends TestCase
 {

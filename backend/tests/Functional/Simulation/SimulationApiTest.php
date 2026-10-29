@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Tests\Functional\Simulation;
 
 use App\Shared\Database\DatabaseConnection;
-use DateTimeImmutable;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Simulation\Repository\PdoSimulationCatalog;
+use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -72,6 +73,8 @@ final class SimulationApiTest extends TestCase
     protected function tearDown(): void
     {
         TestUserData::delete($this->pdo, $this->email);
+        // The last run's paid orders would otherwise count in the other tests' reports.
+        new PdoSimulationCatalog($this->pdo)->removeFinishedOrders();
     }
 
     public function testOnlyMerchantsStartAndFollowSimulations(): void

@@ -8,8 +8,8 @@ use App\Shared\Config\Environment;
 use App\Shared\Http\Enum\ServerParameterEnum;
 
 /**
- * The browser session. HttpApplication starts it for browser requests; the JSON API stays
- * sessionless.
+ * The browser session. The router starts it for browser pages and for the API routes that
+ * use it (#[UsesSession], #[RequireMerchant]); the other API routes stay sessionless.
  */
 final class Session
 {

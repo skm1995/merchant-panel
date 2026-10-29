@@ -24,10 +24,10 @@ use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
 use App\Shared\Http\MapException;
 use App\Shared\Http\Request;
-use App\Shared\Messaging\Bus\CommandBusInterface;
-use App\Shared\Messaging\Bus\QueryBusInterface;
 use App\Shared\Http\Responder;
 use App\Shared\Http\Route;
+use App\Shared\Messaging\Bus\CommandBusInterface;
+use App\Shared\Messaging\Bus\QueryBusInterface;
 
 final readonly class PaymentApiController
 {

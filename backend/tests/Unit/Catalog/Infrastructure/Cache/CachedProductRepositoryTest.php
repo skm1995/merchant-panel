@@ -11,8 +11,8 @@ use App\Shared\Cache\StampedeProtectedCache;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Tests\Unit\Catalog\ProductFactory;
-use Tests\Unit\Support\InMemoryCacheStore;
 use Tests\Unit\Support\FrozenClock;
+use Tests\Unit\Support\InMemoryCacheStore;
 
 final class CachedProductRepositoryTest extends TestCase
 {

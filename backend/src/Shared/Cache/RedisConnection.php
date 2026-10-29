@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Cache;
 
-use App\Shared\DependencyInjection\ServiceFactory;
 use App\Shared\Config\Environment;
+use App\Shared\DependencyInjection\ServiceFactory;
 use Redis;
 use RedisException;
 
