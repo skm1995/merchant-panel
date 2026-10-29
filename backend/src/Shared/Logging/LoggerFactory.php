@@ -14,7 +14,8 @@ use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 
 /**
- * Writes one JSON object per line to stderr, where Docker collects it for Filebeat and ELK.
+ * Writes one JSON object per line to stderr, where Docker collects it and Vector ships it to
+ * Elasticsearch.
  */
 final class LoggerFactory
 {
