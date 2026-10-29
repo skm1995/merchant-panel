@@ -8,7 +8,7 @@ COPY openapi /app/openapi
 COPY frontend/ ./
 RUN npm run build
 
-FROM caddy:2.10.2-alpine
+FROM caddy:2.11.7-alpine
 
 COPY docker/caddy/backend.caddy /etc/caddy/backend.caddy
 COPY docker/caddy/headers.caddy /etc/caddy/headers.caddy
