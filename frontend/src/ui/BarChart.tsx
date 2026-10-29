@@ -31,6 +31,8 @@ const ROUNDED_END = 4;
 // Room right of the longest bar for its value label, such as "PLN 5,654,320".
 const LABEL_SPACE = 112;
 const LABEL_OFFSET = 6;
+// The library draws neither a bar of zero nor its label; a sliver keeps both.
+const MIN_BAR_LENGTH = 2;
 interface CategoryTickProps {
   x?: number | string | undefined;
   y?: number | string | undefined;
@@ -67,7 +69,7 @@ interface ValueLabelProps {
 export function BarChart({ data, format, formatAxis = format, horizontal = false }: BarChartProps) {
   const height = horizontal ? Math.max(HEIGHT / 2, data.length * ROW_HEIGHT + 40) : HEIGHT;
   const labelWidth = categoryWidth(data.map((datum) => datum.label));
-  // Drawn by hand, so a bar of zero, such as a product already sold out, still shows its value.
+  // Drawn by hand next to the bar's end, whatever its length.
   const valueLabel = ({
     x = 0,
     y = 0,
@@ -125,6 +127,7 @@ export function BarChart({ data, format, formatAxis = format, horizontal = false
             radius={
               horizontal ? [0, ROUNDED_END, ROUNDED_END, 0] : [ROUNDED_END, ROUNDED_END, 0, 0]
             }
+            minPointSize={MIN_BAR_LENGTH}
             isAnimationActive={false}
           >
             {horizontal && <LabelList dataKey="value" content={valueLabel} />}

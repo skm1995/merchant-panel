@@ -27,6 +27,8 @@ interface LineChartProps {
 const HEIGHT = 280;
 const FIRST_COLOR = 'var(--chart-series-1)';
 const SERIES_COLORS = [FIRST_COLOR, 'var(--chart-series-2)'];
+// With more points, such as a year of days, the dots merge into a thick line; the hover dot stays.
+const MAX_POINTS_WITH_DOTS = 31;
 
 /**
  * Up to two series on one axis, colored in the fixed categorical order, with a legend when
@@ -57,7 +59,8 @@ export function LineChart({ data, series, format, formatAxis = format }: LineCha
                 name={line.name}
                 stroke={color}
                 strokeWidth={2}
-                dot={{ r: 4, fill: color }}
+                dot={data.length <= MAX_POINTS_WITH_DOTS && { r: 4, fill: color }}
+                activeDot={{ r: 4, fill: color }}
                 isAnimationActive={false}
               />
             );
