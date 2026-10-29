@@ -26,7 +26,7 @@ jobs:
           jq -r '"Frontend line coverage: \(.total.lines.pct)%."' frontend/coverage/coverage-summary.json >> "$GITHUB_STEP_SUMMARY" || true
       - name: Keep coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: |
