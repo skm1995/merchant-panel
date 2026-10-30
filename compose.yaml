@@ -443,7 +443,7 @@ services:
       retries: 40
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:9.2.0
+    image: docker.elastic.co/kibana/kibana:9.5.5
     profiles:
       - observability
     environment:
