@@ -11,29 +11,34 @@ they rely on. The same images and configuration serve development, the test stac
 flowchart TB
     internet((Internet))
 
-    subgraph server[Oracle Cloud server, compose.prod.yaml]
-        caddy[caddy<br/>ports 80, 443]
-        php[php<br/>PHP-FPM, port 9000]
-        worker[worker<br/>bin/worker.php]
-        relay[outbox-relay<br/>bin/outbox-relay.php]
-        mysql[(mysql)]
-        redis[(redis)]
-        rabbit[[rabbitmq]]
-        mailpit[mailpit]
-        simulator[simulator<br/>bin/simulator.php]
-        elastic[(elasticsearch)]
-        kibana[kibana]
-        vector[vector]
-        migrate[migrate<br/>runs once]
+    subgraph server[Oracle Cloud server]
+        host_caddy[Host Caddy<br/>ports 80, 443]
+
+        subgraph compose[compose.prod.yaml]
+            caddy[caddy<br/>port 8001]
+            php[php<br/>PHP-FPM, port 9000]
+            worker[worker<br/>bin/worker.php]
+            relay[outbox-relay<br/>bin/outbox-relay.php]
+            mysql[(mysql)]
+            redis[(redis)]
+            rabbit[[rabbitmq]]
+            mailpit[mailpit]
+            simulator[simulator<br/>bin/simulator.php]
+            elastic[(elasticsearch)]
+            kibana[kibana]
+            vector[vector]
+            migrate[migrate<br/>runs once]
+        end
     end
 
-    internet -->|demo.domain| caddy
-    internet -->|mail.domain, password| caddy
+    internet -->|demo.domain| host_caddy
+    internet -->|mail.domain, password| host_caddy
+    host_caddy -->|127.0.0.1:8001| caddy
     caddy -->|FastCGI: /api/, /legacy/| php
     caddy -->|HTTP| mailpit
     caddy -->|/kibana/| kibana
     rabbit --> simulator
-    simulator -->|HTTPS, as buyers| caddy
+    simulator -->|HTTP, as buyers| caddy
     kibana --> elastic
     vector -->|container logs| elastic
     php --> mysql
@@ -49,7 +54,7 @@ flowchart TB
 
 | Container | Image | Role |
 |---|---|---|
-| `caddy` | built from [`docker/caddy/Dockerfile`](../../docker/caddy/Dockerfile) | The only container with published ports. Obtains HTTPS certificates, adds security headers, serves the built React app, and sends `/api/` and `/legacy/` to PHP-FPM over FastCGI. Mailpit is served on its own domain behind a password. |
+| `caddy` | built from [`docker/caddy/Dockerfile`](../../docker/caddy/Dockerfile) | Listens on loopback port 8001 behind the host-level reverse proxy. Adds security headers, serves the built React app, and sends `/api/` and `/legacy/` to PHP-FPM over FastCGI. Mailpit is served on its own domain behind a password. |
 | `php` | `prod` stage of [`docker/php/Dockerfile`](../../docker/php/Dockerfile) | PHP-FPM running the JSON API through the front controller [`backend/public/index.php`](../../backend/public/index.php). |
 | `worker` | same PHP image | Consumes RabbitMQ messages: sends emails, expires unpaid orders, invalidates cached products, and recomputes the daily sales summary after a payment. Runs as `www-data`. |
 | `outbox-relay` | same PHP image | Publishes messages stored in the outbox table to RabbitMQ. Runs as `www-data`. |

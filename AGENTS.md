@@ -20,7 +20,7 @@ The repository holds a PHP JSON API in `backend/` and a React application in `fr
 ## Infrastructure and configuration
 
 - Optional stacks live behind Compose profiles: `test` for the test infrastructure, `tools` for one-off containers such as the frontend toolchain and Playwright, and `observability` for Elasticsearch, Kibana, and Vector.
-- `compose.yaml` serves development and CI; `compose.prod.yaml` is the production server, with the code baked into images, only Caddy publishing ports to the internet, and MySQL on the server's loopback for SSH tunnels. Both share the Dockerfiles, `docker/caddy/backend.caddy`, and the variable groups in `docker/env/`.
+- `compose.yaml` serves development and CI; `compose.prod.yaml` is the production server, with the code baked into images, Caddy publishing port 8001 on loopback behind the host reverse proxy, and MySQL on the server's loopback for SSH tunnels. Both share the Dockerfiles, `docker/caddy/backend.caddy`, and the variable groups in `docker/env/`.
 - Keep `services:` first in `compose.yaml`. Backend services extend `docker/php/compose.yaml`, and each service takes only the variable groups it uses from `docker/env/*.env`. Services that need the schema depend on the `migrate` (or `migrate-test`) service completing.
 - Read configuration (DSNs, hosts, credentials, URLs, sender addresses) only from environment variables, with no fallback values in code; local defaults live in `docker/env/*.env` and `.env.example`.
 - Never commit `.env` files, IDE settings, or secrets; keep `.env.example` tracked and ignore the rest in `.gitignore`.

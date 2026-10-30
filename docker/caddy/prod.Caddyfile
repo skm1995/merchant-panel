@@ -1,11 +1,12 @@
 # Production: the panel and API on the application domain, and the demo's tools behind a
-# password on the mail domain (Mailpit, and Kibana under /kibana/), both with HTTPS
-# certificates Caddy obtains and renews itself.
+# password on the mail domain (Mailpit, and Kibana under /kibana/), behind the host's
+# reverse proxy that terminates TLS.
 {
 	admin off
+	auto_https off
 }
 
-{$APP_DOMAIN} {
+http://{$APP_DOMAIN} {
 	encode zstd gzip
 	import /etc/caddy/access-log.caddy
 	import /etc/caddy/headers.caddy
@@ -19,7 +20,7 @@
 	}
 }
 
-{$MAIL_DOMAIN} {
+http://{$MAIL_DOMAIN} {
 	# Not the panel's policy: Mailpit and Kibana run their own scripts and styles.
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

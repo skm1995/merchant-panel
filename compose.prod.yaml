@@ -1,7 +1,7 @@
 # Production on one server, deployed by bin/deploy after CI passes. The images contain the
 # code and are built in CI by bin/publish-images, tagged with the commit; the server only pulls
-# them. Command-line processes run as www-data rather than root, and only Caddy publishes
-# ports. Values come from the .env file bin/deploy writes next to this file; the variable
+# them. Command-line processes run as www-data rather than root, and Caddy publishes its HTTP
+# port on the server's loopback behind the host's edge reverse proxy. Values come from the .env file bin/deploy writes next to this file; the variable
 # groups in docker/env/ are shared with development.
 # The Compose project keeps the repository's earlier name: its volumes, including the
 # database, are named after it, so renaming it would start production with empty volumes.
@@ -147,7 +147,7 @@ services:
       - docker/env/load-test.env
       - docker/env/simulation.env
     environment:
-      SIMULATION_BASE_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      SIMULATION_BASE_URL: http://${APP_DOMAIN:?APP_DOMAIN is required}
       SIMULATION_RESOLVE_HOST: caddy
       FAKEPAY_WEBHOOK_SECRET: ${FAKEPAY_WEBHOOK_SECRET:?FAKEPAY_WEBHOOK_SECRET is required}
       QUICKPAY_WEBHOOK_SECRET: ${QUICKPAY_WEBHOOK_SECRET:?QUICKPAY_WEBHOOK_SECRET is required}
@@ -166,9 +166,7 @@ services:
     image: ${IMAGES:?IMAGES is required}/caddy:${IMAGE_TAG:?IMAGE_TAG is required}
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "127.0.0.1:8001:80"
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
       MAIL_DOMAIN: ${MAIL_DOMAIN:?MAIL_DOMAIN is required}

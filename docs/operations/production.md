@@ -23,7 +23,9 @@ the panel. Deployment creates it once and leaves it alone afterwards.
 
 ## What runs
 
-Caddy publishes ports 80 and 443 to the internet. MySQL also listens on the server's loopback
+A host-level Caddy reverse proxy terminates TLS and forwards incoming traffic for
+`demo.${BASE_DOMAIN}` and `mail.${BASE_DOMAIN}` to the containerized Caddy on `127.0.0.1:8001`.
+MySQL also listens on the server's loopback
 address, `127.0.0.1:3306`, for a database client through an SSH tunnel (see
 [Database access](#database-access)); Redis, RabbitMQ, Mailpit, Elasticsearch, and Kibana are
 reachable only on the Compose network. Elasticsearch gets a 2 GB heap within a 3 GB limit
