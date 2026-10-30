@@ -358,7 +358,7 @@ services:
 
   # Load test runner for bin/loadtest; it targets the test stack behind caddy-test.
   k6:
-    image: grafana/k6:1.4.0
+    image: grafana/k6:2.3.0
     profiles:
       - tools
     volumes:
