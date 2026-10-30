@@ -281,7 +281,7 @@ services:
   # Sets up log retention, the data view, and the dashboards; bin/deploy runs it after every
   # deploy with `docker compose run`, so it lives in the tools profile.
   kibana-setup:
-    image: curlimages/curl:8.16.0
+    image: curlimages/curl:8.22.0
     restart: "no"
     profiles:
       - tools

@@ -462,7 +462,7 @@ services:
   # Sets up log retention, the "Application logs" data view, and the dashboards once Kibana
   # is up; production runs the same script.
   kibana-setup:
-    image: curlimages/curl:8.16.0
+    image: curlimages/curl:8.22.0
     profiles:
       - observability
     volumes:
