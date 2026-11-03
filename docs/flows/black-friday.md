@@ -56,7 +56,7 @@ the next one, so each run has its own database connection ([0031](../decisions/0
 drives the buyers on one Symfony HTTP client, which sends their requests concurrently. Each
 buyer:
 1. creates a cart and adds one of the products;
-2. checks out with an idempotency key `simulation:<id>:<buyer>-<order>`;
+2. checks out with an idempotency key `simulation:<id>:<attempt>:<buyer>-<order>`;
 3. starts a FakePay payment and sends the webhook FakePay would send, signed with its secret.
 
 When an order ends (paid, refused because the stock ran out, or failed), the buyer starts the
@@ -77,8 +77,9 @@ log redacts the header like the other credentials.
 [`RunSimulationHandler`](../../backend/src/Simulation/Command/RunSimulationHandler.php)
 compares the units taken from the products' stock with the units in the simulation's paid
 orders. They match when the [stock reservation](checkout.md#checkout) neither sold a unit
-twice nor lost one, however many buyers checked out at once. The check is saved even when the
-buyers fail. If the simulator stops before saving it, the run is shown as interrupted two
+twice nor lost one, however many buyers checked out at once. A run delivered again, because its
+check failed or its process died, sends the buyers through new orders with keys of their own,
+and its check counts both attempts. The check is saved even when the buyers fail. If the simulator stops before saving it, the run is shown as interrupted two
 minutes after its end, so it never stays "running" and the panel can start another one
 ([0030](../decisions/0030-interrupted-simulations.md)).
 

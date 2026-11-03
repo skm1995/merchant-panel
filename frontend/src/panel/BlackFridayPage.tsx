@@ -138,7 +138,7 @@ export function BlackFridayPage() {
             ]}
           />
           <p className={styles.intro}>
-            Orders placed and paid count completed checkouts, and every placed order gets paid. Sold
+            Orders placed counts completed checkouts and orders paid counts confirmed payments. Sold
             out counts requests refused because the stock ran out, when adding to the cart or at
             checkout, so it counts refusals, not orders.
           </p>

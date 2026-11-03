@@ -21,6 +21,7 @@ final class HttpLoadGeneratorTest extends TestCase
 {
     private const int BUYERS = 3;
     private const int STOCK_PER_PRODUCT = 2;
+    private const int STOCK_FOR_TWO_ATTEMPTS = 20;
     private const int PRODUCTS = 5;
     private const string RUN_FOR = '+2 seconds';
 
@@ -43,5 +44,24 @@ final class HttpLoadGeneratorTest extends TestCase
         self::assertSame($counts->ordersPlaced, $counts->ordersPaid, 'Every buyer who checked out also paid.');
         self::assertSame(0, $counts->failedRequests);
         self::assertSame($unitsTaken, $catalog->paidUnits($run->id), 'Every unit taken from the shelves was paid for once, however fast the buyers were.');
+    }
+
+    /**
+     * Messenger delivers a run again when its check failed or its process died. An ended run
+     * sends each buyer through exactly one order, so the second attempt doubles the orders.
+     */
+    public function testARunDeliveredAgainPlacesNewOrdersInsteadOfFailingOnTheOldKeys(): void
+    {
+        $container = ContainerFactory::create();
+        $products = $container->get(SimulationCatalogInterface::class)->prepareProducts(self::PRODUCTS, self::STOCK_FOR_TWO_ATTEMPTS);
+        $run = new SimulationRun(uniqid('load-test-', true), new DateTimeImmutable(), new DateTimeImmutable(), self::BUYERS, $products);
+        $load = $container->get(HttpLoadGenerator::class);
+
+        $load->run($run);
+        $load->run($run);
+
+        $counts = SimulationCounters::fromCounts($container->get(SimulationStoreInterface::class)->counts($run->id));
+        self::assertSame(0, $counts->failedRequests);
+        self::assertSame(2 * self::BUYERS, $counts->ordersPaid);
     }
 }

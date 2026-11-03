@@ -128,9 +128,14 @@ describe('BlackFridayPage', () => {
 
     renderApp('/black-friday');
 
-    expect(
-      await screen.findByText(/Sold out counts requests refused because the stock ran out/),
-    ).toHaveTextContent('so it counts refusals, not orders');
+    const explanation = await screen.findByText(
+      /Sold out counts requests refused because the stock ran out/,
+    );
+
+    expect(explanation).toHaveTextContent('so it counts refusals, not orders');
+    expect(explanation).toHaveTextContent(
+      'Orders placed counts completed checkouts and orders paid counts confirmed payments',
+    );
   });
 
   it('says when a simulation stopped before its check and lets the merchant start another', async () => {

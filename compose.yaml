@@ -68,6 +68,7 @@ services:
     restart: unless-stopped
     env_file:
       - docker/env/logging.env
+      - docker/env/worker.env
       - docker/env/database.env
       - docker/env/messenger.env
       - docker/env/mailer.env
@@ -216,6 +217,7 @@ services:
       - test
     env_file:
       - docker/env/logging.env
+      - docker/env/worker.env
       - docker/env/database.env
       - docker/env/database-test.env
       - docker/env/messenger-test.env

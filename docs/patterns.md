@@ -162,7 +162,7 @@ answer a stale version with HTTP 412. Allowed status changes live on the status 
 - Delivery is at least once, so handlers are idempotent.
 - Failed messages stay inspectable in the failure queue and are retried with
   `bin/retry-failed-messages.php`, which skips messages it cannot decode. The worker is
-  restarted after crashes.
+  restarted after crashes and after its [time limit](decisions/0032-worker-time-limit.md).
 - Queued message class names are a persisted contract: drain the queues or keep the old
   class loadable before renaming or moving one.
 - Test handlers and dispatch decisions with mocks, then the end-to-end effect against the

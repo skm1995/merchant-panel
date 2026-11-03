@@ -36,7 +36,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
     private const string CHECKOUT_PATH_FORMAT = '/api/v1/carts/%s/checkout';
     private const string PAYMENTS_PATH_FORMAT = '/api/v1/orders/%s/payments';
     private const string WEBHOOK_PATH = '/api/v1/payments/webhooks/fakepay';
-    private const string ORDER_NUMBER_FORMAT = ReservedOrderKeyPrefixEnum::SIMULATION->value . '%s:%d-%d';
+    private const string ORDER_NUMBER_FORMAT = ReservedOrderKeyPrefixEnum::SIMULATION->value . '%s:%s:%d-%d';
     private const string PAYMENT_KEY_FORMAT = '%s:payment';
     private const string EVENT_ID_FORMAT = 'evt_%s';
     private const string PROVIDER_PAYMENT_PATTERN = '/fp_[a-f0-9]+$/';
@@ -61,6 +61,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
     private const string RESOLVE_OPTION = 'resolve';
     private const float STREAM_TIMEOUT_SECONDS = 1.0;
     private const int MAXIMUM_QUANTITY = 2;
+    private const int ATTEMPT_BYTES = 4;
     private const int REQUEST_TIMEOUT_SECONDS = 10;
 
     public function __construct(
@@ -77,12 +78,14 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
     {
         $client = $this->client();
         $productIds = array_map(static fn (SimulationProduct $product): int => $product->productId, $run->productsAtStart);
+        // Messenger may deliver a run again; its orders are new, so they need keys of their own.
+        $attempt = bin2hex(random_bytes(self::ATTEMPT_BYTES));
         $orders = 0;
         $pending = [];
 
         for ($number = 1; $number <= $run->buyers; $number++) {
             $buyer = new Buyer($number);
-            $buyer->startOrder(sprintf(self::ORDER_NUMBER_FORMAT, $run->id, $number, ++$orders));
+            $buyer->startOrder(sprintf(self::ORDER_NUMBER_FORMAT, $run->id, $attempt, $number, ++$orders));
             $pending[] = $this->createCart($client, $buyer);
         }
 
@@ -111,7 +114,7 @@ final readonly class HttpLoadGenerator implements LoadGeneratorInterface
                 $following = $this->advance($client, $run, $buyer, $response, $productIds);
 
                 if ($following === null && $this->clock->now() < $run->endsAt) {
-                    $buyer->startOrder(sprintf(self::ORDER_NUMBER_FORMAT, $run->id, $buyer->number, ++$orders));
+                    $buyer->startOrder(sprintf(self::ORDER_NUMBER_FORMAT, $run->id, $attempt, $buyer->number, ++$orders));
                     $following = $this->createCart($client, $buyer);
                 }
 

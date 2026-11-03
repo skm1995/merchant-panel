@@ -56,7 +56,7 @@ flowchart TB
 |---|---|---|
 | `caddy` | built from [`docker/caddy/Dockerfile`](../../docker/caddy/Dockerfile) | Listens on loopback port 8001 behind the host-level reverse proxy. Adds security headers, serves the built React app, and sends `/api/` and `/legacy/` to PHP-FPM over FastCGI. Mailpit is served on its own domain behind a password. |
 | `php` | `prod` stage of [`docker/php/Dockerfile`](../../docker/php/Dockerfile) | PHP-FPM running the JSON API through the front controller [`backend/public/index.php`](../../backend/public/index.php). |
-| `worker` | same PHP image | Consumes RabbitMQ messages: sends emails, expires unpaid orders, invalidates cached products, and recomputes the daily sales summary after a payment. Runs as `www-data`. |
+| `worker` | same PHP image | Consumes RabbitMQ messages: sends emails, expires unpaid orders, invalidates cached products, and recomputes the daily sales summary after a payment. Exits every hour and Docker starts a fresh process ([0032](../decisions/0032-worker-time-limit.md)). Runs as `www-data`. |
 | `outbox-relay` | same PHP image | Publishes messages stored in the outbox table to RabbitMQ. Runs as `www-data`. |
 | `migrate` | same PHP image | Applies Phinx migrations and exits; the PHP services start only after it succeeded. |
 | `seed-demo` | same PHP image | Adds the demo catalog; run by `bin/deploy`, not by `up` (profile `tools`). |
