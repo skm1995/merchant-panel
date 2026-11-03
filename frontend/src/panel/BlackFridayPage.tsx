@@ -137,6 +137,11 @@ export function BlackFridayPage() {
               },
             ]}
           />
+          <p className={styles.intro}>
+            Orders placed and paid count completed checkouts, and every placed order gets paid. Sold
+            out counts requests refused because the stock ran out, when adding to the cart or at
+            checkout, so it counts refusals, not orders.
+          </p>
           {simulation.state === 'interrupted' && (
             <Alert tone="error">
               The simulation stopped before it could be checked, so these counters may be

@@ -116,6 +116,23 @@ describe('BlackFridayPage', () => {
     );
   });
 
+  it('explains that sold out counts refusals, not orders', async () => {
+    server.use(
+      sessionHandler(merchantSession('merchant@example.com')),
+      http.get(CURRENT_PATH, () =>
+        HttpResponse.json(
+          simulation('finished', 312, { consistent: true, units_sold: 312, units_paid: 312 }),
+        ),
+      ),
+    );
+
+    renderApp('/black-friday');
+
+    expect(
+      await screen.findByText(/Sold out counts requests refused because the stock ran out/),
+    ).toHaveTextContent('so it counts refusals, not orders');
+  });
+
   it('says when a simulation stopped before its check and lets the merchant start another', async () => {
     server.use(
       sessionHandler(merchantSession('merchant@example.com')),
