@@ -116,6 +116,20 @@ describe('BlackFridayPage', () => {
     );
   });
 
+  it('says when a simulation stopped before its check and lets the merchant start another', async () => {
+    server.use(
+      sessionHandler(merchantSession('merchant@example.com')),
+      http.get(CURRENT_PATH, () => HttpResponse.json(simulation('interrupted', 312))),
+    );
+
+    renderApp('/black-friday');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'stopped before it could be checked',
+    );
+    expect(screen.getByRole('button', { name: 'Start Black Friday' })).toBeEnabled();
+  });
+
   it('shows the stock each product has left', async () => {
     server.use(
       sessionHandler(merchantSession('merchant@example.com')),

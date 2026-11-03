@@ -10,6 +10,7 @@ use App\Shared\Messaging\Exception\UnknownTransportException;
 use App\Shared\Messaging\Outbox\OutboxMessageInterface;
 use App\Shared\Messaging\Outbox\OutboxMessageTypes;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Messenger\Bridge\Amqp\Transport\AmqpTransportFactory;
 use Symfony\Component\Messenger\EventListener\SendFailedMessageForRetryListener;
 use Symfony\Component\Messenger\EventListener\SendFailedMessageToFailureTransportListener;
@@ -87,8 +88,9 @@ final class MessengerRuntime
      *
      * @param array<class-string, list<callable>> $handlers
      * @param list<string> $transports
+     * @param list<EventSubscriberInterface> $subscribers extra listeners for the worker's events, such as a limit on the messages it handles
      */
-    public function worker(array $handlers, array $transports): Worker
+    public function worker(array $handlers, array $transports, array $subscribers = []): Worker
     {
         $receivers = [];
         $retryStrategies = [];
@@ -106,6 +108,10 @@ final class MessengerRuntime
             new RuntimeServiceContainer($retryStrategies),
         ));
         $events->addSubscriber(new SendFailedMessageToFailureTransportListener(new RuntimeServiceContainer($failureSenders)));
+
+        foreach ($subscribers as $subscriber) {
+            $events->addSubscriber($subscriber);
+        }
 
         return new Worker($receivers, $this->bus($handlers), $events);
     }

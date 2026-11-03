@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Simulation\ReadModel;
 
+use App\Simulation\Enum\SimulationStateEnum;
 use DateTimeImmutable;
 
 /**
@@ -26,6 +27,9 @@ final readonly class SimulationRun
     private const string UNITS_SOLD_KEY = 'units_sold';
     private const string UNITS_PAID_KEY = 'units_paid';
     private const string DATE_FORMAT = DATE_ATOM;
+    // The orders still in flight at the end may take a few requests of up to ten seconds each to end.
+    private const int CHECK_GRACE_SECONDS = 120;
+    private const string GRACE_MODIFIER_FORMAT = '+%d seconds';
 
     /** @param list<SimulationProduct> $productsAtStart */
     public function __construct(
@@ -46,6 +50,21 @@ final readonly class SimulationRun
     public function finish(SimulationCheck $check): self
     {
         return new self($this->id, $this->startedAt, $this->endsAt, $this->buyers, $this->productsAtStart, $check);
+    }
+
+    /**
+     * A run whose end passed without a check stopped early, for instance because its simulator
+     * stopped, so it is interrupted rather than running forever and blocking the panel's button.
+     */
+    public function stateAt(DateTimeImmutable $now): SimulationStateEnum
+    {
+        if ($this->isFinished()) {
+            return SimulationStateEnum::FINISHED;
+        }
+
+        $checkDeadline = $this->endsAt->modify(sprintf(self::GRACE_MODIFIER_FORMAT, self::CHECK_GRACE_SECONDS));
+
+        return $now <= $checkDeadline ? SimulationStateEnum::RUNNING : SimulationStateEnum::INTERRUPTED;
     }
 
     /** @return array<string, mixed> */

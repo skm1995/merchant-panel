@@ -50,7 +50,8 @@ runs synchronously, through the command bus, and does three things:
 
 The `simulator` container runs [`bin/simulator.php`](../../backend/bin/simulator.php), a
 Messenger worker that consumes only the `simulation` queue, so the load never delays the
-worker's emails or expiries.
+worker's emails or expiries. It handles one run and exits, and Docker starts a fresh process for
+the next one, so each run has its own database connection ([0031](../decisions/0031-one-simulation-per-simulator-process.md)).
 [`HttpLoadGenerator`](../../backend/src/Simulation/Infrastructure/HttpLoadGenerator.php)
 drives the buyers on one Symfony HTTP client, which sends their requests concurrently. Each
 buyer:
@@ -77,13 +78,16 @@ log redacts the header like the other credentials.
 compares the units taken from the products' stock with the units in the simulation's paid
 orders. They match when the [stock reservation](checkout.md#checkout) neither sold a unit
 twice nor lost one, however many buyers checked out at once. The check is saved even when the
-run fails, so a run never stays "running".
+buyers fail. If the simulator stops before saving it, the run is shown as interrupted two
+minutes after its end, so it never stays "running" and the panel can start another one
+([0030](../decisions/0030-interrupted-simulations.md)).
 
 ## Following it
 
 [`BlackFridayPage`](../../frontend/src/panel/BlackFridayPage.tsx) asks for the current
 simulation every second while it runs and shows the counters, orders per second, the stock
-left, and the check. The **Black Friday** dashboard in [Kibana](../operations/observability.md#on-the-server)
+left, and the check. A finished or interrupted run stops the polling and enables the button
+again; an interrupted run says that its counters may be incomplete. The **Black Friday** dashboard in [Kibana](../operations/observability.md#on-the-server)
 shows the same minute from the logs: requests, p95 latency, server errors, and commands handled
 and refused.
 

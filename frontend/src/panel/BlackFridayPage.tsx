@@ -137,6 +137,12 @@ export function BlackFridayPage() {
               },
             ]}
           />
+          {simulation.state === 'interrupted' && (
+            <Alert tone="error">
+              The simulation stopped before it could be checked, so these counters may be
+              incomplete.
+            </Alert>
+          )}
           {simulation.check !== null &&
             (simulation.check.consistent ? (
               <Alert tone="success">

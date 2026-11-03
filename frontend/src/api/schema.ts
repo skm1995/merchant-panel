@@ -718,8 +718,11 @@ export interface components {
         };
         Simulation: {
             id: string;
-            /** @enum {string} */
-            state: "running" | "finished";
+            /**
+             * @description Running until the end time and for two minutes after it, while the last orders end; interrupted when no check arrived within those two minutes, because the simulator stopped.
+             * @enum {string}
+             */
+            state: "running" | "finished" | "interrupted";
             /** Format: date-time */
             started_at: string;
             /** Format: date-time */

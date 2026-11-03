@@ -10,8 +10,6 @@ use App\Simulation\ReadModel\SimulationView;
 
 final readonly class SimulationResponse implements Arrayable
 {
-    private const string RUNNING = 'running';
-    private const string FINISHED = 'finished';
     private const string DATE_FORMAT = DATE_ATOM;
     private const string ID_KEY = 'id';
     private const string STATE_KEY = 'state';
@@ -46,7 +44,7 @@ final readonly class SimulationResponse implements Arrayable
 
         return [
             self::ID_KEY => $run->id,
-            self::STATE_KEY => $run->isFinished() ? self::FINISHED : self::RUNNING,
+            self::STATE_KEY => $this->simulation->state->value,
             self::STARTED_AT_KEY => $run->startedAt->format(self::DATE_FORMAT),
             self::ENDS_AT_KEY => $run->endsAt->format(self::DATE_FORMAT),
             self::BUYERS_KEY => $run->buyers,

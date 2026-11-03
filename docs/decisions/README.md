@@ -35,3 +35,5 @@ supersedes the old one, so the history of the reasoning stays visible.
 | [0027](0027-password-stamp-ends-sessions.md) | A password stamp in the session ends older sessions | Accepted |
 | [0028](0028-responses-through-a-writer.md) | Responses written through a writer, not PHP's globals | Accepted |
 | [0029](0029-images-built-in-ci.md) | Production images built in CI and pulled by the server | Accepted |
+| [0030](0030-interrupted-simulations.md) | A simulation that never reports its check is interrupted | Accepted |
+| [0031](0031-one-simulation-per-simulator-process.md) | The simulator handles one simulation per process | Accepted |

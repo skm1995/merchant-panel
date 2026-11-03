@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Simulation;
 
+use App\Shared\Cache\RedisConnection;
 use App\Shared\Database\DatabaseConnection;
 use App\Shared\Http\Enum\HttpMethodEnum;
 use App\Shared\Http\Enum\ResponseStatusEnum;
+use App\Simulation\ReadModel\SimulationRun;
 use App\Simulation\Repository\PdoSimulationCatalog;
+use App\Simulation\Repository\RedisSimulationStore;
 use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
@@ -89,12 +92,30 @@ final class SimulationApiTest extends TestCase
         $this->assertResponse(HttpMethodEnum::GET, self::CURRENT_PATH, ResponseStatusEnum::FORBIDDEN, $this->client->get(self::CURRENT_PATH));
     }
 
+    public function testASimulationThatStoppedBeforeItsCheckIsInterruptedAndCanBeStartedAgain(): void
+    {
+        $this->signInAsMerchant();
+        $this->waitUntilNoSimulationRuns();
+        $endedLongAgo = new DateTimeImmutable('-10 minutes');
+        new RedisSimulationStore(RedisConnection::createFromEnvironment())->save(
+            new SimulationRun(bin2hex(random_bytes(8)), $endedLongAgo->modify('-1 minute'), $endedLongAgo, 50, []),
+        );
+
+        $interrupted = $this->assertResponse(HttpMethodEnum::GET, self::CURRENT_PATH, ResponseStatusEnum::OK, $this->client->get(self::CURRENT_PATH));
+
+        self::assertSame('interrupted', $interrupted['state']);
+        self::assertNull($interrupted['check']);
+
+        $this->startWhenFree();
+        $this->waitForState('finished');
+    }
+
     public function testBuyersEmptyTheShelvesWithoutOverselling(): void
     {
         $this->signInAsMerchant();
         $this->waitUntilNoSimulationRuns();
 
-        $started = $this->assertResponse(HttpMethodEnum::POST, self::SIMULATIONS_PATH, ResponseStatusEnum::ACCEPTED, $this->client->send(HttpMethodEnum::POST, self::SIMULATIONS_PATH));
+        $started = $this->startWhenFree();
         $refused = $this->client->send(HttpMethodEnum::POST, self::SIMULATIONS_PATH);
         $finished = $this->waitForState('finished');
 
